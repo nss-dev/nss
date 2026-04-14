@@ -171,16 +171,16 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
         return 0; /* out of memory */
     }
 
-    fd = MPR_Open(pwFile, PR_RDONLY, 0);
+    fd = PR_Open(pwFile, PR_RDONLY, 0);
     if (!fd) {
         fprintf(stderr, "No password file \"%s\" exists.\n", pwFile);
         PORT_Free(phrases);
         return NULL;
     }
 
-    nb = MPR_Read(fd, phrases, maxPwdFileSize);
+    nb = PR_Read(fd, phrases, maxPwdFileSize);
 
-    MPR_Close(fd);
+    PR_Close(fd);
 
     if (nb == 0) {
         fprintf(stderr, "password file contains no data\n");
@@ -244,7 +244,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
         pwdata = &pwxtrn;
     }
     if (retry && pwdata->source != PW_NONE) {
-        MPR_fprintf(PR_STDERR, "Incorrect password/PIN entered.\n");
+        PR_fprintf(PR_STDERR, "Incorrect password/PIN entered.\n");
         return NULL;
     }
 
@@ -263,12 +263,12 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
             PORT_Free(pw);
         /* Fall Through */
         case PW_PLAINTEXT:
-            return MPL_strdup(pwdata->data);
+            return PL_strdup(pwdata->data);
         default:
             break;
     }
 
-    MPR_fprintf(PR_STDERR, "Password check failed:  No password found.\n");
+    PR_fprintf(PR_STDERR, "Password check failed:  No password found.\n");
     return NULL;
 }
 
@@ -284,7 +284,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
         return SECU_FilePasswd(slot, retry, pwdata->data);
     }
     if (pwdata->source == PW_PLAINTEXT) {
-        return MPL_strdup(pwdata->data);
+        return PL_strdup(pwdata->data);
     }
 
 /* PW_NONE - get it from tty */
@@ -295,13 +295,13 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
     input = fopen(consoleName, "r");
 #endif
     if (input == NULL) {
-        MPR_fprintf(PR_STDERR, "Error opening input terminal for read\n");
+        PR_fprintf(PR_STDERR, "Error opening input terminal for read\n");
         return NULL;
     }
 
     /* we have no password, so initialize database with one */
     if (PK11_IsFIPS()) {
-        MPR_fprintf(PR_STDERR,
+        PR_fprintf(PR_STDERR,
                    "Enter a password which will be used to encrypt your keys.\n"
                    "The password should be at least %d characters long,\n"
                    "and should consist of at least three character classes.\n"
@@ -314,7 +314,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
                    "it is not counted toward its character class.\n\n",
                    FIPS_MIN_PIN);
     } else {
-        MPR_fprintf(PR_STDERR,
+        PR_fprintf(PR_STDERR,
                    "Enter a password which will be used to encrypt your keys.\n"
                    "The password should be at least 8 characters long,\n"
                    "and should contain at least one non-alphabetic character.\n\n");
@@ -322,7 +322,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 
     output = fopen(consoleName, "w");
     if (output == NULL) {
-        MPR_fprintf(PR_STDERR, "Error opening output terminal for write\n");
+        PR_fprintf(PR_STDERR, "Error opening output terminal for write\n");
 #ifndef _WINDOWS
         fclose(input);
 #endif
@@ -342,7 +342,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
         if (p0 && p1 && !PORT_Strcmp(p0, p1)) {
             break;
         }
-        MPR_fprintf(PR_STDERR, "Passwords do not match. Try again.\n");
+        PR_fprintf(PR_STDERR, "Passwords do not match. Try again.\n");
     }
 
     /* clear out the duplicate password string */
@@ -401,10 +401,10 @@ SECU_ChangePW2(PK11SlotInfo *slot, char *oldPass, char *newPass,
 
         if (PK11_CheckUserPassword(slot, oldpw) != SECSuccess) {
             if (pwdata.source == PW_NONE) {
-                MPR_fprintf(PR_STDERR, "Invalid password.  Try again.\n");
+                PR_fprintf(PR_STDERR, "Invalid password.  Try again.\n");
             } else {
-                MPR_fprintf(PR_STDERR, "Invalid password.\n");
-                PORT_Memset(oldpw, 0, MPL_strlen(oldpw));
+                PR_fprintf(PR_STDERR, "Invalid password.\n");
+                PORT_Memset(oldpw, 0, PL_strlen(oldpw));
                 PORT_Free(oldpw);
                 rv = SECFailure;
                 goto done;
@@ -419,17 +419,17 @@ SECU_ChangePW2(PK11SlotInfo *slot, char *oldPass, char *newPass,
 
     rv = PK11_ChangePW(slot, oldpw, newpw);
     if (rv != SECSuccess) {
-        MPR_fprintf(PR_STDERR, "Failed to change password.\n");
+        PR_fprintf(PR_STDERR, "Failed to change password.\n");
     } else {
-        MPR_fprintf(PR_STDOUT, "Password changed successfully.\n");
+        PR_fprintf(PR_STDOUT, "Password changed successfully.\n");
     }
 
-    PORT_Memset(oldpw, 0, MPL_strlen(oldpw));
+    PORT_Memset(oldpw, 0, PL_strlen(oldpw));
     PORT_Free(oldpw);
 
 done:
     if (newpw) {
-        PORT_Memset(newpw, 0, MPL_strlen(newpw));
+        PORT_Memset(newpw, 0, PL_strlen(newpw));
         PORT_Free(newpw);
     }
     return rv;
@@ -447,7 +447,7 @@ SECU_DefaultSSLDir(void)
     char *dir;
     static char sslDir[1000];
 
-    dir = MPR_GetEnvSecure("SSL_DIR");
+    dir = PR_GetEnvSecure("SSL_DIR");
     if (!dir)
         return NULL;
 
@@ -486,7 +486,7 @@ SECU_ConfigDirectory(const char *base)
         return buf;
 
     if (base == NULL || *base == 0) {
-        home = MPR_GetEnvSecure("HOME");
+        home = PR_GetEnvSecure("HOME");
         if (!home)
             home = "";
 
@@ -784,7 +784,7 @@ secu_PrintTime(FILE *out, const PRTime time, const char *m, int level)
     char *timeString;
 
     /* Convert to local time */
-    MPR_ExplodeTime(time, MPR_GMTParameters, &printableTime);
+    PR_ExplodeTime(time, PR_GMTParameters, &printableTime);
 
     timeString = PORT_Alloc(256);
     if (timeString == NULL)
@@ -795,7 +795,7 @@ secu_PrintTime(FILE *out, const PRTime time, const char *m, int level)
         fprintf(out, "%s: ", m);
     }
 
-    if (MPR_FormatTime(timeString, 256, "%a %b %d %H:%M:%S %Y", &printableTime)) {
+    if (PR_FormatTime(timeString, 256, "%a %b %d %H:%M:%S %Y", &printableTime)) {
         fputs(timeString, out);
     }
 
@@ -914,12 +914,12 @@ secu_PrintContextSpecific(FILE *out, const SECItem *i, const char *m, int level)
     if (constructed) {
         char *m2;
         if (!m)
-            m2 = MPR_smprintf("[%d]", type);
+            m2 = PR_smprintf("[%d]", type);
         else
-            m2 = MPR_smprintf("%s: [%d]", m, type);
+            m2 = PR_smprintf("%s: [%d]", m, type);
         if (m2) {
             SECU_PrintSet(out, i, m2, level);
-            MPR_smprintf_free(m2);
+            PR_smprintf_free(m2);
         }
         return;
     }
@@ -1184,7 +1184,7 @@ SECU_PrintObjectID(FILE *out, const SECItem *oid, const char *m, int level)
         if (m != NULL)
             fprintf(out, "%s: ", m);
         fprintf(out, "%s\n", oidString);
-        MPR_smprintf_free(oidString);
+        PR_smprintf_free(oidString);
         return SEC_OID_UNKNOWN;
     }
     SECU_PrintAsHex(out, oid, m, level);
@@ -1897,7 +1897,7 @@ secu_PrintIPAddress(FILE *out, SECItem *value, char *msg, int level)
     } else if (value->len == 16) {
         addr.ipv6.family = PR_AF_INET6;
         memcpy(addr.ipv6.ip.pr_s6_addr, value->data, value->len);
-        if (MPR_IsNetAddrType(&addr, PR_IpAddrV4Mapped)) {
+        if (PR_IsNetAddrType(&addr, PR_IpAddrV4Mapped)) {
             /* convert to IPv4.  */
             addr.inet.family = PR_AF_INET;
             memcpy(&addr.inet.ip, &addr.ipv6.ip.pr_s6_addr[12], 4);
@@ -1907,7 +1907,7 @@ secu_PrintIPAddress(FILE *out, SECItem *value, char *msg, int level)
         goto loser;
     }
 
-    st = MPR_NetAddrToString(&addr, addrBuf, sizeof addrBuf);
+    st = PR_NetAddrToString(&addr, addrBuf, sizeof addrBuf);
     if (st == PR_SUCCESS) {
         SECU_Indent(out, level);
         fprintf(out, "%s: %s\n", msg, addrBuf);
@@ -1955,7 +1955,7 @@ secu_PrintGeneralName(FILE *out, CERTGeneralName *gname, char *msg, int level)
             SECU_PrintAny(out, &gname->name.other, "EDI Party", level);
             break;
         default:
-            MPR_snprintf(label, sizeof label, "unknown type [%d]",
+            PR_snprintf(label, sizeof label, "unknown type [%d]",
                         (int)gname->type - 1);
             SECU_PrintAsHex(out, &gname->name.other, label, level);
             break;
@@ -3231,10 +3231,10 @@ secu_PrintPKCS12Bag(FILE *out, SECItem *item, const char *desc, int level)
         PORT_SetError(SEC_ERROR_BAD_DER);
         return SECFailure;
     }
-    m = MPR_smprintf("%s ID", desc);
+    m = PR_smprintf("%s ID", desc);
     bagTag = SECU_PrintEncodedObjectID(out, &bagID, m ? m : "Bag ID", level);
     if (m)
-        MPR_smprintf_free(m);
+        PR_smprintf_free(m);
 
     /* bagValue [0] EXPLICIT BAG-TYPE.&type({PKCS12BagSet}{@bagID}) */
     if (SECSuccess != SECU_ExtractBERAndStep(&my, &bagValue)) {
@@ -3298,21 +3298,21 @@ secu_PrintPKCS12Bag(FILE *out, SECItem *item, const char *desc, int level)
                 if (rv != SECSuccess) {
                     break;
                 }
-                m = MPR_smprintf("Nested Bag %d", i);
+                m = PR_smprintf("Nested Bag %d", i);
                 rv = secu_PrintPKCS12Bag(out, &nextBag,
                                          m ? m : "Nested Bag", level + 1);
                 if (m)
-                    MPR_smprintf_free(m);
+                    PR_smprintf_free(m);
                 if (rv != SECSuccess) {
                     break;
                 }
             }
             break;
         default:
-            m = MPR_smprintf("%s Value", desc);
+            m = PR_smprintf("%s Value", desc);
             SECU_PrintAny(out, &bagValue, m ? m : "Bag Value", level);
             if (m)
-                MPR_smprintf_free(m);
+                PR_smprintf_free(m);
     }
     if (rv != SECSuccess) {
         return rv;
@@ -3324,11 +3324,11 @@ secu_PrintPKCS12Bag(FILE *out, SECItem *item, const char *desc, int level)
         if (SECSuccess != SECU_ExtractBERAndStep(&my, &bagAttributes)) {
             return SECFailure;
         }
-        m = MPR_smprintf("%s Attributes", desc);
+        m = PR_smprintf("%s Attributes", desc);
         rv = secu_PrintPKCS12Attributes(out, &bagAttributes,
                                         m ? m : "Bag Attributes", level);
         if (m)
-            MPR_smprintf_free(m);
+            PR_smprintf_free(m);
     }
     return rv;
 }
@@ -3355,12 +3355,12 @@ secu_PrintPKCS7Data(FILE *out, SECItem *item, secuPKCS7State state,
                 if (SECSuccess != SECU_ExtractBERAndStep(&my, &nextbag)) {
                     return SECFailure;
                 }
-                m = MPR_smprintf("Safe %d", i);
+                m = PR_smprintf("Safe %d", i);
                 rv = secu_PrintDERPKCS7ContentInfo(out, &nextbag,
                                                    secuPKCS7PKCS12Safe,
                                                    m ? m : "Safe", level);
                 if (m)
-                    MPR_smprintf_free(m);
+                    PR_smprintf_free(m);
                 if (rv != SECSuccess) {
                     return SECFailure;
                 }
@@ -3377,11 +3377,11 @@ secu_PrintPKCS7Data(FILE *out, SECItem *item, secuPKCS7State state,
                 if (SECSuccess != SECU_ExtractBERAndStep(&my, &nextbag)) {
                     return SECFailure;
                 }
-                m = MPR_smprintf("Bag %d", i);
+                m = PR_smprintf("Bag %d", i);
                 rv = secu_PrintPKCS12Bag(out, &nextbag,
                                          m ? m : "Bag", level);
                 if (m)
-                    MPR_smprintf_free(m);
+                    PR_smprintf_free(m);
                 if (rv != SECSuccess) {
                     return SECFailure;
                 }
@@ -3871,7 +3871,7 @@ SECU_printCertProblems(FILE *outfile, CERTCertDBHandle *handle,
                        SECCertificateUsage certUsage, void *pinArg, PRBool verbose)
 {
     SECU_printCertProblemsOnDate(outfile, handle, cert, checksig,
-                                 certUsage, pinArg, verbose, MPR_Now());
+                                 certUsage, pinArg, verbose, PR_Now());
 }
 
 SECStatus
@@ -3886,11 +3886,11 @@ SECU_StoreCRL(PK11SlotInfo *slot, SECItem *derCrl, PRFileDesc *outFile,
 
     if (outFile != NULL) {
         if (ascii) {
-            MPR_fprintf(outFile, "%s\n%s\n%s\n", NS_CRL_HEADER,
+            PR_fprintf(outFile, "%s\n%s\n%s\n", NS_CRL_HEADER,
                        BTOA_DataToAscii(derCrl->data, derCrl->len),
                        NS_CRL_TRAILER);
         } else {
-            if (MPR_Write(outFile, derCrl->data, derCrl->len) != derCrl->len) {
+            if (PR_Write(outFile, derCrl->data, derCrl->len) != derCrl->len) {
                 return SECFailure;
             }
         }
@@ -4146,12 +4146,12 @@ SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
          * open a file with such name and get the cert from there.*/
         SECStatus rv;
         SECItem item = { 0, NULL, 0 };
-        PRFileDesc *fd = MPR_Open(name, PR_RDONLY, 0777);
+        PRFileDesc *fd = PR_Open(name, PR_RDONLY, 0777);
         if (!fd) {
             return NULL;
         }
         rv = SECU_ReadDERFromFile(&item, fd, ascii, PR_FALSE);
-        MPR_Close(fd);
+        PR_Close(fd);
         if (rv != SECSuccess || !item.len) {
             PORT_Free(item.data);
             return NULL;
@@ -4179,24 +4179,24 @@ SECU_GetSSLVersionFromName(const char *buf, size_t bufLen, PRUint16 *version)
         return SECFailure;
     }
 
-    if (!MPL_strncasecmp(buf, "ssl3", bufLen)) {
+    if (!PL_strncasecmp(buf, "ssl3", bufLen)) {
         *version = SSL_LIBRARY_VERSION_3_0;
         return SECSuccess;
     }
-    if (!MPL_strncasecmp(buf, "tls1.0", bufLen)) {
+    if (!PL_strncasecmp(buf, "tls1.0", bufLen)) {
         *version = SSL_LIBRARY_VERSION_TLS_1_0;
         return SECSuccess;
     }
-    if (!MPL_strncasecmp(buf, "tls1.1", bufLen)) {
+    if (!PL_strncasecmp(buf, "tls1.1", bufLen)) {
         *version = SSL_LIBRARY_VERSION_TLS_1_1;
         return SECSuccess;
     }
-    if (!MPL_strncasecmp(buf, "tls1.2", bufLen)) {
+    if (!PL_strncasecmp(buf, "tls1.2", bufLen)) {
         *version = SSL_LIBRARY_VERSION_TLS_1_2;
         return SECSuccess;
     }
 
-    if (!MPL_strncasecmp(buf, "tls1.3", bufLen)) {
+    if (!PL_strncasecmp(buf, "tls1.3", bufLen)) {
         *version = SSL_LIBRARY_VERSION_TLS_1_3;
         return SECSuccess;
     }
@@ -4307,7 +4307,7 @@ static const size_t sslNamedGroupStringLen = PR_ARRAY_SIZE(sslNamedGroupStringAr
 static SSLNamedGroup
 groupNameToNamedGroup(char *name)
 {
-    int len = MPL_strlen(name);
+    int len = PL_strlen(name);
     int i;
 
     for (i = 0; i < sslNamedGroupStringLen; i++) {
@@ -4492,7 +4492,7 @@ SECU_SignatureSchemeName(SSLSignatureScheme scheme)
 SSLSignatureScheme
 schemeNameToScheme(const char *name)
 {
-    int len = MPL_strlen(name);
+    int len = PL_strlen(name);
     int i;
 
     for (i = 0; i < sslSignatureSchemeStringLen; i++) {
@@ -4795,7 +4795,7 @@ secu_PrintPKCS12DigestInfo(FILE *out, const SECItem *t, char *m, int level)
     }
 #define DIGEST_ALGID_STRING "Digest Algorithm ID"
     if (m)
-        mAlgID = MPR_smprintf("%s " DIGEST_ALGID_STRING, m);
+        mAlgID = PR_smprintf("%s " DIGEST_ALGID_STRING, m);
     rv = SEC_QuickDERDecodeItem(arena, &digestAlgID,
                                 SEC_ASN1_GET(SECOID_AlgorithmIDTemplate),
                                 &rawDigestAlgID);
@@ -4804,7 +4804,7 @@ secu_PrintPKCS12DigestInfo(FILE *out, const SECItem *t, char *m, int level)
                               mAlgID ? mAlgID : DIGEST_ALGID_STRING, level);
     }
     if (mAlgID)
-        MPR_smprintf_free(mAlgID);
+        PR_smprintf_free(mAlgID);
     PORT_FreeArena(arena, PR_FALSE);
     if (rv != SECSuccess) {
         return rv;
@@ -4820,11 +4820,11 @@ secu_PrintPKCS12DigestInfo(FILE *out, const SECItem *t, char *m, int level)
     }
 #define DIGEST_STRING "Digest"
     if (m)
-        mDigest = MPR_smprintf("%s " DIGEST_STRING, m);
+        mDigest = PR_smprintf("%s " DIGEST_STRING, m);
     secu_PrintOctetString(out, &digestData,
                           mDigest ? mDigest : DIGEST_STRING, level);
     if (mDigest)
-        MPR_smprintf_free(mDigest);
+        PR_smprintf_free(mDigest);
     return SECSuccess;
 }
 

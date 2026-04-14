@@ -48,7 +48,7 @@ nss_MD_unix_map_closedir_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -75,7 +75,7 @@ nss_MD_unix_readdir_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -90,7 +90,7 @@ nss_MD_unix_map_unlink_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -105,7 +105,7 @@ nss_MD_unix_map_stat_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -120,7 +120,7 @@ nss_MD_unix_map_fstat_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -135,7 +135,7 @@ nss_MD_unix_map_rename_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -150,7 +150,7 @@ nss_MD_unix_map_access_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -178,7 +178,7 @@ nss_MD_unix_map_rmdir_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -196,7 +196,7 @@ nss_MD_unix_map_read_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -217,7 +217,7 @@ nss_MD_unix_map_write_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -241,7 +241,7 @@ nss_MD_unix_map_fsync_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -256,7 +256,7 @@ nss_MD_unix_map_close_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -271,13 +271,13 @@ nss_MD_unix_map_socket_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
 nss_MD_unix_map_socketavailable_error(int err)
 {
-    MPR_SetError(PR_BAD_DESCRIPTOR_ERROR, err);
+    PR_SetError(PR_BAD_DESCRIPTOR_ERROR, err);
 }
 
 void
@@ -322,7 +322,7 @@ nss_MD_unix_map_accept_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -346,7 +346,7 @@ nss_MD_unix_map_connect_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -382,7 +382,7 @@ nss_MD_unix_map_bind_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -409,7 +409,7 @@ nss_MD_unix_map_socketpair_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -424,7 +424,7 @@ nss_MD_unix_map_getsockname_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -440,7 +440,7 @@ nss_MD_unix_map_getpeername_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -458,7 +458,7 @@ nss_MD_unix_map_getsockopt_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -476,7 +476,7 @@ nss_MD_unix_map_setsockopt_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -503,7 +503,7 @@ nss_MD_unix_map_open_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -527,7 +527,7 @@ nss_MD_unix_map_mmap_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -556,20 +556,20 @@ nss_MD_unix_map_poll_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
 nss_MD_unix_map_poll_revents_error(int err)
 {
     if (err & POLLNVAL)
-        MPR_SetError(PR_BAD_DESCRIPTOR_ERROR, EBADF);
+        PR_SetError(PR_BAD_DESCRIPTOR_ERROR, EBADF);
     else if (err & POLLHUP)
-        MPR_SetError(PR_CONNECT_RESET_ERROR, EPIPE);
+        PR_SetError(PR_CONNECT_RESET_ERROR, EPIPE);
     else if (err & POLLERR)
-        MPR_SetError(PR_IO_ERROR, EIO);
+        PR_SetError(PR_IO_ERROR, EIO);
     else
-        MPR_SetError(PR_UNKNOWN_ERROR, err);
+        PR_SetError(PR_UNKNOWN_ERROR, err);
 }
 #endif /* _PR_POLL_AVAILABLE */
 
@@ -588,7 +588,7 @@ nss_MD_unix_map_flock_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -606,7 +606,7 @@ nss_MD_unix_map_lockf_error(int err)
             nss_MD_unix_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 #ifdef HPUX11
@@ -821,5 +821,5 @@ nss_MD_unix_map_default_error(int err)
             prError = PR_UNKNOWN_ERROR;
             break;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }

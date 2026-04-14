@@ -122,8 +122,8 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : argv[0];
 
     /* Parse command line arguments */
-    optstate = MPL_CreateOptState(argc, argv, "?hi:o:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "?hi:o:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
             case 'h':
@@ -176,7 +176,7 @@ main(int argc, char **argv)
     exitCode = 0;
 loser:
     if (optstate) {
-        MPL_DestroyOptState(optstate);
+        PL_DestroyOptState(optstate);
     }
     if (inFile && closeIn) {
         fclose(inFile);

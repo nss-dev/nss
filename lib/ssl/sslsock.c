@@ -241,7 +241,7 @@ ssl_GetPrivate(PRFileDesc *fd)
 
     ss = (sslSocket *)fd->secret;
     /* Set ss->fd lazily. We can't rely on the value of ss->fd set by
-     * ssl_PushIOLayer because another MPR_PushIOLayer call will switch the
+     * ssl_PushIOLayer because another PR_PushIOLayer call will switch the
      * contents of the PRFileDesc pointed by ss->fd and the new layer.
      * See bug 807250.
      */
@@ -263,7 +263,7 @@ ssl_FindSocket(PRFileDesc *fd)
     PORT_Assert(fd != NULL);
     PORT_Assert(ssl_layer_id != 0);
 
-    layer = MPR_GetIdentitiesLayer(fd, ssl_layer_id);
+    layer = PR_GetIdentitiesLayer(fd, ssl_layer_id);
     if (layer == NULL) {
         PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
         return NULL;
@@ -271,7 +271,7 @@ ssl_FindSocket(PRFileDesc *fd)
 
     ss = (sslSocket *)layer->secret;
     /* Set ss->fd lazily. We can't rely on the value of ss->fd set by
-     * ssl_PushIOLayer because another MPR_PushIOLayer call will switch the
+     * ssl_PushIOLayer because another PR_PushIOLayer call will switch the
      * contents of the PRFileDesc pointed by ss->fd and the new layer.
      * See bug 807250.
      */
@@ -549,11 +549,11 @@ ssl_DestroyLocks(sslSocket *ss)
 {
     /* Destroy locks. */
     if (ss->firstHandshakeLock) {
-        MPR_DestroyMonitor(ss->firstHandshakeLock);
+        PR_DestroyMonitor(ss->firstHandshakeLock);
         ss->firstHandshakeLock = NULL;
     }
     if (ss->ssl3HandshakeLock) {
-        MPR_DestroyMonitor(ss->ssl3HandshakeLock);
+        PR_DestroyMonitor(ss->ssl3HandshakeLock);
         ss->ssl3HandshakeLock = NULL;
     }
     if (ss->specLock) {
@@ -562,19 +562,19 @@ ssl_DestroyLocks(sslSocket *ss)
     }
 
     if (ss->recvLock) {
-        MPR_DestroyLock(ss->recvLock);
+        PR_DestroyLock(ss->recvLock);
         ss->recvLock = NULL;
     }
     if (ss->sendLock) {
-        MPR_DestroyLock(ss->sendLock);
+        PR_DestroyLock(ss->sendLock);
         ss->sendLock = NULL;
     }
     if (ss->xmitBufLock) {
-        MPR_DestroyMonitor(ss->xmitBufLock);
+        PR_DestroyMonitor(ss->xmitBufLock);
         ss->xmitBufLock = NULL;
     }
     if (ss->recvBufLock) {
-        MPR_DestroyMonitor(ss->recvBufLock);
+        PR_DestroyMonitor(ss->recvBufLock);
         ss->recvBufLock = NULL;
     }
 }
@@ -677,7 +677,7 @@ ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled)
     if (osfd->methods->setsocketoption) {
         rv = (SECStatus)osfd->methods->setsocketoption(osfd, &opt);
     } else {
-        MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+        PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     }
 
     return rv;
@@ -908,8 +908,8 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
 
             if (val && holdingLocks) {
                 /* If we're disabling locks and locks were previously enabled. */
-                MPR_ExitMonitor((ss)->ssl3HandshakeLock);
-                MPR_ExitMonitor((ss)->firstHandshakeLock);
+                PR_ExitMonitor((ss)->ssl3HandshakeLock);
+                PR_ExitMonitor((ss)->firstHandshakeLock);
                 ssl_DestroyLocks(ss);
                 holdingLocks = PR_FALSE;
             } else if (!val && !holdingLocks) {
@@ -1049,8 +1049,8 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
      * regardless of the current value of ss->opt.noLocks.
      */
     if (holdingLocks) {
-        MPR_ExitMonitor((ss)->ssl3HandshakeLock);
-        MPR_ExitMonitor((ss)->firstHandshakeLock);
+        PR_ExitMonitor((ss)->ssl3HandshakeLock);
+        PR_ExitMonitor((ss)->firstHandshakeLock);
     }
 
     return rv;
@@ -2120,14 +2120,14 @@ SSL_EnableWeakDHEPrimeGroup(PRFileDesc *fd, PRBool enabled)
     PRStatus status;
 
     if (enabled) {
-        status = MPR_CallOnce(&gWeakDHParamsRegisterOnce,
+        status = PR_CallOnce(&gWeakDHParamsRegisterOnce,
                              ssl3_WeakDHParamsRegisterShutdown);
         if (status != PR_SUCCESS) {
             PORT_SetError(gWeakDHParamsRegisterError);
             return SECFailure;
         }
 
-        status = MPR_CallOnce(&gWeakDHParamsOnce, ssl3_CreateWeakDHParams);
+        status = PR_CallOnce(&gWeakDHParamsOnce, ssl3_CreateWeakDHParams);
         if (status != PR_SUCCESS) {
             PORT_SetError(gWeakDHParamsError);
             return SECFailure;
@@ -2583,7 +2583,7 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     SECStatus rv;
 
     if (model == NULL) {
-        MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
         return NULL;
     }
     sm = ssl_FindSocket(model);
@@ -3097,7 +3097,7 @@ loser:
     if (ns != NULL)
         ssl_FreeSocket(ns);
     if (newfd != NULL)
-        MPR_Close(newfd);
+        PR_Close(newfd);
     return NULL;
 }
 
@@ -3334,7 +3334,7 @@ ssl_GetPeerInfo(sslSocket *ss)
     }
     ss->TCPconnected = 1;
     if (sin.inet.family == PR_AF_INET) {
-        MPR_ConvertIPv4AddrToIPv6(sin.inet.ip, &ss->sec.ci.peer);
+        PR_ConvertIPv4AddrToIPv6(sin.inet.ip, &ss->sec.ci.peer);
         ss->sec.ci.port = sin.inet.port;
     } else if (sin.ipv6.family == PR_AF_INET6) {
         ss->sec.ci.peer = sin.ipv6.ip;
@@ -3471,7 +3471,7 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
              * able to detect with PR_POLL_EXCEPT, until the asynchronous
              * callback completes. However, we must clear all the flags to
              * prevent the application from spinning (alternating between
-             * calling MPR_Poll that would return PR_POLL_EXCEPT, and send/recv
+             * calling PR_Poll that would return PR_POLL_EXCEPT, and send/recv
              * which won't actually report the I/O error while we are waiting
              * for the asynchronous callback to complete).
              */
@@ -3530,7 +3530,7 @@ ssl_FdIsBlocking(PRFileDesc *fd)
 
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    status = MPR_GetSocketOption(fd, &opt);
+    status = PR_GetSocketOption(fd, &opt);
     if (status != PR_SUCCESS)
         return PR_FALSE;
     return (PRBool)!opt.value.non_blocking;
@@ -3592,7 +3592,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
     if (rv != len) {                                           \
         if (rv < 0) {                                          \
             if (!blocking &&                                   \
-                (MPR_GetError() == PR_WOULD_BLOCK_ERROR) &&     \
+                (PR_GetError() == PR_WOULD_BLOCK_ERROR) &&     \
                 (sent > 0)) {                                  \
                 return sent;                                   \
             } else {                                           \
@@ -3699,7 +3699,7 @@ static PRInt32 PR_CALLBACK
 ssl_Available(PRFileDesc *fd)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return SECFailure;
 }
 
@@ -3709,7 +3709,7 @@ ssl_Available64(PRFileDesc *fd)
     PRInt64 res;
 
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     LL_I2L(res, -1L);
     return res;
 }
@@ -3718,7 +3718,7 @@ static PRStatus PR_CALLBACK
 ssl_FSync(PRFileDesc *fd)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return PR_FAILURE;
 }
 
@@ -3726,7 +3726,7 @@ static PRInt32 PR_CALLBACK
 ssl_Seek(PRFileDesc *fd, PRInt32 offset, PRSeekWhence how)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return SECFailure;
 }
 
@@ -3736,7 +3736,7 @@ ssl_Seek64(PRFileDesc *fd, PRInt64 offset, PRSeekWhence how)
     PRInt64 res;
 
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     LL_I2L(res, -1L);
     return res;
 }
@@ -3745,7 +3745,7 @@ static PRStatus PR_CALLBACK
 ssl_FileInfo(PRFileDesc *fd, PRFileInfo *info)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return PR_FAILURE;
 }
 
@@ -3753,7 +3753,7 @@ static PRStatus PR_CALLBACK
 ssl_FileInfo64(PRFileDesc *fd, PRFileInfo64 *info)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return PR_FAILURE;
 }
 
@@ -3762,7 +3762,7 @@ ssl_RecvFrom(PRFileDesc *fd, void *buf, PRInt32 amount, PRIntn flags,
              PRNetAddr *addr, PRIntervalTime timeout)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return SECFailure;
 }
 
@@ -3771,7 +3771,7 @@ ssl_SendTo(PRFileDesc *fd, const void *buf, PRInt32 amount, PRIntn flags,
            const PRNetAddr *addr, PRIntervalTime timeout)
 {
     PORT_Assert(0);
-    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return SECFailure;
 }
 
@@ -3798,7 +3798,7 @@ static const PRIOMethods ssl_methods = {
     ssl_RecvFrom,         /* recvfrom     */
     ssl_SendTo,           /* sendto       */
     ssl_Poll,             /* poll         */
-    MPR_EmulateAcceptRead, /* acceptread   */
+    PR_EmulateAcceptRead, /* acceptread   */
     ssl_TransmitFile,     /* transmitfile */
     ssl_GetSockName,      /* getsockname  */
     ssl_GetPeerName,      /* getpeername  */
@@ -3806,7 +3806,7 @@ static const PRIOMethods ssl_methods = {
     NULL,                 /* setsockopt   OBSOLETE */
     NULL,                 /* getsocketoption   */
     NULL,                 /* setsocketoption   */
-    MPR_EmulateSendFile,   /* Send a (partial) file with header/trailer*/
+    PR_EmulateSendFile,   /* Send a (partial) file with header/trailer*/
     NULL,                 /* reserved for future use */
     NULL,                 /* reserved for future use */
     NULL,                 /* reserved for future use */
@@ -3820,7 +3820,7 @@ static void
 ssl_SetupIOMethods(void)
 {
     PRIOMethods *new_methods = &combined_methods;
-    const PRIOMethods *nspr_methods = MPR_GetDefaultIOMethods();
+    const PRIOMethods *nspr_methods = PR_GetDefaultIOMethods();
     const PRIOMethods *my_methods = &ssl_methods;
 
     *new_methods = *nspr_methods;
@@ -3861,7 +3861,7 @@ static PRCallOnceType initIoLayerOnce;
 static PRStatus
 ssl_InitIOLayer(void)
 {
-    ssl_layer_id = MPR_GetUniqueIdentity("SSL");
+    ssl_layer_id = PR_GetUniqueIdentity("SSL");
     ssl_SetupIOMethods();
     return PR_SUCCESS;
 }
@@ -3872,14 +3872,14 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
     PRFileDesc *layer = NULL;
     PRStatus status;
 
-    status = MPR_CallOnce(&initIoLayerOnce, &ssl_InitIOLayer);
+    status = PR_CallOnce(&initIoLayerOnce, &ssl_InitIOLayer);
     if (status != PR_SUCCESS) {
         goto loser;
     }
     if (ns == NULL) {
         goto loser;
     }
-    layer = MPR_CreateIOLayerStub(ssl_layer_id, &combined_methods);
+    layer = PR_CreateIOLayerStub(ssl_layer_id, &combined_methods);
     if (layer == NULL)
         goto loser;
     layer->secret = (PRFilePrivate *)ns;
@@ -3887,7 +3887,7 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
     /* Here, "stack" points to the PRFileDesc on the top of the stack.
     ** "layer" points to a new FD that is to be inserted into the stack.
     ** If layer is being pushed onto the top of the stack, then
-    ** MPR_PushIOLayer switches the contents of stack and layer, and then
+    ** PR_PushIOLayer switches the contents of stack and layer, and then
     ** puts stack on top of layer, so that after it is done, the top of
     ** stack is the same "stack" as it was before, and layer is now the
     ** FD for the former top of stack.
@@ -3895,7 +3895,7 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
     ** If this function fails, the contents of stack and layer are as
     ** they were before the call.
     */
-    status = MPR_PushIOLayer(stack, id, layer);
+    status = PR_PushIOLayer(stack, id, layer);
     if (status != PR_SUCCESS)
         goto loser;
 
@@ -3914,12 +3914,12 @@ static SECStatus
 ssl_MakeLocks(sslSocket *ss)
 {
     PR_ASSERT(!ss->firstHandshakeLock);
-    ss->firstHandshakeLock = MPR_NewMonitor();
+    ss->firstHandshakeLock = PR_NewMonitor();
     if (!ss->firstHandshakeLock)
         goto loser;
 
     PR_ASSERT(!ss->ssl3HandshakeLock);
-    ss->ssl3HandshakeLock = MPR_NewMonitor();
+    ss->ssl3HandshakeLock = PR_NewMonitor();
     if (!ss->ssl3HandshakeLock)
         goto loser;
 
@@ -3929,23 +3929,23 @@ ssl_MakeLocks(sslSocket *ss)
         goto loser;
 
     PR_ASSERT(!ss->recvBufLock);
-    ss->recvBufLock = MPR_NewMonitor();
+    ss->recvBufLock = PR_NewMonitor();
     if (!ss->recvBufLock)
         goto loser;
 
     PR_ASSERT(!ss->xmitBufLock);
-    ss->xmitBufLock = MPR_NewMonitor();
+    ss->xmitBufLock = PR_NewMonitor();
     if (!ss->xmitBufLock)
         goto loser;
     ss->writerThread = NULL;
     if (ssl_lock_readers) {
         PR_ASSERT(!ss->recvLock);
-        ss->recvLock = MPR_NewLock();
+        ss->recvLock = PR_NewLock();
         if (!ss->recvLock)
             goto loser;
 
         PR_ASSERT(!ss->sendLock);
-        ss->sendLock = MPR_NewLock();
+        ss->sendLock = PR_NewLock();
         if (!ss->sendLock)
             goto loser;
     }
@@ -3968,7 +3968,7 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
     char *ev;
 #ifdef DEBUG
     ssl_trace_iob = NULL;
-    ev = MPR_GetEnvSecure("SSLDEBUGFILE");
+    ev = PR_GetEnvSecure("SSLDEBUGFILE");
     if (ev && ev[0]) {
         ssl_trace_iob = fopen(ev, "w");
     }
@@ -3976,13 +3976,13 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
         ssl_trace_iob = stderr;
     }
 #ifdef TRACE
-    ev = MPR_GetEnvSecure("SSLTRACE");
+    ev = PR_GetEnvSecure("SSLTRACE");
     if (ev && ev[0]) {
         ssl_trace = atoi(ev);
         SSL_TRACE(("SSL: tracing set to %d", ssl_trace));
     }
 #endif /* TRACE */
-    ev = MPR_GetEnvSecure("SSLDEBUG");
+    ev = PR_GetEnvSecure("SSLDEBUG");
     if (ev && ev[0]) {
         ssl_debug = atoi(ev);
         SSL_TRACE(("SSL: debugging set to %d", ssl_debug));
@@ -3990,7 +3990,7 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
 #endif /* DEBUG */
 #ifdef NSS_ALLOW_SSLKEYLOGFILE
     ssl_keylog_iob = NULL;
-    ev = MPR_GetEnvSecure("SSLKEYLOGFILE");
+    ev = PR_GetEnvSecure("SSLKEYLOGFILE");
     if (ev && ev[0]) {
         ssl_keylog_iob = fopen(ev, "a");
         if (!ssl_keylog_iob) {
@@ -4001,7 +4001,7 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
                       ssl_keylog_iob);
             }
             SSL_TRACE(("SSL: logging SSL/TLS secrets to %s", ev));
-            ssl_keylog_lock = MPR_NewLock();
+            ssl_keylog_lock = PR_NewLock();
             if (!ssl_keylog_lock) {
                 SSL_TRACE(("SSL: failed to create key log lock"));
                 fclose(ssl_keylog_iob);
@@ -4010,13 +4010,13 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
         }
     }
 #endif
-    ev = MPR_GetEnvSecure("SSLFORCELOCKS");
+    ev = PR_GetEnvSecure("SSLFORCELOCKS");
     if (ev && ev[0] == '1') {
         ssl_force_locks = PR_TRUE;
         ssl_defaults.noLocks = 0;
         SSL_TRACE(("SSL: force_locks set to %d", ssl_force_locks));
     }
-    ev = MPR_GetEnvSecure("NSS_SSL_ENABLE_RENEGOTIATION");
+    ev = PR_GetEnvSecure("NSS_SSL_ENABLE_RENEGOTIATION");
     if (ev) {
         if (ev[0] == '1' || LOWER(ev[0]) == 'u')
             ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_UNRESTRICTED;
@@ -4029,13 +4029,13 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
         SSL_TRACE(("SSL: enableRenegotiation set to %d",
                    ssl_defaults.enableRenegotiation));
     }
-    ev = MPR_GetEnvSecure("NSS_SSL_REQUIRE_SAFE_NEGOTIATION");
+    ev = PR_GetEnvSecure("NSS_SSL_REQUIRE_SAFE_NEGOTIATION");
     if (ev && ev[0] == '1') {
         ssl_defaults.requireSafeNegotiation = PR_TRUE;
         SSL_TRACE(("SSL: requireSafeNegotiation set to %d",
                    PR_TRUE));
     }
-    ev = MPR_GetEnvSecure("NSS_SSL_CBC_RANDOM_IV");
+    ev = PR_GetEnvSecure("NSS_SSL_CBC_RANDOM_IV");
     if (ev && ev[0] == '0') {
         ssl_defaults.cbcRandomIV = PR_FALSE;
         SSL_TRACE(("SSL: cbcRandomIV set to 0"));
@@ -4047,7 +4047,7 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
 static void
 ssl_SetDefaultsFromEnvironment(void)
 {
-    MPR_CallOnce(&ssl_setDefaultsFromEnvironment, ssl_SetDefaultsFromEnvironmentCallOnce);
+    PR_CallOnce(&ssl_setDefaultsFromEnvironment, ssl_SetDefaultsFromEnvironmentCallOnce);
 }
 
 const sslNamedGroupDef *
@@ -4233,7 +4233,7 @@ PRTime
 ssl_Time(const sslSocket *ss)
 {
     if (!ss->now) {
-        return MPR_Now();
+        return PR_Now();
     }
     return ss->now(ss->nowArg);
 }

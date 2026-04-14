@@ -84,7 +84,7 @@ ExportPublicKey(FILE *outFile, CERTCertificate *cert)
     if (!item)
         return -1;
 
-    data = MPL_Base64Encode((const char *)item->data, item->len, NULL);
+    data = PL_Base64Encode((const char *)item->data, item->len, NULL);
     SECITEM_FreeItem(item, PR_TRUE);
     if (!data)
         return -1;
@@ -92,7 +92,7 @@ ExportPublicKey(FILE *outFile, CERTCertificate *cert)
     fputs("pubkey:\n", outFile);
     fputs(data, outFile);
     fputs("\n", outFile);
-    MPR_Free(data);
+    PR_Free(data);
 
     return 0;
 }
@@ -161,7 +161,7 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
         goto loser;
     }
 
-    data = MPL_Base64Encode((const char *)result->data, result->len, NULL);
+    data = PL_Base64Encode((const char *)result->data, result->len, NULL);
     if (!data) {
         returnValue = -1;
         goto loser;
@@ -177,7 +177,7 @@ loser:
         SECKEY_DestroyPrivateKey(privKey);
     }
     if (data) {
-        MPR_Free(data);
+        PR_Free(data);
     }
     PORT_FreeArena(arena, PR_FALSE);
 
@@ -207,8 +207,8 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = MPL_CreateOptState(argc, argv, "ed:k:i:o:p:f:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "ed:k:i:o:p:f:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);
@@ -219,7 +219,7 @@ main(int argc, char **argv)
                 break;
 
             case 'i':
-                inFile = MPR_Open(optstate->value, PR_RDONLY, 0);
+                inFile = PR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
@@ -260,7 +260,7 @@ main(int argc, char **argv)
         outFile = stdout;
 
     /* Call the initialization routines */
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) {
         SECU_PrintPRandOSError(progName);
@@ -303,7 +303,7 @@ loser:
         CERT_DestroyCertificate(cert);
     }
     if (inFile && inFile != PR_STDIN) {
-        MPR_Close(inFile);
+        PR_Close(inFile);
     }
     if (outFile && outFile != stdout) {
         fclose(outFile);

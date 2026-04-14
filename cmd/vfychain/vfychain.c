@@ -101,7 +101,7 @@ void
 errWarn(char *function)
 {
     fprintf(stderr, "Error in function %s: %s\n",
-            function, SECU_Strerror(MPR_GetError()));
+            function, SECU_Strerror(PR_GetError()));
 }
 
 void
@@ -111,7 +111,7 @@ exitErr(char *function)
     /* Exit gracefully. */
     /* ignoring return value of NSS_Shutdown as code exits with 1 anyway*/
     (void)NSS_Shutdown();
-    MPR_Cleanup();
+    PR_Cleanup();
     exit(1);
 }
 
@@ -175,16 +175,16 @@ getCert(const char *name, PRBool isAscii, const char *progName)
 
     /* Don't have a cert with name "name" in the DB. Try to
      * open a file with such name and get the cert from there.*/
-    fd = MPR_Open(name, PR_RDONLY, 0777);
+    fd = PR_Open(name, PR_RDONLY, 0777);
     if (!fd) {
-        PRErrorCode err = MPR_GetError();
+        PRErrorCode err = PR_GetError();
         fprintf(stderr, "open of %s failed, %d = %s\n",
                 name, err, SECU_Strerror(err));
         return cert;
     }
 
     rv = SECU_ReadDERFromFile(&item, fd, isAscii, PR_FALSE);
-    MPR_Close(fd);
+    PR_Close(fd);
     if (rv != SECSuccess) {
         fprintf(stderr, "%s: SECU_ReadDERFromFile failed\n", progName);
         return cert;
@@ -200,7 +200,7 @@ getCert(const char *name, PRBool isAscii, const char *progName)
                                    PR_FALSE /* isPerm */,
                                    PR_TRUE /* copyDER */);
     if (!cert) {
-        PRErrorCode err = MPR_GetError();
+        PRErrorCode err = PR_GetError();
         fprintf(stderr, "couldn't import %s, %d = %s\n",
                 name, err, SECU_Strerror(err));
     }
@@ -427,12 +427,12 @@ main(int argc, char *argv[], char *envp[])
     PRBool onlyTrustAnchors = PR_TRUE;
     int vfyCounts = 1;
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-    progName = MPL_strdup(argv[0]);
+    progName = PL_strdup(argv[0]);
 
-    optstate = MPL_CreateOptState(argc, argv, "ab:c:d:efg:h:i:m:o:prs:tTu:vw:W:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "ab:c:d:efg:h:i:m:o:prs:tTu:vw:W:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 0: /* positional parameter */
                 goto breakout;
@@ -445,7 +445,7 @@ main(int argc, char *argv[], char *envp[])
                     Usage(progName);
                 break;
             case 'd':
-                certDir = MPL_strdup(optstate->value);
+                certDir = PL_strdup(optstate->value);
                 break;
             case 'e':
                 ocsp_fetchingFailureIsAFailure = PR_FALSE;
@@ -466,11 +466,11 @@ main(int argc, char *argv[], char *envp[])
                 }
                 useDefaultRevFlags = PR_FALSE;
                 revMethodsData[revDataIndex].testTypeStr =
-                    MPL_strdup(optstate->value);
+                    PL_strdup(optstate->value);
                 break;
             case 'h':
                 revMethodsData[revDataIndex].testFlagsStr =
-                    MPL_strdup(optstate->value);
+                    PL_strdup(optstate->value);
                 break;
             case 'i':
                 vfyCounts = PORT_Atoi(optstate->value);
@@ -488,10 +488,10 @@ main(int argc, char *argv[], char *envp[])
                 }
                 useDefaultRevFlags = PR_FALSE;
                 revMethodsData[revDataIndex].methodTypeStr =
-                    MPL_strdup(optstate->value);
+                    PL_strdup(optstate->value);
                 break;
             case 'o':
-                oidStr = MPL_strdup(optstate->value);
+                oidStr = PL_strdup(optstate->value);
                 break;
             case 'p':
                 usePkix += 1;
@@ -501,7 +501,7 @@ main(int argc, char *argv[], char *envp[])
                 break;
             case 's':
                 revMethodsData[revDataIndex].methodFlagsStr =
-                    MPL_strdup(optstate->value);
+                    PL_strdup(optstate->value);
                 break;
             case 't':
                 trusted = PR_TRUE;
@@ -613,9 +613,9 @@ breakout:
                     firstCert = cert;
                 trusted = PR_FALSE;
         }
-        status = MPL_GetNextOpt(optstate);
+        status = PL_GetNextOpt(optstate);
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     if (status == PL_OPT_BAD || !firstCert)
         Usage(progName);
 
@@ -632,7 +632,7 @@ breakout:
                 CERT_SetUsePKIXForValidation(PR_TRUE);
             }
             if (!time)
-                time = MPR_Now();
+                time = PR_Now();
 
             defaultDB = CERT_GetDefaultCertDB();
             secStatus = CERT_VerifyCertificate(defaultDB, firstCert,
@@ -815,7 +815,7 @@ punt:
     if (pwdata.data) {
         PORT_Free(pwdata.data);
     }
-    MPL_ArenaFinish();
-    MPR_Cleanup();
+    PL_ArenaFinish();
+    PR_Cleanup();
     return rv;
 }

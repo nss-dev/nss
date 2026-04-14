@@ -33,7 +33,7 @@ main(int argc, char **argv)
         rv = NSS_NoDB_Init(NULL);
     }
     if (rv != SECSuccess) {
-        err = MPR_GetError();
+        err = PR_GetError();
         ++errCount;
         fprintf(stderr, "NSS_Init failed: %s\n", PORT_ErrorToString(err));
         goto out;
@@ -42,7 +42,7 @@ main(int argc, char **argv)
     /* apply policy */
     rv = NSS_SetAlgorithmPolicy(SEC_OID_APPLY_SSL_POLICY, NSS_USE_POLICY_IN_SSL, 0);
     if (rv != SECSuccess) {
-        err = MPR_GetError();
+        err = PR_GetError();
         ++errCount;
         fprintf(stderr, "NSS_SetAlgorithmPolicy failed: %s\n",
                 PORT_ErrorToString(err));
@@ -52,7 +52,7 @@ main(int argc, char **argv)
     /* update the default cipher suites according to the policy */
     rv = SSL_OptionSetDefault(SSL_SECURITY, PR_TRUE);
     if (rv != SECSuccess) {
-        err = MPR_GetError();
+        err = PR_GetError();
         ++errCount;
         fprintf(stderr, "SSL_OptionSetDefault failed: %s\n",
                 PORT_ErrorToString(err));
@@ -69,7 +69,7 @@ main(int argc, char **argv)
 
         rv = SSL_CipherPrefGetDefault(suite, &enabled);
         if (rv != SECSuccess) {
-            err = MPR_GetError();
+            err = PR_GetError();
             ++errCount;
             fprintf(stderr,
                     "SSL_CipherPrefGetDefault didn't like value 0x%04x (i = %d): %s\n",
@@ -78,7 +78,7 @@ main(int argc, char **argv)
         }
         rv = SSL_GetCipherSuiteInfo(suite, &info, (int)(sizeof info));
         if (rv != SECSuccess) {
-            err = MPR_GetError();
+            err = PR_GetError();
             ++errCount;
             fprintf(stderr,
                     "SSL_GetCipherSuiteInfo didn't like value 0x%04x (i = %d): %s\n",
@@ -99,7 +99,7 @@ main(int argc, char **argv)
 out:
     rv = NSS_Shutdown();
     if (rv != SECSuccess) {
-        err = MPR_GetError();
+        err = PR_GetError();
         ++errCount;
         fprintf(stderr, "NSS_Shutdown failed: %s\n", PORT_ErrorToString(err));
     }

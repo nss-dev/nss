@@ -120,7 +120,7 @@ findHash(const char *hashName)
     int i;
 
     for (i = 0; i < hashTableSize; i++) {
-        if (MPL_strcasecmp(hashTable[i].name, hashName) == 0) {
+        if (PL_strcasecmp(hashTable[i].name, hashName) == 0) {
             return &hashTable[i];
         }
     }
@@ -132,62 +132,62 @@ usage(const char *program_name)
 {
     int i;
     const char *comma = "";
-    PRFileDesc *debug_out = MPR_GetSpecialFD(PR_StandardError);
-    MPR_fprintf(debug_out,
+    PRFileDesc *debug_out = PR_GetSpecialFD(PR_StandardError);
+    PR_fprintf(debug_out,
                "type %s -H for more detail information.\n", program_name);
-    MPR_fprintf(debug_out,
+    PR_fprintf(debug_out,
                "Usage: %s [-v] [-V] [-o outfile] [-d dbdir] [-f pwfile]\n"
                "          [-F|-C] [-p pwd] -[P dbprefix ] [-t hash]\n"
                "          [-D] [-k keysize] [-c] [-K key]\n"
                "          -i shared_library_name\n",
                program_name);
-    MPR_fprintf(debug_out, "Valid Hashes: ");
+    PR_fprintf(debug_out, "Valid Hashes: ");
     for (i = 0; i < hashTableSize; i++) {
-        MPR_fprintf(debug_out, "%s%s", comma, hashTable[i].name);
+        PR_fprintf(debug_out, "%s%s", comma, hashTable[i].name);
         comma = ", ";
     }
-    MPR_fprintf(debug_out, "\n");
+    PR_fprintf(debug_out, "\n");
     exit(1);
 }
 
 static void
 long_usage(const char *program_name)
 {
-    PRFileDesc *debug_out = MPR_GetSpecialFD(PR_StandardError);
+    PRFileDesc *debug_out = PR_GetSpecialFD(PR_StandardError);
     int i;
     const char *comma = "";
-    MPR_fprintf(debug_out, "%s test program usage:\n", program_name);
-    MPR_fprintf(debug_out, "\t-i <infile>  shared_library_name to process\n");
-    MPR_fprintf(debug_out, "\t-o <outfile> checksum outfile\n");
-    MPR_fprintf(debug_out, "\t-d <path>    database path location\n");
-    MPR_fprintf(debug_out, "\t-t <hash>    Hash for HMAC/or DSA\n");
-    MPR_fprintf(debug_out, "\t-D           Sign with DSA rather than HMAC\n");
-    MPR_fprintf(debug_out, "\t-k <keysize> size of the DSA key\n");
-    MPR_fprintf(debug_out, "\t-K <key>     key-material to use for hmac (hex-string, without leading 0x)\n");
-    MPR_fprintf(debug_out, "\t-c           Use compatible versions for old NSS\n");
-    MPR_fprintf(debug_out, "\t-P <prefix>  database prefix\n");
-    MPR_fprintf(debug_out, "\t-f <file>    password File : echo pw > file \n");
-    MPR_fprintf(debug_out, "\t-F           force FIPS mode\n");
-    MPR_fprintf(debug_out, "\t-C           force Non-FIPS mode\n");
-    MPR_fprintf(debug_out, "\t-p <pwd>     password\n");
-    MPR_fprintf(debug_out, "\t-v           verbose output\n");
-    MPR_fprintf(debug_out, "\t-V           perform Verify operations\n");
-    MPR_fprintf(debug_out, "\t-?           short help message\n");
-    MPR_fprintf(debug_out, "\t-h           short help message\n");
-    MPR_fprintf(debug_out, "\t-H           this help message\n");
-    MPR_fprintf(debug_out, "\n\n\tNote: Use of FIPS mode requires your ");
-    MPR_fprintf(debug_out, "library path is using \n");
-    MPR_fprintf(debug_out, "\t      pre-existing libraries with generated ");
-    MPR_fprintf(debug_out, "checksum files\n");
-    MPR_fprintf(debug_out, "\t      and database in FIPS mode \n");
-    MPR_fprintf(debug_out, "\n\n\tNote: -F and -C are mutually exclusive, ");
-    MPR_fprintf(debug_out, "you can only include of of them.\n");
-    MPR_fprintf(debug_out, "Valid Hashes: ");
+    PR_fprintf(debug_out, "%s test program usage:\n", program_name);
+    PR_fprintf(debug_out, "\t-i <infile>  shared_library_name to process\n");
+    PR_fprintf(debug_out, "\t-o <outfile> checksum outfile\n");
+    PR_fprintf(debug_out, "\t-d <path>    database path location\n");
+    PR_fprintf(debug_out, "\t-t <hash>    Hash for HMAC/or DSA\n");
+    PR_fprintf(debug_out, "\t-D           Sign with DSA rather than HMAC\n");
+    PR_fprintf(debug_out, "\t-k <keysize> size of the DSA key\n");
+    PR_fprintf(debug_out, "\t-K <key>     key-material to use for hmac (hex-string, without leading 0x)\n");
+    PR_fprintf(debug_out, "\t-c           Use compatible versions for old NSS\n");
+    PR_fprintf(debug_out, "\t-P <prefix>  database prefix\n");
+    PR_fprintf(debug_out, "\t-f <file>    password File : echo pw > file \n");
+    PR_fprintf(debug_out, "\t-F           force FIPS mode\n");
+    PR_fprintf(debug_out, "\t-C           force Non-FIPS mode\n");
+    PR_fprintf(debug_out, "\t-p <pwd>     password\n");
+    PR_fprintf(debug_out, "\t-v           verbose output\n");
+    PR_fprintf(debug_out, "\t-V           perform Verify operations\n");
+    PR_fprintf(debug_out, "\t-?           short help message\n");
+    PR_fprintf(debug_out, "\t-h           short help message\n");
+    PR_fprintf(debug_out, "\t-H           this help message\n");
+    PR_fprintf(debug_out, "\n\n\tNote: Use of FIPS mode requires your ");
+    PR_fprintf(debug_out, "library path is using \n");
+    PR_fprintf(debug_out, "\t      pre-existing libraries with generated ");
+    PR_fprintf(debug_out, "checksum files\n");
+    PR_fprintf(debug_out, "\t      and database in FIPS mode \n");
+    PR_fprintf(debug_out, "\n\n\tNote: -F and -C are mutually exclusive, ");
+    PR_fprintf(debug_out, "you can only include of of them.\n");
+    PR_fprintf(debug_out, "Valid Hashes: ");
     for (i = 0; i < hashTableSize; i++) {
-        MPR_fprintf(debug_out, "%s%s", comma, hashTable[i].name);
+        PR_fprintf(debug_out, "%s%s", comma, hashTable[i].name);
         comma = ", ";
     }
-    MPR_fprintf(debug_out, "\n");
+    PR_fprintf(debug_out, "\n");
     exit(1);
 }
 
@@ -195,11 +195,11 @@ static char *
 mkoutput(const char *input)
 {
     int in_len = strlen(input);
-    char *output = MPR_Malloc(in_len + sizeof(SGN_SUFFIX));
+    char *output = PR_Malloc(in_len + sizeof(SGN_SUFFIX));
     int index = in_len + 1 - sizeof("." SHLIB_SUFFIX);
 
     if ((index > 0) &&
-        (MPL_strncmp(&input[index],
+        (PL_strncmp(&input[index],
                     "." SHLIB_SUFFIX, sizeof("." SHLIB_SUFFIX)) == 0)) {
         in_len = index;
     }
@@ -221,7 +221,7 @@ mkoutput(const char *input)
 static void
 print_error(const char *string)
 {
-    MPR_fprintf(PR_STDERR, "%s\n", string);
+    PR_fprintf(PR_STDERR, "%s\n", string);
 }
 
 static void
@@ -229,9 +229,9 @@ lperror(const char *string)
 {
     PRErrorCode errorcode;
 
-    errorcode = MPR_GetError();
-    MPR_fprintf(PR_STDERR, "%s: %d: %s\n", string, errorcode,
-               MPR_ErrorToString(errorcode, PR_LANGUAGE_I_DEFAULT));
+    errorcode = PR_GetError();
+    PR_fprintf(PR_STDERR, "%s: %d: %s\n", string, errorcode,
+               PR_ErrorToString(errorcode, PR_LANGUAGE_I_DEFAULT));
 }
 
 static void
@@ -250,16 +250,16 @@ writeItem(PRFileDesc *fd, CK_VOID_PTR pValue, CK_ULONG ulValueLen)
     unsigned char buf[4];
     int bytesWritten;
     if (ulValueLen == 0) {
-        MPR_fprintf(PR_STDERR, "call to writeItem with 0 bytes of data.\n");
+        PR_fprintf(PR_STDERR, "call to writeItem with 0 bytes of data.\n");
         return PR_FAILURE;
     }
 
     encodeInt(buf, ulValueLen);
-    bytesWritten = MPR_Write(fd, buf, 4);
+    bytesWritten = PR_Write(fd, buf, 4);
     if (bytesWritten != 4) {
         return PR_FAILURE;
     }
-    bytesWritten = MPR_Write(fd, pValue, ulValueLen);
+    bytesWritten = PR_Write(fd, pValue, ulValueLen);
     if (bytesWritten < 0 || (CK_ULONG)bytesWritten != ulValueLen) {
         return PR_FAILURE;
     }
@@ -621,7 +621,7 @@ CK_RVtoStr(CK_RV errNum)
         for (i = low; i <= high; ++i) {
             num = errStrings[i].errNum;
             if (num <= lastNum) {
-                MPR_fprintf(PR_STDERR,
+                PR_fprintf(PR_STDERR,
                            "sequence error in error strings at item %d\n"
                            "error %d (%s)\n"
                            "should come after \n"
@@ -657,12 +657,12 @@ pk11error(const char *string, CK_RV crv)
 {
     PRErrorCode errorcode;
 
-    MPR_fprintf(PR_STDERR, "%s: 0x%08lX, %-26s\n", string, crv, CK_RVtoStr(crv));
+    PR_fprintf(PR_STDERR, "%s: 0x%08lX, %-26s\n", string, crv, CK_RVtoStr(crv));
 
-    errorcode = MPR_GetError();
+    errorcode = PR_GetError();
     if (errorcode) {
-        MPR_fprintf(PR_STDERR, "NSPR error code: %d: %s\n", errorcode,
-                   MPR_ErrorToString(errorcode, PR_LANGUAGE_I_DEFAULT));
+        PR_fprintf(PR_STDERR, "NSPR error code: %d: %s\n", errorcode,
+                   PR_ErrorToString(errorcode, PR_LANGUAGE_I_DEFAULT));
     }
 }
 
@@ -701,15 +701,15 @@ softokn_Init(CK_FUNCTION_LIST_PTR pFunctionList, const char *configDir,
     initArgs.UnlockMutex = NULL;
     initArgs.flags = CKF_OS_LOCKING_OK;
     if (configDir) {
-        moduleSpec = MPR_smprintf("configdir='%s' certPrefix='%s' "
+        moduleSpec = PR_smprintf("configdir='%s' certPrefix='%s' "
                                  "keyPrefix='%s' secmod='secmod.db' flags=ReadOnly ",
                                  configDir, dbPrefix, dbPrefix);
     } else {
-        moduleSpec = MPR_smprintf("configdir='' certPrefix='' keyPrefix='' "
+        moduleSpec = PR_smprintf("configdir='' certPrefix='' keyPrefix='' "
                                  "secmod='' flags=noCertDB, noModDB");
     }
     if (!moduleSpec) {
-        MPR_fprintf(PR_STDERR, "softokn_Init: out of memory error\n");
+        PR_fprintf(PR_STDERR, "softokn_Init: out of memory error\n");
         return CKR_HOST_MEMORY;
     }
     logIt("moduleSpec %s\n", moduleSpec);
@@ -724,7 +724,7 @@ softokn_Init(CK_FUNCTION_LIST_PTR pFunctionList, const char *configDir,
 
 cleanup:
     if (moduleSpec) {
-        MPR_smprintf_free(moduleSpec);
+        PR_smprintf_free(moduleSpec);
     }
 
     return crv;
@@ -741,25 +741,25 @@ filePasswd(char *pwFile)
     if (!pwFile)
         return 0;
 
-    fd = MPR_Open(pwFile, PR_RDONLY, 0);
+    fd = PR_Open(pwFile, PR_RDONLY, 0);
     if (!fd) {
         lperror(pwFile);
         return NULL;
     }
 
-    nb = MPR_Read(fd, phrase, sizeof(phrase));
+    nb = PR_Read(fd, phrase, sizeof(phrase));
 
-    MPR_Close(fd);
+    PR_Close(fd);
     /* handle the Windows EOL case */
     i = 0;
     while (phrase[i] != '\r' && phrase[i] != '\n' && i < nb)
         i++;
     phrase[i] = '\0';
     if (nb == 0) {
-        MPR_fprintf(PR_STDERR, "password file contains no data\n");
+        PR_fprintf(PR_STDERR, "password file contains no data\n");
         return NULL;
     }
-    return (char *)MPL_strdup((char *)phrase);
+    return (char *)PL_strdup((char *)phrase);
 }
 
 static void
@@ -800,11 +800,11 @@ getSlotList(CK_FUNCTION_LIST_PTR pFunctionList,
     }
 
     if (slotIndex >= slotCount) {
-        MPR_fprintf(PR_STDERR, "provided slotIndex is greater than the slot count.");
+        PR_fprintf(PR_STDERR, "provided slotIndex is greater than the slot count.");
         return NULL;
     }
 
-    pSlotList = (CK_SLOT_ID *)MPR_Malloc(slotCount * sizeof(CK_SLOT_ID));
+    pSlotList = (CK_SLOT_ID *)PR_Malloc(slotCount * sizeof(CK_SLOT_ID));
     if (!pSlotList) {
         lperror("failed to allocate slot list");
         return NULL;
@@ -814,7 +814,7 @@ getSlotList(CK_FUNCTION_LIST_PTR pFunctionList,
     if (crv != CKR_OK) {
         pk11error("C_GetSlotList failed", crv);
         if (pSlotList)
-            MPR_Free(pSlotList);
+            PR_Free(pSlotList);
         return NULL;
     }
     return pSlotList;
@@ -863,7 +863,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
         }
 
         if (keySize && (mechInfo.ulMaxKeySize < keySize)) {
-            MPR_fprintf(PR_STDERR,
+            PR_fprintf(PR_STDERR,
                        "token doesn't support DSA2 (Max key size=%d)\n",
                        mechInfo.ulMaxKeySize);
             return crv;
@@ -903,14 +903,14 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
         digestmech.pParameter = NULL;
         digestmech.ulParameterLen = 0;
     } else {
-        MPR_fprintf(PR_STDERR, "Only keysizes 1024 and 2048 are supported");
+        PR_fprintf(PR_STDERR, "Only keysizes 1024 and 2048 are supported");
         return CKR_GENERAL_ERROR;
     }
     if (hash == NULL) {
         hash = findHash(hashName);
     }
     if (hash == NULL) {
-        MPR_fprintf(PR_STDERR,
+        PR_fprintf(PR_STDERR,
                    "Internal error,  couldn't find hash '%s' in table.\n",
                    hashName);
         return CKR_GENERAL_ERROR;
@@ -965,7 +965,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     /* Digest the file */
-    while ((bytesRead = MPR_Read(ifd, file_buf, sizeof(file_buf))) > 0) {
+    while ((bytesRead = PR_Read(ifd, file_buf, sizeof(file_buf))) > 0) {
         crv = pFunctionList->C_DigestUpdate(hRwSession, (CK_BYTE_PTR)file_buf,
                                             bytesRead);
         if (crv != CKR_OK) {
@@ -989,7 +989,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     if (digestLen != hash->hashLength) {
-        MPR_fprintf(PR_STDERR, "digestLen has incorrect length %lu "
+        PR_fprintf(PR_STDERR, "digestLen has incorrect length %lu "
                               "it should be %lu \n",
                    digestLen, sizeof(digest));
         return crv;
@@ -1013,7 +1013,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     if (signLen != expectedSigLen) {
-        MPR_fprintf(PR_STDERR, "signLen has incorrect length %lu "
+        PR_fprintf(PR_STDERR, "signLen has incorrect length %lu "
                               "it should be %lu \n",
                    signLen, expectedSigLen);
         return crv;
@@ -1035,23 +1035,23 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
 
     if (verbose) {
         int j;
-        MPR_fprintf(PR_STDERR, "Library File Size: %d bytes\n", count);
-        MPR_fprintf(PR_STDERR, "  hash: %lu bytes\n", digestLen);
+        PR_fprintf(PR_STDERR, "Library File Size: %d bytes\n", count);
+        PR_fprintf(PR_STDERR, "  hash: %lu bytes\n", digestLen);
 #define STEP 10
         for (i = 0; i < (int)digestLen; i += STEP) {
-            MPR_fprintf(PR_STDERR, "   ");
+            PR_fprintf(PR_STDERR, "   ");
             for (j = 0; j < STEP && (i + j) < (int)digestLen; j++) {
-                MPR_fprintf(PR_STDERR, " %02x", digest[i + j]);
+                PR_fprintf(PR_STDERR, " %02x", digest[i + j]);
             }
-            MPR_fprintf(PR_STDERR, "\n");
+            PR_fprintf(PR_STDERR, "\n");
         }
-        MPR_fprintf(PR_STDERR, "  signature: %lu bytes\n", signLen);
+        PR_fprintf(PR_STDERR, "  signature: %lu bytes\n", signLen);
         for (i = 0; i < (int)signLen; i += STEP) {
-            MPR_fprintf(PR_STDERR, "   ");
+            PR_fprintf(PR_STDERR, "   ");
             for (j = 0; j < STEP && (i + j) < (int)signLen; j++) {
-                MPR_fprintf(PR_STDERR, " %02x", sign[i + j]);
+                PR_fprintf(PR_STDERR, " %02x", sign[i + j]);
             }
-            MPR_fprintf(PR_STDERR, "\n");
+            PR_fprintf(PR_STDERR, "\n");
         }
     }
 
@@ -1069,7 +1069,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     header.minorVersion = compat ? COMPAT_MINOR : NSS_SIGN_CHK_MINOR_VERSION;
     encodeInt(header.offset, sizeof(header)); /* offset to data start */
     encodeInt(header.type, CKK_DSA);
-    bytesWritten = MPR_Write(ofd, &header, sizeof(header));
+    bytesWritten = PR_Write(ofd, &header, sizeof(header));
     if (bytesWritten != sizeof(header)) {
         return CKR_INTERNAL_OUT_FAILURE;
     }
@@ -1365,7 +1365,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
         hash = findHash("sha256");
     }
     if (hash == NULL) {
-        MPR_fprintf(PR_STDERR,
+        PR_fprintf(PR_STDERR,
                    "Internal error:Could find sha256 entry in table.\n");
     }
 
@@ -1439,7 +1439,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     /* Digest the file */
-    while ((bytesRead = MPR_Read(ifd, file_buf, sizeof(file_buf))) > 0) {
+    while ((bytesRead = PR_Read(ifd, file_buf, sizeof(file_buf))) > 0) {
         crv = pFunctionList->C_SignUpdate(hRwSession, (CK_BYTE_PTR)file_buf,
                                           bytesRead);
         if (crv != CKR_OK) {
@@ -1463,7 +1463,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     if (signLen != hash->hashLength) {
-        MPR_fprintf(PR_STDERR, "digestLen has incorrect length %lu "
+        PR_fprintf(PR_STDERR, "digestLen has incorrect length %lu "
                               "it should be %lu \n",
                    signLen, hash->hashLength);
         return crv;
@@ -1471,23 +1471,23 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
 
     if (verbose) {
         int j;
-        MPR_fprintf(PR_STDERR, "Library File Size: %d bytes\n", count);
-        MPR_fprintf(PR_STDERR, "  key: %lu bytes\n", keyLen);
+        PR_fprintf(PR_STDERR, "Library File Size: %d bytes\n", count);
+        PR_fprintf(PR_STDERR, "  key: %lu bytes\n", keyLen);
 #define STEP 10
         for (i = 0; i < (int)keyLen; i += STEP) {
-            MPR_fprintf(PR_STDERR, "   ");
+            PR_fprintf(PR_STDERR, "   ");
             for (j = 0; j < STEP && (i + j) < (int)keyLen; j++) {
-                MPR_fprintf(PR_STDERR, " %02x", keyBuf[i + j]);
+                PR_fprintf(PR_STDERR, " %02x", keyBuf[i + j]);
             }
-            MPR_fprintf(PR_STDERR, "\n");
+            PR_fprintf(PR_STDERR, "\n");
         }
-        MPR_fprintf(PR_STDERR, "  signature: %lu bytes\n", signLen);
+        PR_fprintf(PR_STDERR, "  signature: %lu bytes\n", signLen);
         for (i = 0; i < (int)signLen; i += STEP) {
-            MPR_fprintf(PR_STDERR, "   ");
+            PR_fprintf(PR_STDERR, "   ");
             for (j = 0; j < STEP && (i + j) < (int)signLen; j++) {
-                MPR_fprintf(PR_STDERR, " %02x", sign[i + j]);
+                PR_fprintf(PR_STDERR, " %02x", sign[i + j]);
             }
-            MPR_fprintf(PR_STDERR, "\n");
+            PR_fprintf(PR_STDERR, "\n");
         }
     }
 
@@ -1505,7 +1505,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     header.minorVersion = NSS_SIGN_CHK_MINOR_VERSION;
     encodeInt(header.offset, sizeof(header)); /* offset to data start */
     encodeInt(header.type, NSS_SIGN_CHK_FLAG_HMAC | hash->hashType);
-    bytesWritten = MPR_Write(ofd, &header, sizeof(header));
+    bytesWritten = PR_Write(ofd, &header, sizeof(header));
     if (bytesWritten != sizeof(header)) {
         return CKR_INTERNAL_OUT_FAILURE;
     }
@@ -1564,21 +1564,21 @@ main(int argc, char **argv)
 
     program_name = strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
-    optstate = MPL_CreateOptState(argc, argv, "i:o:f:FCd:hH?k:K:p:P:vVs:t:Dc");
+    optstate = PL_CreateOptState(argc, argv, "i:o:f:FCd:hH?k:K:p:P:vVs:t:Dc");
     if (optstate == NULL) {
-        lperror("MPL_CreateOptState failed");
+        lperror("PL_CreateOptState failed");
         return 1;
     }
 
-    while (MPL_GetNextOpt(optstate) == PL_OPT_OK) {
+    while (PL_GetNextOpt(optstate) == PL_OPT_OK) {
         switch (optstate->option) {
 
             case 'd':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
-                configDir = MPL_strdup(optstate->value);
+                configDir = PL_strdup(optstate->value);
                 checkPath(configDir);
                 break;
 
@@ -1592,7 +1592,7 @@ main(int argc, char **argv)
 
             case 'i':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
                 input_file = optstate->value;
@@ -1600,15 +1600,15 @@ main(int argc, char **argv)
 
             case 'o':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
-                output_file = MPL_strdup(optstate->value);
+                output_file = PL_strdup(optstate->value);
                 break;
 
             case 'k':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
                 keySize = atoi(optstate->value);
@@ -1616,15 +1616,15 @@ main(int argc, char **argv)
 
             case 'K':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
-                key = MPL_strdup(optstate->value);
+                key = PL_strdup(optstate->value);
                 break;
 
             case 'f':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
                 pwd = filePasswd((char *)optstate->value);
@@ -1637,7 +1637,7 @@ main(int argc, char **argv)
                     break; /* mode is already set to fips */
                 }
                 if (mode != mode_default) {
-                    MPR_fprintf(PR_STDERR, "-C and -F are mutually exclusive\n");
+                    PR_fprintf(PR_STDERR, "-C and -F are mutually exclusive\n");
                     usage(program_name);
                 }
                 mode = mode_fips;
@@ -1648,7 +1648,7 @@ main(int argc, char **argv)
                     break; /* mode is already set to nonfips */
                 }
                 if (mode != mode_default) {
-                    MPR_fprintf(PR_STDERR, "-F and -C are mutually exclusive\n");
+                    PR_fprintf(PR_STDERR, "-F and -C are mutually exclusive\n");
                     usage(program_name);
                 }
                 mode = mode_nonfips;
@@ -1656,28 +1656,28 @@ main(int argc, char **argv)
 
             case 'p':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
-                pwd = MPL_strdup(optstate->value);
+                pwd = PL_strdup(optstate->value);
                 break;
 
             case 'P':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
-                dbPrefix = MPL_strdup(optstate->value);
+                dbPrefix = PL_strdup(optstate->value);
                 break;
 
             case 't':
                 if (!optstate->value) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     usage(program_name);
                 }
                 hash = findHash(optstate->value);
                 if (hash == NULL) {
-                    MPR_fprintf(PR_STDERR, "Invalid hash '%s'\n",
+                    PR_fprintf(PR_STDERR, "Invalid hash '%s'\n",
                                optstate->value);
                     usage(program_name);
                 }
@@ -1691,7 +1691,7 @@ main(int argc, char **argv)
                 break;
 
             case 'H':
-                MPL_DestroyOptState(optstate);
+                PL_DestroyOptState(optstate);
                 long_usage(program_name);
                 return 1;
                 break;
@@ -1699,13 +1699,13 @@ main(int argc, char **argv)
             case 'h':
             case '?':
             default:
-                MPL_DestroyOptState(optstate);
+                PL_DestroyOptState(optstate);
                 usage(program_name);
                 return 1;
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     if (!input_file) {
         usage(program_name);
@@ -1715,39 +1715,39 @@ main(int argc, char **argv)
     /* Get the platform-dependent library name of the
      * NSS cryptographic module.
      */
-    libname = MPR_GetLibraryName(NULL, "softokn3");
+    libname = PR_GetLibraryName(NULL, "softokn3");
     assert(libname != NULL);
     if (!libname) {
-        MPR_fprintf(PR_STDERR, "getting softokn3 failed");
+        PR_fprintf(PR_STDERR, "getting softokn3 failed");
         goto cleanup;
     }
-    lib = MPR_LoadLibrary(libname);
+    lib = PR_LoadLibrary(libname);
     assert(lib != NULL);
     if (!lib) {
-        MPR_fprintf(PR_STDERR, "loading softokn3 failed");
+        PR_fprintf(PR_STDERR, "loading softokn3 failed");
         goto cleanup;
     }
-    MPR_FreeLibraryName(libname);
+    PR_FreeLibraryName(libname);
 
     pC_GetFunctionList = (CK_C_GetFunctionList)
-        MPR_FindFunctionSymbol(lib, getFunctionListName(mode));
+        PR_FindFunctionSymbol(lib, getFunctionListName(mode));
 
     assert(pC_GetFunctionList != NULL);
     if (!pC_GetFunctionList) {
-        MPR_fprintf(PR_STDERR, "getting function list failed");
+        PR_fprintf(PR_STDERR, "getting function list failed");
         goto cleanup;
     }
 
     crv = (*pC_GetFunctionList)(&pFunctionList);
     assert(crv == CKR_OK);
     if (crv != CKR_OK) {
-        MPR_fprintf(PR_STDERR, "loading function list failed");
+        PR_fprintf(PR_STDERR, "loading function list failed");
         goto cleanup;
     }
 
     if (configDir) {
         if (!dbPrefix) {
-            dbPrefix = MPL_strdup("");
+            dbPrefix = PL_strdup("");
         }
         crv = softokn_Init(pFunctionList, configDir, dbPrefix);
         if (crv != CKR_OK) {
@@ -1766,7 +1766,7 @@ main(int argc, char **argv)
 
     pSlotList = getSlotList(pFunctionList, slotIndex);
     if (pSlotList == NULL) {
-        MPR_fprintf(PR_STDERR, "getSlotList failed");
+        PR_fprintf(PR_STDERR, "getSlotList failed");
         goto cleanup;
     }
 
@@ -1794,7 +1794,7 @@ main(int argc, char **argv)
                 goto cleanup;
             }
         } else {
-            MPR_fprintf(PR_STDERR, "Please provide the password for the token");
+            PR_fprintf(PR_STDERR, "Please provide the password for the token");
             goto cleanup;
         }
     } else if (pwd) {
@@ -1802,7 +1802,7 @@ main(int argc, char **argv)
     }
 
     /* open the shared library */
-    ifd = MPR_OpenFile(input_file, PR_RDONLY, 0);
+    ifd = PR_OpenFile(input_file, PR_RDONLY, 0);
     if (ifd == NULL) {
         lperror(input_file);
         goto cleanup;
@@ -1823,7 +1823,7 @@ main(int argc, char **argv)
         link_buf[ret] = 0;
         link_file = mkoutput(input_file);
         /* get the dirname of input_file */
-        dirpath = MPL_strdup(input_file);
+        dirpath = PL_strdup(input_file);
         dirend = strrchr(dirpath, '/');
         if (dirend) {
             *dirend = '\0';
@@ -1833,14 +1833,14 @@ main(int argc, char **argv)
                 goto cleanup;
             }
         }
-        MPL_strfree(dirpath);
+        PL_strfree(dirpath);
         input_file = link_buf;
         /* get the basename of link_file */
         dirend = strrchr(link_file, '/');
         if (dirend) {
             char *tmp_file = NULL;
-            tmp_file = MPL_strdup(dirend + 1);
-            MPL_strfree(link_file);
+            tmp_file = PL_strdup(dirend + 1);
+            PL_strfree(link_file);
             link_file = tmp_file;
         }
     }
@@ -1850,17 +1850,17 @@ main(int argc, char **argv)
     }
 
     if (verbose) {
-        MPR_fprintf(PR_STDERR, "Library File: %s\n", input_file);
-        MPR_fprintf(PR_STDERR, "Check File: %s\n", output_file);
+        PR_fprintf(PR_STDERR, "Library File: %s\n", input_file);
+        PR_fprintf(PR_STDERR, "Check File: %s\n", output_file);
 #ifdef USES_LINKS
         if (link_file) {
-            MPR_fprintf(PR_STDERR, "Link: %s\n", link_file);
+            PR_fprintf(PR_STDERR, "Link: %s\n", link_file);
         }
 #endif
     }
 
     /* open the target signature file */
-    ofd = MPR_Open(output_file, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0666);
+    ofd = PR_Open(output_file, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0666);
     if (ofd == NULL) {
         lperror(output_file);
         goto cleanup;
@@ -1880,10 +1880,10 @@ main(int argc, char **argv)
         lperror(input_file);
     }
 
-    MPR_Close(ofd);
+    PR_Close(ofd);
     ofd = NULL;
     /* close the input_File */
-    MPR_Close(ifd);
+    PR_Close(ifd);
     ifd = NULL;
 
 #ifdef USES_LINKS
@@ -1908,37 +1908,37 @@ cleanup:
         }
     }
     if (pSlotList) {
-        MPR_Free(pSlotList);
+        PR_Free(pSlotList);
     }
     if (pwd) {
-        MPL_strfree(pwd);
+        PL_strfree(pwd);
     }
     if (configDir) {
-        MPL_strfree(configDir);
+        PL_strfree(configDir);
     }
     if (dbPrefix) {
-        MPL_strfree(dbPrefix);
+        PL_strfree(dbPrefix);
     }
     if (output_file) { /* allocated by mkoutput function */
-        MPL_strfree(output_file);
+        PL_strfree(output_file);
     }
 #ifdef USES_LINKS
     if (link_file) { /* allocated by mkoutput function */
-        MPL_strfree(link_file);
+        PL_strfree(link_file);
     }
 #endif
     if (ifd) {
-        MPR_Close(ifd);
+        PR_Close(ifd);
     }
     if (ofd) {
-        MPR_Close(ofd);
+        PR_Close(ofd);
     }
 
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (!disableUnload && lib) {
-        MPR_UnloadLibrary(lib);
+        PR_UnloadLibrary(lib);
     }
-    MPR_Cleanup();
+    PR_Cleanup();
 
     if (crv != CKR_OK)
         return crv;

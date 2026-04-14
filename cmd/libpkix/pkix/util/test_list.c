@@ -232,17 +232,17 @@ testGetSetItem(
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString,
-                                                    MPL_strlen(testItemString),
+                                                    PL_strlen(testItemString),
                                                     testItem,
                                                     plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString2,
-                                                    MPL_strlen(testItemString2),
+                                                    PL_strlen(testItemString2),
                                                     testItem2,
                                                     plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString3,
-                                                    MPL_strlen(testItemString3),
+                                                    PL_strlen(testItemString3),
                                                     testItem3,
                                                     plContext));
 
@@ -262,7 +262,7 @@ testGetSetItem(
 
     temp = PKIX_String2ASCII((PKIX_PL_String *)tempItem, plContext);
     if (temp) {
-        if (MPL_strcmp(testItemString, temp) != 0)
+        if (PL_strcmp(testItemString, temp) != 0)
             testError("GetItem from list is incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -273,7 +273,7 @@ testGetSetItem(
 
     temp = PKIX_String2ASCII((PKIX_PL_String *)tempItem, plContext);
     if (temp) {
-        if (MPL_strcmp(testItemString2, temp) != 0)
+        if (PL_strcmp(testItemString2, temp) != 0)
             testError("GetItem from list is incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -283,7 +283,7 @@ testGetSetItem(
 
     temp = PKIX_String2ASCII((PKIX_PL_String *)tempItem, plContext);
     if (temp) {
-        if (MPL_strcmp(testItemString3, temp) != 0)
+        if (PL_strcmp(testItemString3, temp) != 0)
             testError("GetItem from list is incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -304,7 +304,7 @@ testGetSetItem(
 
     temp = PKIX_String2ASCII((PKIX_PL_String *)tempItem, plContext);
     if (temp) {
-        if (MPL_strcmp(testItemString3, temp) != 0)
+        if (PL_strcmp(testItemString3, temp) != 0)
             testError("GetItem from list is incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -333,7 +333,7 @@ testInsertItem(
 
     temp = PKIX_String2ASCII((PKIX_PL_String *)tempItem, plContext);
     if (temp) {
-        if (MPL_strcmp(testItemString, temp) != 0)
+        if (PL_strcmp(testItemString, temp) != 0)
             testError("GetItem from list is incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -345,7 +345,7 @@ testInsertItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, c, b, c)", temp) != 0)
+        if (PL_strcmp("(a, c, b, c)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -377,7 +377,7 @@ testAppendItem(PKIX_List *list, PKIX_PL_String *testItem)
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, c, b, c, a)", temp) != 0)
+        if (PL_strcmp("(a, c, b, c, a)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -417,7 +417,7 @@ testNestedLists(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, (null), a)", temp) != 0)
+        if (PL_strcmp("(a, (null), a)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -433,7 +433,7 @@ testNestedLists(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, (a, (null), a), c, b, c, a)", temp) != 0)
+        if (PL_strcmp("(a, (a, (null), a), c, b, c, a)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -463,7 +463,7 @@ testDeleteItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, (a, (null), a), c, b, c)", temp) != 0)
+        if (PL_strcmp("(a, (a, (null), a), c, b, c)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -477,7 +477,7 @@ testDeleteItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, c, b, c)", temp) != 0)
+        if (PL_strcmp("(a, c, b, c)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -491,7 +491,7 @@ testDeleteItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(c, b, c)", temp) != 0)
+        if (PL_strcmp("(c, b, c)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -503,7 +503,7 @@ testDeleteItem(
                                                       plContext));
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, a)", temp) != 0)
+        if (PL_strcmp("(a, a)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -518,7 +518,7 @@ testDeleteItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, a, b)", temp) != 0)
+        if (PL_strcmp("(a, a, b)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -531,7 +531,7 @@ testDeleteItem(
 
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, a)", temp) != 0)
+        if (PL_strcmp("(a, a)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -545,7 +545,7 @@ testDeleteItem(
                                                       plContext));
     temp = PKIX_String2ASCII(outputString, plContext);
     if (temp) {
-        if (MPL_strcmp("(a, a, c)", temp) != 0)
+        if (PL_strcmp("(a, a, c)", temp) != 0)
             testError("List toString is Incorrect");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
     }
@@ -577,22 +577,22 @@ testContains(void)
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString,
-                                                    MPL_strlen(testItemString),
+                                                    PL_strlen(testItemString),
                                                     &testItem,
                                                     plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString2,
-                                                    MPL_strlen(testItemString2),
+                                                    PL_strlen(testItemString2),
                                                     &testItem2,
                                                     plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString3,
-                                                    MPL_strlen(testItemString3),
+                                                    PL_strlen(testItemString3),
                                                     &testItem3,
                                                     plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     testItemString4,
-                                                    MPL_strlen(testItemString4),
+                                                    PL_strlen(testItemString4),
                                                     &testItem4,
                                                     plContext));
 

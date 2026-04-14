@@ -239,11 +239,11 @@ Pk11Install_yyerror(char *message)
 {
     char *tmp;
     if (Pk11Install_yyerrstr) {
-        tmp = MPR_smprintf("%sline %d: %s\n", Pk11Install_yyerrstr,
+        tmp = PR_smprintf("%sline %d: %s\n", Pk11Install_yyerrstr,
                           Pk11Install_yylinenum, message);
-        MPR_smprintf_free(Pk11Install_yyerrstr);
+        PR_smprintf_free(Pk11Install_yyerrstr);
     } else {
-        tmp = MPR_smprintf("line %d: %s\n", Pk11Install_yylinenum, message);
+        tmp = PR_smprintf("line %d: %s\n", Pk11Install_yylinenum, message);
     }
     Pk11Install_yyerrstr = tmp;
 }
@@ -257,9 +257,9 @@ yyparse()
     register int yym, yyn, yystate;
 #if YYDEBUG
     register char *yys;
-    extern char *MPR_GetEnvSecure();
+    extern char *PR_GetEnvSecure();
 
-    if ((yys = MPR_GetEnvSecure("YYDEBUG")) != NULL) {
+    if ((yys = PR_GetEnvSecure("YYDEBUG")) != NULL) {
         yyn = *yys;
         if (yyn >= '0' && yyn <= '9')
             yydebug = yyn - '0';

@@ -27,7 +27,7 @@ PRBool verbose = PR_FALSE;
 static void
 synopsis(char *program_name)
 {
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "Usage: %s [<common>] -i <input-file>\n"
                "       %s [<common>]  -o <output-file>\n"
                "       <common> [-d dir] [-v] [-t text] [-a] [-f pwfile | -p pwd] [-m aes|des3]\n",
@@ -37,7 +37,7 @@ synopsis(char *program_name)
 static void
 short_usage(char *program_name)
 {
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "Type %s -H for more detailed descriptions\n",
                program_name);
     synopsis(program_name);
@@ -47,26 +47,26 @@ static void
 long_usage(char *program_name)
 {
     synopsis(program_name);
-    MPR_fprintf(pr_stderr, "\nSecret Decoder Test:\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr, "\nSecret Decoder Test:\n");
+    PR_fprintf(pr_stderr,
                "  %-13s Read encrypted data from \"file\"\n",
                "-i file");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s Write newly generated encrypted data to \"file\"\n",
                "-o file");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s Use \"text\" as the plaintext for encryption and verification\n",
                "-t text");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s Find security databases in \"dbdir\"\n",
                "-d dbdir");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s read the password from \"pwfile\"\n",
                "-f pwfile");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s supply \"password\" on the command line\n",
                "-p password");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "  %-13s Mechanism to use for encryption (aes or des3)\n",
                "-m mechanism");
 }
@@ -82,16 +82,16 @@ readStdin(SECItem *result)
     result->data = NULL;
     do {
         if (bufsize < wanted) {
-            unsigned char *tmpData = (unsigned char *)MPR_Realloc(result->data, wanted);
+            unsigned char *tmpData = (unsigned char *)PR_Realloc(result->data, wanted);
             if (!tmpData) {
                 if (verbose)
-                    MPR_fprintf(pr_stderr, "Allocation of buffer failed\n");
+                    PR_fprintf(pr_stderr, "Allocation of buffer failed\n");
                 return -1;
             }
             result->data = tmpData;
             bufsize = wanted;
         }
-        cc = MPR_Read(PR_STDIN, result->data + result->len, bufsize - result->len);
+        cc = PR_Read(PR_STDIN, result->data + result->len, bufsize - result->len);
         if (cc > 0) {
             result->len += (unsigned)cc;
             if (result->len >= wanted)
@@ -104,44 +104,44 @@ readStdin(SECItem *result)
 int
 readInputFile(const char *filename, SECItem *result)
 {
-    PRFileDesc *file /* = MPR_OpenFile(input_file, 0) */;
+    PRFileDesc *file /* = PR_OpenFile(input_file, 0) */;
     PRFileInfo info;
     PRStatus s;
     PRInt32 count;
     int retval = -1;
 
-    file = MPR_Open(filename, PR_RDONLY, 0);
+    file = PR_Open(filename, PR_RDONLY, 0);
     if (!file) {
         if (verbose)
-            MPR_fprintf(pr_stderr, "Open of file %s failed\n", filename);
+            PR_fprintf(pr_stderr, "Open of file %s failed\n", filename);
         goto loser;
     }
 
-    s = MPR_GetOpenFileInfo(file, &info);
+    s = PR_GetOpenFileInfo(file, &info);
     if (s != PR_SUCCESS) {
         if (verbose)
-            MPR_fprintf(pr_stderr, "File info operation failed\n");
+            PR_fprintf(pr_stderr, "File info operation failed\n");
         goto file_loser;
     }
 
     result->len = info.size;
-    result->data = (unsigned char *)MPR_Malloc(result->len);
+    result->data = (unsigned char *)PR_Malloc(result->len);
     if (!result->data) {
         if (verbose)
-            MPR_fprintf(pr_stderr, "Allocation of buffer failed\n");
+            PR_fprintf(pr_stderr, "Allocation of buffer failed\n");
         goto file_loser;
     }
 
-    count = MPR_Read(file, result->data, result->len);
+    count = PR_Read(file, result->data, result->len);
     if (count != result->len) {
         if (verbose)
-            MPR_fprintf(pr_stderr, "Read failed\n");
+            PR_fprintf(pr_stderr, "Read failed\n");
         goto file_loser;
     }
     retval = 0;
 
 file_loser:
-    MPR_Close(file);
+    PR_Close(file);
 loser:
     return retval;
 }
@@ -169,16 +169,16 @@ main(int argc, char **argv)
     text.data = 0;
     text.len = 0;
 
-    program_name = MPL_strrchr(argv[0], '/');
+    program_name = PL_strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
 
-    optstate = MPL_CreateOptState(argc, argv, "?Had:i:o:t:vf:p:m:");
+    optstate = PL_CreateOptState(argc, argv, "?Had:i:o:t:vf:p:m:");
     if (optstate == NULL) {
-        SECU_PrintError(program_name, "MPL_CreateOptState failed");
+        SECU_PrintError(program_name, "PL_CreateOptState failed");
         return -1;
     }
 
-    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 short_usage(program_name);
@@ -242,14 +242,14 @@ main(int argc, char **argv)
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     if (optstatus == PL_OPT_BAD) {
         short_usage(program_name);
         return -1;
     }
     if (!output_file && !input_file && value == default_value) {
         short_usage(program_name);
-        MPR_fprintf(pr_stderr, "Must specify at least one of -t, -i or -o \n");
+        PR_fprintf(pr_stderr, "Must specify at least one of -t, -i or -o \n");
         return -1;
     }
 
@@ -373,7 +373,7 @@ main(int argc, char **argv)
                 file = PR_STDOUT;
             } else {
                 /* Write to file */
-                file = MPR_Open(output_file, PR_CREATE_FILE | PR_WRONLY, 0666);
+                file = PR_Open(output_file, PR_CREATE_FILE | PR_WRONLY, 0666);
             }
             if (!file) {
                 if (verbose)
@@ -384,12 +384,12 @@ main(int argc, char **argv)
                 goto loser;
             }
 
-            count = MPR_Write(file, outBuf.data, outBuf.len);
+            count = PR_Write(file, outBuf.data, outBuf.len);
 
             if (file == PR_STDOUT) {
                 puts("");
             } else {
-                MPR_Close(file);
+                PR_Close(file);
             }
 
             if (count != outBuf.len) {
@@ -419,7 +419,7 @@ main(int argc, char **argv)
     /* Compare to required value */
     if (text.len != data.len || memcmp(data.data, text.data, text.len) != 0) {
         if (verbose)
-            MPR_fprintf(pr_stderr, "Comparison failed\n");
+            PR_fprintf(pr_stderr, "Comparison failed\n");
         retval = -1;
         goto loser;
     }
@@ -434,7 +434,7 @@ loser:
     }
 
 prdone:
-    MPR_Cleanup();
+    PR_Cleanup();
     if (pwdata.data) {
         PORT_Free(pwdata.data);
     }

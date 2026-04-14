@@ -212,13 +212,13 @@ CERT_DestroyGeneralNameList(CERTGeneralNameList *list)
 
     if (list != NULL) {
         lock = list->lock;
-        MPR_Lock(lock);
+        PR_Lock(lock);
         if (--list->refCount <= 0 && list->arena != NULL) {
             PORT_FreeArena(list->arena, PR_FALSE);
-            MPR_Unlock(lock);
-            MPR_DestroyLock(lock);
+            PR_Unlock(lock);
+            PR_DestroyLock(lock);
         } else {
-            MPR_Unlock(lock);
+            PR_Unlock(lock);
         }
     }
     return;
@@ -246,7 +246,7 @@ CERT_CreateGeneralNameList(CERTGeneralName *name)
         if (rv != SECSuccess)
             goto loser;
     }
-    list->lock = MPR_NewLock();
+    list->lock = PR_NewLock();
     if (!list->lock)
         goto loser;
     list->arena = arena;
@@ -831,9 +831,9 @@ CERTGeneralNameList *
 CERT_DupGeneralNameList(CERTGeneralNameList *list)
 {
     if (list != NULL) {
-        MPR_Lock(list->lock);
+        PR_Lock(list->lock);
         list->refCount++;
-        MPR_Unlock(list->lock);
+        PR_Unlock(list->lock);
     }
     return list;
 }
@@ -1185,7 +1185,7 @@ compareURIN2C(const SECItem *name, const SECItem *constraint)
     if (constraint->data[0] != '.') {
         /* constraint is a host name. */
         if (name->len != constraint->len ||
-            MPL_strncasecmp((char *)name->data, (char *)constraint->data,
+            PL_strncasecmp((char *)name->data, (char *)constraint->data,
                            constraint->len))
             return SECFailure;
         return SECSuccess;
@@ -1194,7 +1194,7 @@ compareURIN2C(const SECItem *name, const SECItem *constraint)
     if (name->len < constraint->len)
         return SECFailure;
     offset = name->len - constraint->len;
-    if (MPL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
+    if (PL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
                        constraint->len))
         return SECFailure;
     if (!offset ||
@@ -1239,7 +1239,7 @@ compareDNSN2C(const SECItem *name, const SECItem *constraint)
     if (name->len < constraint->len)
         return SECFailure;
     offset = name->len - constraint->len;
-    if (MPL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
+    if (PL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
                        constraint->len))
         return SECFailure;
     if (!offset ||
@@ -1269,14 +1269,14 @@ compareRFC822N2C(const SECItem *name, const SECItem *constraint)
     for (offset = constraint->len - 1; offset >= 0; --offset) {
         if (constraint->data[offset] == '@') {
             return (name->len == constraint->len &&
-                    !MPL_strncasecmp((char *)name->data,
+                    !PL_strncasecmp((char *)name->data,
                                     (char *)constraint->data, constraint->len))
                        ? SECSuccess
                        : SECFailure;
         }
     }
     offset = name->len - constraint->len;
-    if (MPL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
+    if (PL_strncasecmp((char *)(name->data + offset), (char *)constraint->data,
                        constraint->len))
         return SECFailure;
     if (constraint->data[0] == '.')
@@ -1884,11 +1884,11 @@ CERT_CompareGeneralNameLists(CERTGeneralNameList *a, CERTGeneralNameList *b)
 	return SECSuccess;
     }
     if (a != NULL && b != NULL) {
-	MPR_Lock(a->lock);
-	MPR_Lock(b->lock);
+	PR_Lock(a->lock);
+	PR_Lock(b->lock);
 	rv = CERT_CompareGeneralName(a->name, b->name);
-	MPR_Unlock(a->lock);
-	MPR_Unlock(b->lock);
+	PR_Unlock(a->lock);
+	PR_Unlock(b->lock);
     } else {
 	rv = SECFailure;
     }
@@ -1912,7 +1912,7 @@ CERT_GetGeneralNameFromListByType(CERTGeneralNameList *list,
     OtherName *tmpOther = NULL;
     void *data;
 
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     data = CERT_GetGeneralNameByType(list->name, type, PR_FALSE);
     if (data != NULL) {
 	switch (type) {
@@ -1931,7 +1931,7 @@ XXX		    SECITEM_CopyItem(arena, item, (SECItem *) data);
 	    } else {
 		item = SECITEM_DupItem((SECItem *) data);
 	    }
-	    MPR_Unlock(list->lock);
+	    PR_Unlock(list->lock);
 	    return item;
 	  case certOtherName:
 	    other = (OtherName *) data;
@@ -1944,7 +1944,7 @@ XXX		    SECITEM_CopyItem(arena, item, (SECItem *) data);
 XXX		SECITEM_CopyItem(arena, &tmpOther->oid, &other->oid);
 XXX		SECITEM_CopyItem(arena, &tmpOther->name, &other->name);
 	    }
-	    MPR_Unlock(list->lock);
+	    PR_Unlock(list->lock);
 	    return tmpOther;
 	  case certDirectoryName:
 	    if (arena) {
@@ -1953,11 +1953,11 @@ XXX		SECITEM_CopyItem(arena, &tmpOther->name, &other->name);
 XXX		    CERT_CopyName(arena, name, (CERTName *) data);
 		}
 	    }
-	    MPR_Unlock(list->lock);
+	    PR_Unlock(list->lock);
 	    return name;
 	}
     }
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
     return NULL;
 }
 #endif
@@ -1976,7 +1976,7 @@ CERT_AddGeneralNameToList(CERTGeneralNameList *list,
     CERTGeneralName *name;
 
     if (list != NULL && data != NULL) {
-	MPR_Lock(list->lock);
+	PR_Lock(list->lock);
 	name = CERT_NewGeneralName(list->arena, type);
 	if (!name)
 	    goto done;
@@ -2004,7 +2004,7 @@ XXX	    CERT_CopyName(list->arena, &name->name.directoryName,
 	list->name = cert_CombineNamesLists(list->name, name);
 	list->len++;
 done:
-	MPR_Unlock(list->lock);
+	PR_Unlock(list->lock);
     }
     return;
 }

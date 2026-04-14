@@ -597,7 +597,7 @@ ssl_Get1stHandshakeLock(sslSocket *ss)
     if (!ss->opt.noLocks) {
         PORT_Assert(PR_InMonitor(ss->firstHandshakeLock) ||
                     !ssl_HaveRecvBufLock(ss));
-        MPR_EnterMonitor(ss->firstHandshakeLock);
+        PR_EnterMonitor(ss->firstHandshakeLock);
     }
 }
 
@@ -605,7 +605,7 @@ void
 ssl_Release1stHandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        MPR_ExitMonitor(ss->firstHandshakeLock);
+        PR_ExitMonitor(ss->firstHandshakeLock);
     }
 }
 
@@ -614,7 +614,7 @@ ssl_GetSSL3HandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
         PORT_Assert(!ssl_HaveXmitBufLock(ss));
-        MPR_EnterMonitor(ss->ssl3HandshakeLock);
+        PR_EnterMonitor(ss->ssl3HandshakeLock);
     }
 }
 
@@ -622,7 +622,7 @@ void
 ssl_ReleaseSSL3HandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        MPR_ExitMonitor(ss->ssl3HandshakeLock);
+        PR_ExitMonitor(ss->ssl3HandshakeLock);
     }
 }
 
@@ -667,7 +667,7 @@ ssl_GetRecvBufLock(sslSocket *ss)
     if (!ss->opt.noLocks) {
         PORT_Assert(!ssl_HaveSSL3HandshakeLock(ss));
         PORT_Assert(!ssl_HaveXmitBufLock(ss));
-        MPR_EnterMonitor(ss->recvBufLock);
+        PR_EnterMonitor(ss->recvBufLock);
     }
 }
 
@@ -675,7 +675,7 @@ void
 ssl_ReleaseRecvBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        MPR_ExitMonitor(ss->recvBufLock);
+        PR_ExitMonitor(ss->recvBufLock);
     }
 }
 
@@ -684,7 +684,7 @@ void
 ssl_GetXmitBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        MPR_EnterMonitor(ss->xmitBufLock);
+        PR_EnterMonitor(ss->xmitBufLock);
     }
 }
 
@@ -692,7 +692,7 @@ void
 ssl_ReleaseXmitBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        MPR_ExitMonitor(ss->xmitBufLock);
+        PR_ExitMonitor(ss->xmitBufLock);
     }
 }
 
@@ -2762,7 +2762,7 @@ ssl3_SendRecord(sslSocket *ss,
             if (!(flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
                 ss->handshakeBegun = 1;
                 sent = ssl_SendSavedWriteData(ss);
-                if (sent < 0 && MPR_GetError() != PR_WOULD_BLOCK_ERROR) {
+                if (sent < 0 && PR_GetError() != PR_WOULD_BLOCK_ERROR) {
                     ssl_MapLowLevelError(SSL_ERROR_SOCKET_WRITE_FAILURE);
                     goto loser;
                 }
@@ -2871,7 +2871,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
              * Bugzilla bug 127740, comment #1.)
              */
             ssl_ReleaseXmitBufLock(ss);
-            MPR_Sleep(PR_INTERVAL_NO_WAIT); /* MPR_Yield(); */
+            PR_Sleep(PR_INTERVAL_NO_WAIT); /* PR_Yield(); */
             ssl_GetXmitBufLock(ss);
         }
 
@@ -2889,7 +2889,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
         sent = ssl3_SendRecord(ss, NULL, ssl_ct_application_data,
                                in + totalSent, toSend, flags);
         if (sent < 0) {
-            if (totalSent > 0 && MPR_GetError() == PR_WOULD_BLOCK_ERROR) {
+            if (totalSent > 0 && PR_GetError() == PR_WOULD_BLOCK_ERROR) {
                 PORT_Assert(ss->lastWriteBlocked);
                 break;
             }
@@ -5762,7 +5762,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
      */
     if (sid->u.ssl3.lock) {
         unlockNeeded = PR_TRUE;
-        MPR_RWLock_Rlock(sid->u.ssl3.lock);
+        PR_RWLock_Rlock(sid->u.ssl3.lock);
     }
 
     /* Generate a new random if this is the first attempt or renegotiation. */
@@ -5895,7 +5895,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     if (unlockNeeded) {
         /* Note: goto loser can't be used past this point. */
-        MPR_RWLock_Unlock(sid->u.ssl3.lock);
+        PR_RWLock_Unlock(sid->u.ssl3.lock);
     }
 
     if (ss->xtnData.sentSessionTicketInClientHello) {
@@ -5929,7 +5929,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
 loser:
     if (unlockNeeded) {
-        MPR_RWLock_Unlock(sid->u.ssl3.lock);
+        PR_RWLock_Unlock(sid->u.ssl3.lock);
     }
     sslBuffer_Clear(&chBuf);
     sslBuffer_Clear(&extensionBuf);
@@ -6155,7 +6155,7 @@ SECStatus
 ssl_FreeSymWrapKeysLock(void)
 {
     if (symWrapKeysLock) {
-        MPR_DestroyLock(symWrapKeysLock);
+        PR_DestroyLock(symWrapKeysLock);
         symWrapKeysLock = NULL;
         return SECSuccess;
     }
@@ -6170,7 +6170,7 @@ SSL3_ShutdownServerCache(void)
 
     if (!symWrapKeysLock)
         return SECSuccess; /* lock was never initialized */
-    MPR_Lock(symWrapKeysLock);
+    PR_Lock(symWrapKeysLock);
     /* get rid of all symWrapKeys */
     for (i = 0; i < SSL_NUM_WRAP_MECHS; ++i) {
         for (j = 0; j < SSL_NUM_WRAP_KEYS; ++j) {
@@ -6183,7 +6183,7 @@ SSL3_ShutdownServerCache(void)
         }
     }
 
-    MPR_Unlock(symWrapKeysLock);
+    PR_Unlock(symWrapKeysLock);
     ssl_FreeSessionCacheLocks();
     return SECSuccess;
 }
@@ -6191,7 +6191,7 @@ SSL3_ShutdownServerCache(void)
 SECStatus
 ssl_InitSymWrapKeysLock(void)
 {
-    symWrapKeysLock = MPR_NewLock();
+    symWrapKeysLock = PR_NewLock();
     return symWrapKeysLock ? SECSuccess : SECFailure;
 }
 
@@ -6253,7 +6253,7 @@ ssl3_GetWrappingKey(sslSocket *ss,
 
     ssl_InitSessionCacheLocks(PR_TRUE);
 
-    MPR_Lock(symWrapKeysLock);
+    PR_Lock(symWrapKeysLock);
 
     unwrappedWrappingKey = *pSymWrapKey;
     if (unwrappedWrappingKey != NULL) {
@@ -6452,7 +6452,7 @@ install:
 
 loser:
 done:
-    MPR_Unlock(symWrapKeysLock);
+    PR_Unlock(symWrapKeysLock);
     return unwrappedWrappingKey;
 }
 
@@ -7261,7 +7261,7 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
     // TODO(djackson) - Bob removed this. Why?
     if (ss->ssl3.hs.clientAuthSignatureSchemes != NULL) {
-        MPR_Free(ss->ssl3.hs.clientAuthSignatureSchemes);
+        PR_Free(ss->ssl3.hs.clientAuthSignatureSchemes);
         ss->ssl3.hs.clientAuthSignatureSchemes = NULL;
         ss->ssl3.hs.clientAuthSignatureSchemesLen = 0;
     }
@@ -8374,7 +8374,7 @@ ssl3_CheckFalseStart(sslSocket *ss)
         } else {
             SSL_TRC(3, ("%d: SSL[%d]: false start callback failed (%s)",
                         SSL_GETPID(), ss->fd,
-                        MPR_ErrorToName(MPR_GetError())));
+                        PR_ErrorToName(PR_GetError())));
         }
         return rv;
     }
@@ -11320,35 +11320,35 @@ get_fake_cert(SECItem *pCertItem, int *pIndex)
     char cfn[100];
 
     pCertItem->data = 0;
-    if ((testdir = MPR_GetEnvSecure("NISCC_TEST")) == NULL) {
+    if ((testdir = PR_GetEnvSecure("NISCC_TEST")) == NULL) {
         return SECSuccess;
     }
     *pIndex = (NULL != strstr(testdir, "root"));
     extension = (strstr(testdir, "simple") ? "" : ".der");
     fileNum = PR_ATOMIC_INCREMENT(&connNum) - 1;
-    if ((startat = MPR_GetEnvSecure("START_AT")) != NULL) {
+    if ((startat = PR_GetEnvSecure("START_AT")) != NULL) {
         fileNum += atoi(startat);
     }
-    if ((stopat = MPR_GetEnvSecure("STOP_AT")) != NULL &&
+    if ((stopat = PR_GetEnvSecure("STOP_AT")) != NULL &&
         fileNum >= atoi(stopat)) {
         *pIndex = -1;
         return SECSuccess;
     }
     snprintf(cfn, sizeof(cfn), "%s/%08d%s", testdir, fileNum, extension);
-    cf = MPR_Open(cfn, PR_RDONLY, 0);
+    cf = PR_Open(cfn, PR_RDONLY, 0);
     if (!cf) {
         goto loser;
     }
-    prStatus = MPR_GetOpenFileInfo(cf, &info);
+    prStatus = PR_GetOpenFileInfo(cf, &info);
     if (prStatus != PR_SUCCESS) {
-        MPR_Close(cf);
+        PR_Close(cf);
         goto loser;
     }
     pCertItem = SECITEM_AllocItem(NULL, pCertItem, info.size);
     if (pCertItem) {
-        numBytes = MPR_Read(cf, pCertItem->data, info.size);
+        numBytes = PR_Read(cf, pCertItem->data, info.size);
     }
-    MPR_Close(cf);
+    PR_Close(cf);
     if (numBytes != info.size) {
         SECITEM_FreeItem(pCertItem, PR_FALSE);
         PORT_SetError(SEC_ERROR_IO);
@@ -12308,10 +12308,10 @@ ssl3_WriteKeyLog(sslSocket *ss, const char *label, const SECItem *item)
 
     PORT_Assert(offset == len);
 
-    MPR_Lock(ssl_keylog_lock);
+    PR_Lock(ssl_keylog_lock);
     if (fwrite(buf, len, 1, ssl_keylog_iob) == 1)
         fflush(ssl_keylog_iob);
-    MPR_Unlock(ssl_keylog_lock);
+    PR_Unlock(ssl_keylog_lock);
     PORT_Free(buf);
 #endif
 }
@@ -12606,7 +12606,7 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         ** last two handshake messages (change cipher spec and finished)
         ** will be sent in the same send/write call as the application data.
         */
-        if (ss->writerThread == MPR_GetCurrentThread()) {
+        if (ss->writerThread == PR_GetCurrentThread()) {
             flags = ssl_SEND_FLAG_FORCE_INTO_BUFFER;
         }
 
@@ -12929,7 +12929,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
      * Whoever set WOULD_BLOCK must handle any remaining actions required to finsih processing the record.
      * e.g. by setting restartTarget.
      */
-    if (IS_DTLS(ss) && (rv == SECSuccess || (rv == SECFailure && MPR_GetError() == PR_WOULD_BLOCK_ERROR))) {
+    if (IS_DTLS(ss) && (rv == SECSuccess || (rv == SECFailure && PR_GetError() == PR_WOULD_BLOCK_ERROR))) {
         /* Increment the expected sequence number */
         ss->ssl3.hs.recvMessageSeq++;
     }

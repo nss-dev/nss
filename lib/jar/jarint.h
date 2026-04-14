@@ -25,7 +25,7 @@ extern JAR_Signer *jar_get_signer(JAR *jar, char *basename);
 extern int
 jar_append(ZZList *list, int type, char *pathname, void *data, size_t size);
 
-/* Translate fopen mode arg to MPR_Open flags and mode */
+/* Translate fopen mode arg to PR_Open flags and mode */
 PRFileDesc *
 JAR_FOPEN_to_PR_Open(const char *name, const char *mode);
 
@@ -43,10 +43,10 @@ JAR_FOPEN_to_PR_Open(const char *name, const char *mode);
 /* nspr 2.0 suite */
 #define JAR_FILE PRFileDesc *
 #define JAR_FOPEN(fn, mode) JAR_FOPEN_to_PR_Open(fn, mode)
-#define JAR_FCLOSE MPR_Close
-#define JAR_FSEEK MPR_Seek
-#define JAR_FREAD MPR_Read
-#define JAR_FWRITE MPR_Write
+#define JAR_FCLOSE PR_Close
+#define JAR_FSEEK PR_Seek
+#define JAR_FREAD PR_Read
+#define JAR_FWRITE PR_Write
 
 int
 jar_create_pk7(CERTCertDBHandle *certdb, void *keydb,

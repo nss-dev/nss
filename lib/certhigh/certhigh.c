@@ -81,7 +81,7 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
     CERTCertListNode *freenode = NULL;
     int n;
 
-    time = MPR_Now();
+    time = PR_Now();
 
     nicknames = CERT_GetCertNicknames(handle, SEC_CERT_NICKNAMES_USER,
                                       proto_win);
@@ -230,7 +230,7 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
     SECStatus rv;
     PRTime time;
 
-    time = MPR_Now();
+    time = PR_Now();
 
     /* use the pk11 call so that we pick up any certs on tokens,
      * which may require login

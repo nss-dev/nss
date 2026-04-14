@@ -85,7 +85,7 @@ ssl_Trace(const char *format, ...)
 
     if (ssl_trace_iob) {
         va_start(args, format);
-        MPR_vsnprintf(buf, sizeof(buf), format, args);
+        PR_vsnprintf(buf, sizeof(buf), format, args);
         va_end(args);
 
         fputs(buf, ssl_trace_iob);

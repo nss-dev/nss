@@ -14,7 +14,7 @@
 #include "secoid.h"   /* for SECOID_GetALgorithmTag */
 #include "pk11func.h" /* for PK11_GenerateRandom */
 #include "nss.h"      /* for NSS_RegisterShutdown */
-#include "prinit.h"   /* for MPR_CallOnceWithArg */
+#include "prinit.h"   /* for PR_CallOnceWithArg */
 #include "tls13ech.h"
 #include "tls13psk.h"
 
@@ -543,7 +543,7 @@ DoRecv(sslSocket *ss, unsigned char *out, int len, int flags)
                              SSL_GETPID(), ss->fd));
                 goto done;
             }
-            if (MPR_GetError() != PR_WOULD_BLOCK_ERROR) {
+            if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
                 /* Some random error */
                 goto done;
             }
@@ -709,7 +709,7 @@ ssl_SecureConnect(sslSocket *ss, const PRNetAddr *sa)
     if (rv == PR_SUCCESS) {
         ss->TCPconnected = 1;
     } else {
-        int err = MPR_GetError();
+        int err = PR_GetError();
         SSL_DBG(("%d: SSL[%d]: connect failed, errno=%d",
                  SSL_GETPID(), ss->fd, err));
         if (err == PR_IS_CONNECTED_ERROR) {
@@ -938,7 +938,7 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     }
 
     if (len > 0)
-        ss->writerThread = MPR_GetCurrentThread();
+        ss->writerThread = PR_GetCurrentThread();
 
     /* Check to see if we can write even though we're not finished.
      *

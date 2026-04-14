@@ -339,11 +339,11 @@ writeOutItem(const char *filePath, SECItem *der)
 {
     PRFileDesc *outfile;
 
-    outfile = MPR_Open(filePath,
+    outfile = PR_Open(filePath,
                       PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                       0666);
-    MPR_Write(outfile, der->data, der->len);
-    MPR_Close(outfile);
+    PR_Write(outfile, der->data, der->len);
+    PR_Close(outfile);
 }
 
 ErrorCode
@@ -362,10 +362,10 @@ createNewCert(CERTCertificate **issuedCert, CERTCertificateRequest *oldCertReq,
     SECStatus srv;
     long version;
 
-    now = MPR_Now();
-    MPR_ExplodeTime(now, MPR_GMTParameters, &printableTime);
+    now = PR_Now();
+    PR_ExplodeTime(now, PR_GMTParameters, &printableTime);
     printableTime.tm_month += 9;
-    after = MPR_ImplodeTime(&printableTime);
+    after = PR_ImplodeTime(&printableTime);
     validity = CERT_CreateValidity(now, after);
     newCert = *issuedCert =
         CERT_CreateCertificate(rand(), &(issuerCert->subject), validity,

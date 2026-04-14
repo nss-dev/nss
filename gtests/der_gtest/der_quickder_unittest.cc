@@ -99,7 +99,7 @@ TEST_P(QuickDERTest, InvalidLengths) {
   ASSERT_EQ(SECFailure,
             SEC_QuickDERDecodeItem(&pool.arena, &parsed_value, GetParam().t,
                                    copy_of_input.get()));
-  ASSERT_EQ(SEC_ERROR_BAD_DER, MPR_GetError());
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
   PORT_DestroyCheapArena(&pool);
 }
 

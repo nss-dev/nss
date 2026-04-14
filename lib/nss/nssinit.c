@@ -114,80 +114,80 @@ nss_MkConfigString(const char *man, const char *libdesc, const char *tokdesc,
     char *newStrings;
 
     /* make sure the internationalization was done correctly... */
-    strings = MPR_smprintf("");
+    strings = PR_smprintf("");
     if (strings == NULL)
         return NULL;
 
     if (man) {
-        newStrings = MPR_smprintf("%s manufacturerID='%s'", strings, man);
-        MPR_smprintf_free(strings);
+        newStrings = PR_smprintf("%s manufacturerID='%s'", strings, man);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (libdesc) {
-        newStrings = MPR_smprintf("%s libraryDescription='%s'", strings, libdesc);
-        MPR_smprintf_free(strings);
+        newStrings = PR_smprintf("%s libraryDescription='%s'", strings, libdesc);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (tokdesc) {
-        newStrings = MPR_smprintf("%s cryptoTokenDescription='%s'", strings,
+        newStrings = PR_smprintf("%s cryptoTokenDescription='%s'", strings,
                                  tokdesc);
-        MPR_smprintf_free(strings);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (ptokdesc) {
-        newStrings = MPR_smprintf("%s dbTokenDescription='%s'", strings, ptokdesc);
-        MPR_smprintf_free(strings);
+        newStrings = PR_smprintf("%s dbTokenDescription='%s'", strings, ptokdesc);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (slotdesc) {
-        newStrings = MPR_smprintf("%s cryptoSlotDescription='%s'", strings,
+        newStrings = PR_smprintf("%s cryptoSlotDescription='%s'", strings,
                                  slotdesc);
-        MPR_smprintf_free(strings);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (pslotdesc) {
-        newStrings = MPR_smprintf("%s dbSlotDescription='%s'", strings, pslotdesc);
-        MPR_smprintf_free(strings);
+        newStrings = PR_smprintf("%s dbSlotDescription='%s'", strings, pslotdesc);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (fslotdesc) {
-        newStrings = MPR_smprintf("%s FIPSSlotDescription='%s'",
+        newStrings = PR_smprintf("%s FIPSSlotDescription='%s'",
                                  strings, fslotdesc);
-        MPR_smprintf_free(strings);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
     if (fpslotdesc) {
-        newStrings = MPR_smprintf("%s FIPSTokenDescription='%s'",
+        newStrings = PR_smprintf("%s FIPSTokenDescription='%s'",
                                  strings, fpslotdesc);
-        MPR_smprintf_free(strings);
+        PR_smprintf_free(strings);
         strings = newStrings;
     }
     if (strings == NULL)
         return NULL;
 
-    newStrings = MPR_smprintf("%s minPS=%d", strings, minPwd);
-    MPR_smprintf_free(strings);
+    newStrings = PR_smprintf("%s minPS=%d", strings, minPwd);
+    PR_smprintf_free(strings);
     strings = newStrings;
 
     return (strings);
@@ -227,7 +227,7 @@ PK11_ConfigurePKCS11(const char *man, const char *libdesc, const char *tokdesc,
     }
 
     if (pk11_config_strings != NULL) {
-        MPR_smprintf_free(pk11_config_strings);
+        PR_smprintf_free(pk11_config_strings);
     }
     pk11_config_strings = strings;
     pk11_password_required = pwRequired;
@@ -239,7 +239,7 @@ void
 PK11_UnconfigurePKCS11(void)
 {
     if (pk11_config_strings != NULL) {
-        MPR_smprintf_free(pk11_config_strings);
+        PR_smprintf_free(pk11_config_strings);
         pk11_config_strings = NULL;
     }
     if (pk11_config_name) {
@@ -428,7 +428,7 @@ nss_InitModules(const char *configdir, const char *certPrefix,
         goto loser;
     }
 
-    moduleSpec = MPR_smprintf(
+    moduleSpec = PR_smprintf(
         "name=\"%s\" parameters=\"configdir='%s' certPrefix='%s' keyPrefix='%s' "
         "secmod='%s' flags=%s updatedir='%s' updateCertPrefix='%s' "
         "updateKeyPrefix='%s' updateid='%s' updateTokenDescription='%s' %s\" "
@@ -462,7 +462,7 @@ loser:
 
     if (moduleSpec) {
         module = SECMOD_LoadModule(moduleSpec, NULL, PR_TRUE);
-        MPR_smprintf_free(moduleSpec);
+        PR_smprintf_free(moduleSpec);
         if (module && !module->loaded) {
             SECMOD_DestroyModule(module);
             return NULL;
@@ -532,11 +532,11 @@ static int nssIsInInit;
 static PRStatus
 nss_doLockInit(void)
 {
-    nssInitLock = MPR_NewLock();
+    nssInitLock = PR_NewLock();
     if (nssInitLock == NULL) {
         return PR_FAILURE;
     }
-    nssInitCondition = MPR_NewCondVar(nssInitLock);
+    nssInitCondition = PR_NewCondVar(nssInitLock);
     if (nssInitCondition == NULL) {
         return PR_FAILURE;
     }
@@ -577,7 +577,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 
     /* make sure our lock and condition variable are initialized one and only
      * one time */
-    if (MPR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
         return SECFailure;
     }
 
@@ -585,18 +585,18 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
      * if we haven't done basic initialization, single thread the
      * initializations.
      */
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     isReallyInitted = NSS_IsInitialized();
     if (!isReallyInitted) {
         while (!isReallyInitted && nssIsInInit) {
-            MPR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
+            PR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
             isReallyInitted = NSS_IsInitialized();
         }
         /* once we've completed basic initialization, we can allow more than
          * one process initialize NSS at a time. */
     }
     nssIsInInit++;
-    MPR_Unlock(nssInitLock);
+    PR_Unlock(nssInitLock);
 
     /* this tells us whether or not some library has already initialized us.
      * if so, we don't want to double call some of the basic initialization
@@ -706,9 +706,9 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
         /* Load the system crypto policy file if it exists,
          * unless the NSS_IGNORE_SYSTEM_POLICY environment
          * variable has been set to 1. */
-        ignoreVar = MPR_GetEnvSecure("NSS_IGNORE_SYSTEM_POLICY");
+        ignoreVar = PR_GetEnvSecure("NSS_IGNORE_SYSTEM_POLICY");
         if (ignoreVar == NULL || strncmp(ignoreVar, "1", sizeof("1")) != 0) {
-            if (MPR_Access(POLICY_PATH "/" POLICY_FILE, PR_ACCESS_READ_OK) == PR_SUCCESS) {
+            if (PR_Access(POLICY_PATH "/" POLICY_FILE, PR_ACCESS_READ_OK) == PR_SUCCESS) {
                 SECMODModule *module = SECMOD_LoadModule(
                     "name=\"Policy File\" "
                     "parameters=\"configdir='sql:" POLICY_PATH "' "
@@ -764,7 +764,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
         if (pkixError != NULL) {
             goto loser;
         } else {
-            char *ev = MPR_GetEnvSecure("NSS_DISABLE_PKIX_VERIFY");
+            char *ev = PR_GetEnvSecure("NSS_DISABLE_PKIX_VERIFY");
             if (ev && ev[0]) {
                 CERT_SetUsePKIXForValidation(PR_FALSE);
             }
@@ -777,7 +777,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
      * in, then return the new context pointer and add it to the
      * nssInitContextList. Otherwise set the global nss_isInitted flag
      */
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     if (!initContextPtr) {
         nssIsInitted = PR_TRUE;
     } else {
@@ -787,11 +787,11 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     }
     nssIsInInit--;
     /* now that we are inited, all waiters can move forward */
-    MPR_NotifyAllCondVar(nssInitCondition);
-    MPR_Unlock(nssInitLock);
+    PR_NotifyAllCondVar(nssInitCondition);
+    PR_Unlock(nssInitLock);
 
     if (initContextPtr && configStrings) {
-        MPR_smprintf_free(configStrings);
+        PR_smprintf_free(configStrings);
     }
     if (parent) {
         SECMOD_DestroyModule(parent);
@@ -804,14 +804,14 @@ loser:
         PORT_Free(*initContextPtr);
         *initContextPtr = NULL;
         if (configStrings) {
-            MPR_smprintf_free(configStrings);
+            PR_smprintf_free(configStrings);
         }
     }
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     nssIsInInit--;
     /* We failed to init, allow one to move forward */
-    MPR_NotifyCondVar(nssInitCondition);
-    MPR_Unlock(nssInitLock);
+    PR_NotifyCondVar(nssInitCondition);
+    PR_Unlock(nssInitLock);
     if (parent) {
         SECMOD_DestroyModule(parent);
     }
@@ -994,29 +994,29 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 
     /* make sure our lock and condition variable are initialized one and only
      * one time */
-    if (MPR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
         return SECFailure;
     }
 
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
-        MPR_Unlock(nssInitLock);
+        PR_Unlock(nssInitLock);
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
     }
-    MPR_Unlock(nssInitLock);
+    PR_Unlock(nssInitLock);
     if (sFunc == NULL) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
     PORT_Assert(nssShutdownList.lock);
-    MPR_Lock(nssShutdownList.lock);
+    PR_Lock(nssShutdownList.lock);
 
     /* make sure we don't have a duplicate */
     i = nss_GetShutdownEntry(sFunc, appData);
     if (i >= 0) {
-        MPR_Unlock(nssShutdownList.lock);
+        PR_Unlock(nssShutdownList.lock);
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
@@ -1025,7 +1025,7 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
     if (i >= 0) {
         nssShutdownList.funcs[i].func = sFunc;
         nssShutdownList.funcs[i].appData = appData;
-        MPR_Unlock(nssShutdownList.lock);
+        PR_Unlock(nssShutdownList.lock);
         return SECSuccess;
     }
     if (nssShutdownList.allocatedFuncs == nssShutdownList.peakFuncs) {
@@ -1033,7 +1033,7 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
             (struct NSSShutdownFuncPair *)PORT_Realloc(nssShutdownList.funcs,
                                                        (nssShutdownList.allocatedFuncs + NSS_SHUTDOWN_STEP) * sizeof(struct NSSShutdownFuncPair));
         if (!funcs) {
-            MPR_Unlock(nssShutdownList.lock);
+            PR_Unlock(nssShutdownList.lock);
             return SECFailure;
         }
         nssShutdownList.funcs = funcs;
@@ -1042,7 +1042,7 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
     nssShutdownList.funcs[nssShutdownList.peakFuncs].func = sFunc;
     nssShutdownList.funcs[nssShutdownList.peakFuncs].appData = appData;
     nssShutdownList.peakFuncs++;
-    MPR_Unlock(nssShutdownList.lock);
+    PR_Unlock(nssShutdownList.lock);
     return SECSuccess;
 }
 
@@ -1056,25 +1056,25 @@ NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 
     /* make sure our lock and condition variable are initialized one and only
      * one time */
-    if (MPR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
         return SECFailure;
     }
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
-        MPR_Unlock(nssInitLock);
+        PR_Unlock(nssInitLock);
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
     }
-    MPR_Unlock(nssInitLock);
+    PR_Unlock(nssInitLock);
 
     PORT_Assert(nssShutdownList.lock);
-    MPR_Lock(nssShutdownList.lock);
+    PR_Lock(nssShutdownList.lock);
     i = nss_GetShutdownEntry(sFunc, appData);
     if (i >= 0) {
         nssShutdownList.funcs[i].func = NULL;
         nssShutdownList.funcs[i].appData = NULL;
     }
-    MPR_Unlock(nssShutdownList.lock);
+    PR_Unlock(nssShutdownList.lock);
 
     if (i < 0) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1092,14 +1092,14 @@ nss_InitShutdownList(void)
     if (nssShutdownList.lock != NULL) {
         return SECSuccess;
     }
-    nssShutdownList.lock = MPR_NewLock();
+    nssShutdownList.lock = PR_NewLock();
     if (nssShutdownList.lock == NULL) {
         return SECFailure;
     }
     nssShutdownList.funcs = PORT_ZNewArray(struct NSSShutdownFuncPair,
                                            NSS_SHUTDOWN_STEP);
     if (nssShutdownList.funcs == NULL) {
-        MPR_DestroyLock(nssShutdownList.lock);
+        PR_DestroyLock(nssShutdownList.lock);
         nssShutdownList.lock = NULL;
         return SECFailure;
     }
@@ -1130,7 +1130,7 @@ nss_ShutdownShutdownList(void)
     PORT_Free(nssShutdownList.funcs);
     nssShutdownList.funcs = NULL;
     if (nssShutdownList.lock) {
-        MPR_DestroyLock(nssShutdownList.lock);
+        PR_DestroyLock(nssShutdownList.lock);
     }
     nssShutdownList.lock = NULL;
     return rv;
@@ -1175,8 +1175,8 @@ nss_Shutdown(void)
     /*
      * A thread's error stack is automatically destroyed when the thread
      * terminates, except for the primordial thread, whose error stack is
-     * destroyed by MPR_Cleanup.  Since NSS is usually shut down by the
-     * primordial thread and many NSS-based apps don't call MPR_Cleanup,
+     * destroyed by PR_Cleanup.  Since NSS is usually shut down by the
+     * primordial thread and many NSS-based apps don't call PR_Cleanup,
      * we destroy the calling thread's error stack here. This must be
      * done after any NSS_GetError call, otherwise NSS_GetError will
      * create the error stack again.
@@ -1202,13 +1202,13 @@ NSS_Shutdown(void)
     SECStatus rv;
     /* make sure our lock and condition variable are initialized one and only
      * one time */
-    if (MPR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
         return SECFailure;
     }
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
 
     if (!nssIsInitted) {
-        MPR_Unlock(nssInitLock);
+        PR_Unlock(nssInitLock);
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
     }
@@ -1216,10 +1216,10 @@ NSS_Shutdown(void)
     /* If one or more threads are in the middle of init, wait for them
      * to complete */
     while (nssIsInInit) {
-        MPR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
     }
     rv = nss_Shutdown();
-    MPR_Unlock(nssInitLock);
+    PR_Unlock(nssInitLock);
     return rv;
 }
 
@@ -1260,27 +1260,27 @@ NSS_ShutdownContext(NSSInitContext *context)
 
     /* make sure our lock and condition variable are initialized one and only
      * one time */
-    if (MPR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
         return SECFailure;
     }
-    MPR_Lock(nssInitLock);
+    PR_Lock(nssInitLock);
     /* If one or more threads are in the middle of init, wait for them
      * to complete */
     while (nssIsInInit) {
-        MPR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(nssInitCondition, PR_INTERVAL_NO_TIMEOUT);
     }
 
     /* OK, we are the only thread now either initializing or shutting down */
 
     if (!context) {
         if (!nssIsInitted) {
-            MPR_Unlock(nssInitLock);
+            PR_Unlock(nssInitLock);
             PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
             return SECFailure;
         }
         nssIsInitted = 0;
     } else if (!nss_RemoveList(context)) {
-        MPR_Unlock(nssInitLock);
+        PR_Unlock(nssInitLock);
         /* context was already freed or wasn't valid */
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
@@ -1293,7 +1293,7 @@ NSS_ShutdownContext(NSSInitContext *context)
      * the locks. There may be a thread, right now, waiting in NSS_Init for us
      * to free the lock below. If we delete the locks, bad things would happen
      * to that thread */
-    MPR_Unlock(nssInitLock);
+    PR_Unlock(nssInitLock);
 
     return rv;
 }

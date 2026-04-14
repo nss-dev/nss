@@ -43,15 +43,15 @@ GenerateCert(char *nickname, int keysize, char *token)
     char stdinbuf[160];
 
     /* Print warning about having the browser open */
-    MPR_fprintf(PR_STDOUT /*always go to console*/,
+    PR_fprintf(PR_STDOUT /*always go to console*/,
                "\nWARNING: Performing this operation while the browser is running could cause"
                "\ncorruption of your security databases. If the browser is currently running,"
                "\nyou should exit the browser before continuing this operation. Enter "
                "\n\"y\" to continue, or anything else to abort: ");
     pr_fgets(stdinbuf, 160, PR_STDIN);
-    MPR_fprintf(PR_STDOUT, "\n");
+    PR_fprintf(PR_STDOUT, "\n");
     if (tolower((unsigned char)stdinbuf[0]) != 'y') {
-        MPR_fprintf(errorFD, "Operation aborted at user's request.\n");
+        PR_fprintf(errorFD, "Operation aborted at user's request.\n");
         errorCount++;
         return -1;
     }
@@ -62,7 +62,7 @@ GenerateCert(char *nickname, int keysize, char *token)
     }
 
     if (PK11_FindCertFromNickname(nickname, &pwdata)) {
-        MPR_fprintf(errorFD,
+        PR_fprintf(errorFD,
                    "ERROR: Certificate with nickname \"%s\" already exists in database. You\n"
                    "must choose a different nickname.\n",
                    nickname);
@@ -70,7 +70,7 @@ GenerateCert(char *nickname, int keysize, char *token)
         exit(ERRX);
     }
 
-    LL_L2UI(serial, MPR_Now());
+    LL_L2UI(serial, PR_Now());
 
     subject = GetSubjectFromUser(serial);
     if (!subject) {
@@ -112,17 +112,17 @@ GetSubjectFromUser(unsigned long serial)
         uid = subject = NULL;
 
     /* Get subject information */
-    MPR_fprintf(PR_STDOUT,
+    PR_fprintf(PR_STDOUT,
                "\nEnter certificate information.  All fields are optional. Acceptable\n"
                "characters are numbers, letters, spaces, and apostrophes.\n");
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nCOMMON NAME\n"
+    PR_fprintf(PR_STDOUT, "\nCOMMON NAME\n"
                           "Enter the full name you want to give your certificate. (Example: Test-Only\n"
                           "Object Signing Certificate)\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "certificate common name: ");
+    PR_fprintf(PR_STDOUT, "certificate common name: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -141,12 +141,12 @@ GetSubjectFromUser(unsigned long serial)
     subjectlen += strlen(common_name);
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nORGANIZATION NAME\n"
+    PR_fprintf(PR_STDOUT, "\nORGANIZATION NAME\n"
                           "Enter the name of your organization. For example, this could be the name\n"
                           "of your company.\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "organization: ");
+    PR_fprintf(PR_STDOUT, "organization: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -162,12 +162,12 @@ GetSubjectFromUser(unsigned long serial)
     }
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nORGANIZATION UNIT\n"
+    PR_fprintf(PR_STDOUT, "\nORGANIZATION UNIT\n"
                           "Enter the name of your organization unit.  For example, this could be the\n"
                           "name of your department.\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "organization unit: ");
+    PR_fprintf(PR_STDOUT, "organization unit: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -183,11 +183,11 @@ GetSubjectFromUser(unsigned long serial)
     }
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nSTATE\n"
+    PR_fprintf(PR_STDOUT, "\nSTATE\n"
                           "Enter the name of your state or province.\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "state or province: ");
+    PR_fprintf(PR_STDOUT, "state or province: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -203,11 +203,11 @@ GetSubjectFromUser(unsigned long serial)
     }
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nCOUNTRY\n"
+    PR_fprintf(PR_STDOUT, "\nCOUNTRY\n"
                           "Enter the 2-character abbreviation for the name of your country.\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "country (must be exactly 2 characters): ");
+    PR_fprintf(PR_STDOUT, "country (must be exactly 2 characters): ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -226,11 +226,11 @@ GetSubjectFromUser(unsigned long serial)
     }
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nUSERNAME\n"
+    PR_fprintf(PR_STDOUT, "\nUSERNAME\n"
                           "Enter your system username or UID\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "username: ");
+    PR_fprintf(PR_STDOUT, "username: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -246,11 +246,11 @@ GetSubjectFromUser(unsigned long serial)
     }
 
 #ifdef VERBOSE_PROMPTS
-    MPR_fprintf(PR_STDOUT, "\nEMAIL ADDRESS\n"
+    PR_fprintf(PR_STDOUT, "\nEMAIL ADDRESS\n"
                           "Enter your email address.\n"
                           "-->");
 #else
-    MPR_fprintf(PR_STDOUT, "email address: ");
+    PR_fprintf(PR_STDOUT, "email address: ");
 #endif
     if (!fgets(buf, STDIN_BUF_SIZE, stdin)) {
         return NULL;
@@ -320,7 +320,7 @@ GenerateSelfSignedObjectSigningCert(char *nickname, CERTCertDBHandle *db,
     }
 
     if (slot == NULL) {
-        MPR_fprintf(errorFD, "Can't find PKCS11 slot %s\n",
+        PR_fprintf(errorFD, "Can't find PKCS11 slot %s\n",
                    token ? token : "");
         errorCount++;
         exit(ERRX);
@@ -365,14 +365,14 @@ ChangeTrustAttributes(CERTCertDBHandle *db, CERTCertificate *cert, char *trusts)
     CERTCertTrust *trust;
 
     if (!db || !cert || !trusts) {
-        MPR_fprintf(errorFD, "ChangeTrustAttributes got incomplete arguments.\n");
+        PR_fprintf(errorFD, "ChangeTrustAttributes got incomplete arguments.\n");
         errorCount++;
         return SECFailure;
     }
 
     trust = (CERTCertTrust *)PORT_ZAlloc(sizeof(CERTCertTrust));
     if (!trust) {
-        MPR_fprintf(errorFD, "ChangeTrustAttributes unable to allocate "
+        PR_fprintf(errorFD, "ChangeTrustAttributes unable to allocate "
                             "CERTCertTrust\n");
         errorCount++;
         return SECFailure;
@@ -383,7 +383,7 @@ ChangeTrustAttributes(CERTCertDBHandle *db, CERTCertificate *cert, char *trusts)
     }
 
     if (CERT_ChangeCertTrust(db, cert, trust)) {
-        MPR_fprintf(errorFD, "unable to modify trust attributes for cert %s\n",
+        PR_fprintf(errorFD, "unable to modify trust attributes for cert %s\n",
                    cert->nickname ? cert->nickname : "");
         errorCount++;
         return SECFailure;
@@ -441,7 +441,7 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
     rv = SEC_CreateSignatureAlgorithmID(cert->arena, &cert->signature, alg,
                                         SEC_OID_UNKNOWN, NULL, privk, NULL);
     if (rv != SECSuccess) {
-        MPR_fprintf(errorFD, "%s: unable to set signature alg id\n",
+        PR_fprintf(errorFD, "%s: unable to set signature alg id\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
@@ -453,7 +453,7 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
     (void)SEC_ASN1EncodeItem(cert->arena, &der2, cert, SEC_ASN1_GET(CERT_CertificateTemplate));
 
     if (rv != SECSuccess) {
-        MPR_fprintf(errorFD, "%s: error encoding cert\n", PROGRAM_NAME);
+        PR_fprintf(errorFD, "%s: error encoding cert\n", PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
@@ -465,11 +465,11 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
     rv = SEC_DerSignData(cert->arena, result2, der2.data, der2.len, privk, alg);
 
     if (rv != SECSuccess) {
-        MPR_fprintf(errorFD, "can't sign encoded certificate data\n");
+        PR_fprintf(errorFD, "can't sign encoded certificate data\n");
         errorCount++;
         exit(ERRX);
     } else if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "certificate has been signed\n");
+        PR_fprintf(outputFD, "certificate has been signed\n");
     }
 
     cert->derCert = *result2;
@@ -491,7 +491,7 @@ install_cert(CERTCertDBHandle *db, SECItem *derCert, char *nickname)
 
     newSlot = PK11_ImportDERCertForKey(derCert, nickname, &pwdata);
     if (newSlot == NULL) {
-        MPR_fprintf(errorFD, "Unable to install certificate\n");
+        PR_fprintf(errorFD, "Unable to install certificate\n");
         errorCount++;
         exit(ERRX);
     }
@@ -499,14 +499,14 @@ install_cert(CERTCertDBHandle *db, SECItem *derCert, char *nickname)
     newcert = PK11_FindCertFromDERCertItem(newSlot, derCert, &pwdata);
     PK11_FreeSlot(newSlot);
     if (newcert == NULL) {
-        MPR_fprintf(errorFD, "%s: can't find new certificate\n",
+        PR_fprintf(errorFD, "%s: can't find new certificate\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "certificate \"%s\" added to database\n",
+        PR_fprintf(outputFD, "certificate \"%s\" added to database\n",
                    nickname);
     }
 
@@ -543,7 +543,7 @@ GenerateKeyPair(PK11SlotInfo *slot, SECKEYPublicKey **pubk,
 
     if (*privk != NULL && *pubk != NULL) {
         if (verbosity >= 0) {
-            MPR_fprintf(outputFD, "generated public/private key pair\n");
+            PR_fprintf(outputFD, "generated public/private key pair\n");
         }
     } else {
         SECU_PrintError(progName, "failure generating key pair\n");
@@ -588,7 +588,7 @@ make_cert_request(char *subject, SECKEYPublicKey *pubk)
     CERT_DestroyName(subj);
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "certificate request generated\n");
+        PR_fprintf(outputFD, "certificate request generated\n");
     }
 
     return req;
@@ -609,16 +609,16 @@ make_cert(CERTCertificateRequest *req, unsigned long serial,
     PRTime now, after;
     PRExplodedTime printableTime;
 
-    now = MPR_Now();
-    MPR_ExplodeTime(now, MPR_GMTParameters, &printableTime);
+    now = PR_Now();
+    PR_ExplodeTime(now, PR_GMTParameters, &printableTime);
 
     printableTime.tm_month += 3;
-    after = MPR_ImplodeTime(&printableTime);
+    after = PR_ImplodeTime(&printableTime);
 
     validity = CERT_CreateValidity(now, after);
 
     if (validity == NULL) {
-        MPR_fprintf(errorFD, "%s: error creating certificate validity\n",
+        PR_fprintf(errorFD, "%s: error creating certificate validity\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
@@ -629,7 +629,7 @@ make_cert(CERTCertificateRequest *req, unsigned long serial,
 
     if (cert == NULL) {
         /* should probably be more precise here */
-        MPR_fprintf(errorFD, "%s: error while generating certificate\n",
+        PR_fprintf(errorFD, "%s: error while generating certificate\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
@@ -659,7 +659,7 @@ output_ca_cert(CERTCertificate *cert, CERTCertDBHandle *db)
 
     snprintf(filename, strlen(DEFAULT_X509_BASENAME) + 8, "%s.raw", DEFAULT_X509_BASENAME);
     if ((out = fopen(filename, "wb")) == NULL) {
-        MPR_fprintf(errorFD, "%s: Can't open %s output file\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: Can't open %s output file\n", PROGRAM_NAME,
                    filename);
         errorCount++;
         exit(ERRX);
@@ -676,7 +676,7 @@ output_ca_cert(CERTCertificate *cert, CERTCertDBHandle *db)
                out);
         SECITEM_FreeItem(encodedCertChain, PR_TRUE);
     } else {
-        MPR_fprintf(errorFD, "%s: Can't DER encode this certificate\n",
+        PR_fprintf(errorFD, "%s: Can't DER encode this certificate\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
@@ -688,7 +688,7 @@ output_ca_cert(CERTCertificate *cert, CERTCertDBHandle *db)
 
     snprintf(filename, strlen(DEFAULT_X509_BASENAME) + 8, "%s.cacert", DEFAULT_X509_BASENAME);
     if ((out = fopen(filename, "wb")) == NULL) {
-        MPR_fprintf(errorFD, "%s: Can't open %s output file\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: Can't open %s output file\n", PROGRAM_NAME,
                    filename);
         errorCount++;
         return;
@@ -702,7 +702,7 @@ output_ca_cert(CERTCertificate *cert, CERTCertDBHandle *db)
     fclose(out);
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "Exported certificate to %s.raw and %s.cacert.\n",
+        PR_fprintf(outputFD, "Exported certificate to %s.raw and %s.cacert.\n",
                    DEFAULT_X509_BASENAME, DEFAULT_X509_BASENAME);
     }
 }

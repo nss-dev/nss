@@ -275,7 +275,7 @@ TEST_P(TlsDropDatagram13, DropServerAckOnce) {
   client_->Handshake();  // Retransmit the Finished.
   server_->Handshake();  // Read the Finished and send an ACK.
   uint8_t buf[1];
-  PRInt32 rv = MPR_Read(client_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 rv = PR_Read(client_->ssl_fd(), buf, sizeof(buf));
   expected_server_acks_ = 2;
   EXPECT_GT(0, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
@@ -749,7 +749,7 @@ TEST_P(TlsReorderDatagram13, DataAfterEOEDDuringZeroRtt) {
   const char* k0RttData = "123456";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
   PRInt32 rv =
-      MPR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
+      PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
   EXPECT_EQ(k0RttDataLen, rv);
   EXPECT_EQ(1UL, client_filters_.records_->count());  // data
   server_->Handshake();
@@ -768,7 +768,7 @@ TEST_P(TlsReorderDatagram13, DataAfterEOEDDuringZeroRtt) {
   CheckAcks(server_filters_.ack_, 0,
             {0x0001000000000002ULL, 0x0002000000000000ULL});
   uint8_t buf[8];
-  rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(-1, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 }
@@ -789,7 +789,7 @@ TEST_P(TlsReorderDatagram13, DataAfterFinDuringZeroRtt) {
   const char* k0RttData = "123456";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
   PRInt32 rv =
-      MPR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
+      PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
   EXPECT_EQ(k0RttDataLen, rv);
   EXPECT_EQ(1UL, client_filters_.records_->count());  // data
   server_->Handshake();
@@ -808,7 +808,7 @@ TEST_P(TlsReorderDatagram13, DataAfterFinDuringZeroRtt) {
   CheckAcks(server_filters_.ack_, 0,
             {0x0001000000000002ULL, 0x0002000000000000ULL});
   uint8_t buf[8];
-  rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(-1, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 }

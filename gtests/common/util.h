@@ -48,7 +48,7 @@ class ScopedUniqueDirectory {
  public:
   explicit ScopedUniqueDirectory(const std::string &prefix) {
     std::string path;
-    const char *workingDirectory = MPR_GetEnvSecure("NSS_GTEST_WORKDIR");
+    const char *workingDirectory = PR_GetEnvSecure("NSS_GTEST_WORKDIR");
     if (workingDirectory) {
       path.assign(workingDirectory);
     }

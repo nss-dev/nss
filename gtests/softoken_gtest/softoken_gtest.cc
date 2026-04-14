@@ -862,10 +862,10 @@ class SoftokenFipsTest : public SoftokenTest {
     // Turn on FIPS mode (code borrowed from FipsMode in modutil/pk11.c)
     char *internal_name;
     ASSERT_FALSE(PK11_IsFIPS());
-    internal_name = MPR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
+    internal_name = PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
     ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
         << PORT_ErrorToName(PORT_GetError());
-    MPR_smprintf_free(internal_name);
+    PR_smprintf_free(internal_name);
     ASSERT_TRUE(PK11_IsFIPS());
   }
 };

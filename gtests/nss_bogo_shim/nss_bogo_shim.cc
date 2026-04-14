@@ -97,18 +97,18 @@ class TestAgent {
     PRStatus prv;
     PRNetAddr addr;
 
-    prv = MPR_StringToNetAddr(ip, &addr);
+    prv = PR_StringToNetAddr(ip, &addr);
 
     if (prv != PR_SUCCESS) {
       return false;
     }
 
-    addr.inet.port = MPR_htons(cfg_.get<int>("port"));
+    addr.inet.port = PR_htons(cfg_.get<int>("port"));
 
-    pr_fd_ = ScopedPRFileDesc(MPR_OpenTCPSocket(addr.raw.family));
+    pr_fd_ = ScopedPRFileDesc(PR_OpenTCPSocket(addr.raw.family));
     if (!pr_fd_) return false;
 
-    prv = MPR_Connect(pr_fd_.get(), &addr, PR_INTERVAL_NO_TIMEOUT);
+    prv = PR_Connect(pr_fd_.get(), &addr, PR_INTERVAL_NO_TIMEOUT);
     if (prv != PR_SUCCESS) {
       return false;
     }
@@ -119,7 +119,7 @@ class TestAgent {
       buf[i] = shim_id & 0xff;
       shim_id >>= 8;
     }
-    int sent = MPR_Write(pr_fd_.get(), buf, sizeof(buf));
+    int sent = PR_Write(pr_fd_.get(), buf, sizeof(buf));
     if (sent != sizeof(buf)) {
       return false;
     }
@@ -521,7 +521,7 @@ class TestAgent {
   SECStatus ReadWrite() {
     for (;;) {
       uint8_t block[512];
-      int32_t rv = MPR_Read(ssl_fd_.get(), block, sizeof(block));
+      int32_t rv = PR_Read(ssl_fd_.get(), block, sizeof(block));
       if (rv < 0) {
         std::cerr << "Failure reading\n";
         return SECFailure;
@@ -533,7 +533,7 @@ class TestAgent {
         block[i] ^= 0xff;
       }
 
-      rv = MPR_Write(ssl_fd_.get(), block, len);
+      rv = PR_Write(ssl_fd_.get(), block, len);
       if (rv != len) {
         std::cerr << "Write failure\n";
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
@@ -551,7 +551,7 @@ class TestAgent {
     // reader and writer.
     uint8_t block[600];
     memset(block, ch, sizeof(block));
-    int32_t rv = MPR_Write(ssl_fd_.get(), block, sizeof(block));
+    int32_t rv = PR_Write(ssl_fd_.get(), block, sizeof(block));
     if (rv != sizeof(block)) {
       std::cerr << "Write failure\n";
       PORT_SetError(SEC_ERROR_OUTPUT_LEN);
@@ -560,7 +560,7 @@ class TestAgent {
 
     size_t left = sizeof(block);
     while (left) {
-      rv = MPR_Read(ssl_fd_.get(), block, left);
+      rv = PR_Read(ssl_fd_.get(), block, left);
       if (rv < 0) {
         std::cerr << "Failure reading\n";
         return SECFailure;
@@ -592,7 +592,7 @@ class TestAgent {
                           reinterpret_cast<unsigned char*>(chosen), &chosen_len,
                           sizeof(chosen));
     if (rv != SECSuccess) {
-      PRErrorCode err = MPR_GetError();
+      PRErrorCode err = PR_GetError();
       std::cerr << "SSL_GetNextProto failed with error=" << FormatError(err)
                 << std::endl;
       return SECFailure;
@@ -621,13 +621,13 @@ class TestAgent {
   static SECStatus certCompressionShrinkEncode(const SECItem* input,
                                                SECItem* output) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
     if (input->len < 2) {
       std::cerr << "Certificate is too short. " << std::endl;
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
@@ -654,7 +654,7 @@ class TestAgent {
                                                size_t outputLen,
                                                size_t* usedLen) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
@@ -679,7 +679,7 @@ class TestAgent {
   static SECStatus certCompressionExpandEncode(const SECItem* input,
                                                SECItem* output) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
@@ -705,12 +705,12 @@ class TestAgent {
                                                size_t outputLen,
                                                size_t* usedLen) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
     if (input->len < 4) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       std::cerr << "Certificate is too short. " << std::endl;
       return SECFailure;
     }
@@ -741,7 +741,7 @@ class TestAgent {
   static SECStatus certCompressionRandomEncode(const SECItem* input,
                                                SECItem* output) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
@@ -769,12 +769,12 @@ class TestAgent {
                                                size_t outputLen,
                                                size_t* usedLen) {
     if (input == NULL || input->data == NULL) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
 
     if (input->len < 1) {
-      MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+      PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       std::cerr << "Certificate is too short. " << std::endl;
       return SECFailure;
     }
@@ -830,7 +830,7 @@ class TestAgent {
           auto bin = ATOB_AsciiToData(resumeEchConfigList.c_str(), &binLen);
           rv = SSLExp_SetClientEchConfigs(ssl_fd_.get(), bin, binLen);
           if (rv != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             std::cerr << "Setting up resumption ECH configs failed with error="
                       << err << FormatError(err) << std::endl;
           }
@@ -840,7 +840,7 @@ class TestAgent {
         str = cfg_.get<std::string>("on-resume-advertise-alpn");
         if (!str.empty()) {
           if (AdvertiseALPN(str) != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             std::cerr << "Setting up resumption ALPN failed with error=" << err
                       << FormatError(err) << std::endl;
           }
@@ -853,7 +853,7 @@ class TestAgent {
         str = cfg_.get<std::string>("on-initial-advertise-alpn");
         if (!str.empty()) {
           if (AdvertiseALPN(str) != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             std::cerr << "Setting up initial ALPN failed with error=" << err
                       << FormatError(err) << std::endl;
           }
@@ -867,7 +867,7 @@ class TestAgent {
       rv = ssl_BeginClientHandshake(ss);
       ssl_Release1stHandshakeLock(ss);
       if (rv != SECSuccess) {
-        PRErrorCode err = MPR_GetError();
+        PRErrorCode err = PR_GetError();
         std::cerr << "Handshake failed with error=" << err << FormatError(err)
                   << std::endl;
         return SECFailure;
@@ -879,7 +879,7 @@ class TestAgent {
         rv = SSL_GetPreliminaryChannelInfo(ssl_fd_.get(), &pinfo,
                                            sizeof(SSLPreliminaryChannelInfo));
         if (rv != SECSuccess) {
-          PRErrorCode err = MPR_GetError();
+          PRErrorCode err = PR_GetError();
           std::cerr << "SSL_GetPreliminaryChannelInfo failed with " << err
                     << std::endl;
           return SECFailure;
@@ -953,7 +953,7 @@ class TestAgent {
 
     /* Check if handshake succeeded. */
     if (rv != SECSuccess) {
-      PRErrorCode err = MPR_GetError();
+      PRErrorCode err = PR_GetError();
       std::cerr << "Handshake failed with error=" << err << FormatError(err)
                 << std::endl;
       return SECFailure;
@@ -976,7 +976,7 @@ class TestAgent {
     if (cfg_.get<bool>("write-then-read")) {
       rv = WriteRead();
       if (rv != SECSuccess) {
-        PRErrorCode err = MPR_GetError();
+        PRErrorCode err = PR_GetError();
         std::cerr << "WriteRead failed with error=" << FormatError(err)
                   << std::endl;
         return SECFailure;
@@ -984,7 +984,7 @@ class TestAgent {
     } else {
       rv = ReadWrite();
       if (rv != SECSuccess) {
-        PRErrorCode err = MPR_GetError();
+        PRErrorCode err = PR_GetError();
         std::cerr << "ReadWrite failed with error=" << FormatError(err)
                   << std::endl;
         return SECFailure;
@@ -994,7 +994,7 @@ class TestAgent {
     SSLChannelInfo info;
     rv = SSL_GetChannelInfo(ssl_fd_.get(), &info, sizeof(info));
     if (rv != SECSuccess) {
-      PRErrorCode err = MPR_GetError();
+      PRErrorCode err = PR_GetError();
       std::cerr << "SSL_GetChannelInfo failed with error=" << FormatError(err)
                 << std::endl;
       return SECFailure;

@@ -11,7 +11,7 @@
 
 #ifdef DEBUG_ASN1D_STATES
 #include <stdio.h>
-#define MPR_Assert sec_asn1d_Assert
+#define PR_Assert sec_asn1d_Assert
 #endif
 
 #include <limits.h>
@@ -1462,7 +1462,7 @@ sec_asn1d_free_child(sec_asn1d_state *state, PRBool error)
             /*
              * XXX We need to free anything allocated.
              * At this point, we failed in the middle of decoding. But we
-             * can't free the data we previously allocated with MPR_Malloc
+             * can't free the data we previously allocated with PR_Malloc
              * unless we keep track of every pointer. So instead we have a
              * memory leak when decoding fails half-way, unless an arena is
              * used. See bug 95311 .

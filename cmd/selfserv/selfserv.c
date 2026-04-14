@@ -50,7 +50,7 @@
 #endif
 
 #ifndef PORT_Malloc
-#define PORT_Malloc MPR_Malloc
+#define PORT_Malloc PR_Malloc
 #endif
 
 int NumSidCacheEntries = 1024;
@@ -336,7 +336,7 @@ PrintCipherUsage(const char *progName)
 static const char *
 errWarn(char *funcString)
 {
-    PRErrorCode perr = MPR_GetError();
+    PRErrorCode perr = PR_GetError();
     const char *errString = SECU_Strerror(perr);
 
     fprintf(stderr, "selfserv: %s returned error %d:\n%s\n",
@@ -396,7 +396,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
     if (rv == SECSuccess) {
         PRINTF("selfserv: -- SSL3: Certificate Validated.\n");
     } else {
-        int err = MPR_GetError();
+        int err = PR_GetError();
         FPRINTF(stderr, "selfserv: -- SSL3: Certificate Invalid, err %d.\n%s\n",
                 err, SECU_Strerror(err));
     }
@@ -492,7 +492,7 @@ static int MakeCertOK;
 static SECStatus
 myBadCertHandler(void *arg, PRFileDesc *fd)
 {
-    int err = MPR_GetError();
+    int err = PR_GetError();
     if (!MakeCertOK)
         fprintf(stderr,
                 "selfserv: -- SSL: Client Certificate Invalid, err %d.\n%s\n",
@@ -591,7 +591,7 @@ setupJobs(int maxJobs)
 {
     int i;
 
-    jobTable = (JOB *)MPR_Calloc(maxJobs, sizeof(JOB));
+    jobTable = (JOB *)PR_Calloc(maxJobs, sizeof(JOB));
     if (!jobTable)
         return SECFailure;
 
@@ -630,11 +630,11 @@ thread_wrapper(void *arg)
     slot->rv = (*slot->startFunc)(slot->a, slot->b);
 
     /* notify the thread exit handler. */
-    MPR_Lock(qLock);
+    PR_Lock(qLock);
     slot->state = rs_zombie;
     --threadCount;
-    MPR_NotifyAllCondVar(threadCountChangeCv);
-    MPR_Unlock(qLock);
+    PR_NotifyAllCondVar(threadCountChangeCv);
+    PR_Unlock(qLock);
 }
 
 int
@@ -643,25 +643,25 @@ jobLoop(PRFileDesc *a, PRFileDesc *b)
     PRCList *myLink = 0;
     JOB *myJob;
 
-    MPR_Lock(qLock);
+    PR_Lock(qLock);
     do {
         myLink = 0;
         while (PR_CLIST_IS_EMPTY(&jobQ) && !stopping) {
-            MPR_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            PR_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (!PR_CLIST_IS_EMPTY(&jobQ)) {
             myLink = PR_LIST_HEAD(&jobQ);
             PR_REMOVE_AND_INIT_LINK(myLink);
         }
-        MPR_Unlock(qLock);
+        PR_Unlock(qLock);
         myJob = (JOB *)myLink;
         /* myJob will be null when stopping is true and jobQ is empty */
         if (!myJob)
             break;
         handle_connection(myJob->tcp_sock, myJob->model_sock);
-        MPR_Lock(qLock);
+        PR_Lock(qLock);
         PR_APPEND_LINK(myLink, &freeJobs);
-        MPR_NotifyCondVar(freeListNotEmptyCv);
+        PR_NotifyCondVar(freeListNotEmptyCv);
     } while (PR_TRUE);
     return 0;
 }
@@ -677,16 +677,16 @@ launch_threads(
     SECStatus rv = SECSuccess;
 
     /* create the thread management serialization structs */
-    qLock = MPR_NewLock();
-    jobQNotEmptyCv = MPR_NewCondVar(qLock);
-    freeListNotEmptyCv = MPR_NewCondVar(qLock);
-    threadCountChangeCv = MPR_NewCondVar(qLock);
+    qLock = PR_NewLock();
+    jobQNotEmptyCv = PR_NewCondVar(qLock);
+    freeListNotEmptyCv = PR_NewCondVar(qLock);
+    threadCountChangeCv = PR_NewCondVar(qLock);
 
     /* create monitor for crl reload procedure */
-    lastLoadedCrlLock = MPR_NewLock();
+    lastLoadedCrlLock = PR_NewLock();
 
     /* allocate the array of thread slots */
-    threads = MPR_Calloc(maxThreads, sizeof(perThread));
+    threads = PR_Calloc(maxThreads, sizeof(perThread));
     if (NULL == threads) {
         fprintf(stderr, "Oh Drat! Can't allocate the perThread array\n");
         return SECFailure;
@@ -699,7 +699,7 @@ launch_threads(
     if (rv != SECSuccess)
         return rv;
 
-    MPR_Lock(qLock);
+    PR_Lock(qLock);
     for (i = 0; i < maxThreads; ++i) {
         perThread *slot = threads + i;
 
@@ -707,7 +707,7 @@ launch_threads(
         slot->a = a;
         slot->b = b;
         slot->startFunc = startFunc;
-        slot->prThread = MPR_CreateThread(PR_USER_THREAD,
+        slot->prThread = PR_CreateThread(PR_USER_THREAD,
                                          thread_wrapper, slot, PR_PRIORITY_NORMAL,
                                          (PR_TRUE ==
                                           local)
@@ -723,19 +723,19 @@ launch_threads(
 
         ++threadCount;
     }
-    MPR_Unlock(qLock);
+    PR_Unlock(qLock);
 
     return rv;
 }
 
 #define DESTROY_CONDVAR(name)    \
     if (name) {                  \
-        MPR_DestroyCondVar(name); \
+        PR_DestroyCondVar(name); \
         name = NULL;             \
     }
 #define DESTROY_LOCK(name)    \
     if (name) {               \
-        MPR_DestroyLock(name); \
+        PR_DestroyLock(name); \
         name = NULL;          \
     }
 
@@ -745,32 +745,32 @@ terminateWorkerThreads(void)
     int i;
 
     VLOG(("selfserv: server_thread: waiting on stopping"));
-    MPR_Lock(qLock);
-    MPR_NotifyAllCondVar(jobQNotEmptyCv);
-    MPR_Unlock(qLock);
+    PR_Lock(qLock);
+    PR_NotifyAllCondVar(jobQNotEmptyCv);
+    PR_Unlock(qLock);
 
     /* Wait for worker threads to terminate. */
     for (i = 0; i < maxThreads; ++i) {
         perThread *slot = threads + i;
         if (slot->prThread) {
-            MPR_JoinThread(slot->prThread);
+            PR_JoinThread(slot->prThread);
         }
     }
 
     /* The worker threads empty the jobQ before they terminate. */
-    MPR_Lock(qLock);
+    PR_Lock(qLock);
     PORT_Assert(threadCount == 0);
     PORT_Assert(PR_CLIST_IS_EMPTY(&jobQ));
-    MPR_Unlock(qLock);
+    PR_Unlock(qLock);
 
     DESTROY_CONDVAR(jobQNotEmptyCv);
     DESTROY_CONDVAR(freeListNotEmptyCv);
     DESTROY_CONDVAR(threadCountChangeCv);
 
-    MPR_DestroyLock(lastLoadedCrlLock);
+    PR_DestroyLock(lastLoadedCrlLock);
     DESTROY_LOCK(qLock);
-    MPR_Free(jobTable);
-    MPR_Free(threads);
+    PR_Free(jobTable);
+    PR_Free(threads);
 }
 
 static void
@@ -783,7 +783,7 @@ logger(void *arg)
     PRIntervalTime latestTime;
     PRInt32 previousOps;
     PRInt32 ops;
-    PRIntervalTime logPeriodTicks = MPR_TicksPerSecond();
+    PRIntervalTime logPeriodTicks = PR_TicksPerSecond();
     PRFloat64 secondsPerTick = 1.0 / (PRFloat64)logPeriodTicks;
     int iterations = 0;
     int secondsElapsed = 0;
@@ -791,7 +791,7 @@ logger(void *arg)
     static PRInt64 totalPeriodBytesTCP = 0;
 
     previousOps = loggerOps;
-    previousTime = MPR_IntervalNow();
+    previousTime = PR_IntervalNow();
 
     for (;;) {
         /* OK, implementing a new sleep algorithm here... always sleep
@@ -799,7 +799,7 @@ logger(void *arg)
          * This way, we don't overflow all of our PR_Atomic* functions and
          * we don't have to use locks.
          */
-        MPR_Sleep(logPeriodTicks);
+        PR_Sleep(logPeriodTicks);
         secondsElapsed++;
         totalPeriodBytes += PR_ATOMIC_SET(&loggerBytes, 0);
         totalPeriodBytesTCP += PR_ATOMIC_SET(&loggerBytesTCP, 0);
@@ -810,7 +810,7 @@ logger(void *arg)
          * data
          */
         secondsElapsed = 0;
-        latestTime = MPR_IntervalNow();
+        latestTime = PR_IntervalNow();
         ops = loggerOps;
         period = latestTime - previousTime;
         seconds = (PRFloat64)period * secondsPerTick;
@@ -918,28 +918,28 @@ lockedVars_Init(lockedVars *lv)
 {
     lv->count = 0;
     lv->waiters = 0;
-    lv->lock = MPR_NewLock();
-    lv->condVar = MPR_NewCondVar(lv->lock);
+    lv->lock = PR_NewLock();
+    lv->condVar = PR_NewCondVar(lv->lock);
 }
 
 void
 lockedVars_Destroy(lockedVars *lv)
 {
-    MPR_DestroyCondVar(lv->condVar);
+    PR_DestroyCondVar(lv->condVar);
     lv->condVar = NULL;
 
-    MPR_DestroyLock(lv->lock);
+    PR_DestroyLock(lv->lock);
     lv->lock = NULL;
 }
 
 void
 lockedVars_WaitForDone(lockedVars *lv)
 {
-    MPR_Lock(lv->lock);
+    PR_Lock(lv->lock);
     while (lv->count > 0) {
-        MPR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
     }
-    MPR_Unlock(lv->lock);
+    PR_Unlock(lv->lock);
 }
 
 int /* returns count */
@@ -947,12 +947,12 @@ lockedVars_AddToCount(lockedVars *lv, int addend)
 {
     int rv;
 
-    MPR_Lock(lv->lock);
+    PR_Lock(lv->lock);
     rv = lv->count += addend;
     if (rv <= 0) {
-        MPR_NotifyCondVar(lv->condVar);
+        PR_NotifyCondVar(lv->condVar);
     }
-    MPR_Unlock(lv->lock);
+    PR_Unlock(lv->lock);
     return rv;
 }
 
@@ -968,16 +968,16 @@ do_writes(
     VLOG(("selfserv: do_writes: starting"));
     while (sent < bigBuf.len) {
 
-        count = MPR_Write(ssl_sock, bigBuf.data + sent, bigBuf.len - sent);
+        count = PR_Write(ssl_sock, bigBuf.data + sent, bigBuf.len - sent);
         if (count < 0) {
-            errWarn("MPR_Write bigBuf");
+            errWarn("PR_Write bigBuf");
             break;
         }
-        FPRINTF(stderr, "selfserv: MPR_Write wrote %d bytes from bigBuf\n", count);
+        FPRINTF(stderr, "selfserv: PR_Write wrote %d bytes from bigBuf\n", count);
         sent += count;
     }
     if (count >= 0) { /* last write didn't fail. */
-        MPR_Shutdown(ssl_sock, PR_SHUTDOWN_SEND);
+        PR_Shutdown(ssl_sock, PR_SHUTDOWN_SEND);
     }
 
     /* notify the reader that we're done. */
@@ -1002,7 +1002,7 @@ handle_fdx_connection(
     VLOG(("selfserv: handle_fdx_connection: starting"));
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    MPR_SetSocketOption(tcp_sock, &opt);
+    PR_SetSocketOption(tcp_sock, &opt);
 
     if (useModelSocket && model_sock) {
         SECStatus rv;
@@ -1030,12 +1030,12 @@ handle_fdx_connection(
         do {
             /* do reads here. */
             int count;
-            count = MPR_Read(ssl_sock, buf, sizeof buf);
+            count = PR_Read(ssl_sock, buf, sizeof buf);
             if (count < 0) {
-                errWarn("FDX MPR_Read");
+                errWarn("FDX PR_Read");
                 break;
             }
-            FPRINTF(stderr, "selfserv: FDX MPR_Read read %d bytes.\n", count);
+            FPRINTF(stderr, "selfserv: FDX PR_Read read %d bytes.\n", count);
             if (firstTime) {
                 firstTime = 0;
                 printSecurityInfo(ssl_sock);
@@ -1049,9 +1049,9 @@ handle_fdx_connection(
 
 cleanup:
     if (ssl_sock) {
-        MPR_Close(ssl_sock);
+        PR_Close(ssl_sock);
     } else if (tcp_sock) {
-        MPR_Close(tcp_sock);
+        PR_Close(tcp_sock);
     }
 
     VLOG(("selfserv: handle_fdx_connection: exiting"));
@@ -1083,7 +1083,7 @@ reload_crl(PRFileDesc *crlFile)
         return SECFailure;
     }
 
-    MPR_Lock(lastLoadedCrlLock);
+    PR_Lock(lastLoadedCrlLock);
     rv = CERT_CacheCRL(certHandle, crlDer);
     if (rv == SECSuccess) {
         SECItem *tempItem = crlDer;
@@ -1101,7 +1101,7 @@ reload_crl(PRFileDesc *crlFile)
     }
 
 loser:
-    MPR_Unlock(lastLoadedCrlLock);
+    PR_Unlock(lastLoadedCrlLock);
     SECITEM_FreeItem(crlDer, PR_TRUE);
     return rv;
 }
@@ -1110,7 +1110,7 @@ void
 stop_server()
 {
     stopping = 1;
-    MPR_Interrupt(acceptorThread);
+    PR_Interrupt(acceptorThread);
 }
 
 SECItemArray *
@@ -1164,7 +1164,7 @@ makeSignedOCSPResponse(PLArenaPool *arena,
     CERTOCSPSingleResponse *sr = NULL;
     CERTOCSPCertID *cid = NULL;
     CERTCertificate *ca;
-    PRTime now = MPR_Now();
+    PRTime now = PR_Now();
     PRTime nextUpdate;
 
     PORT_Assert(cert != NULL);
@@ -1327,7 +1327,7 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
     VLOG(("selfserv: handle_connection: starting"));
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    MPR_SetSocketOption(tcp_sock, &opt);
+    PR_SetSocketOption(tcp_sock, &opt);
 
     VLOG(("selfserv: handle_connection: starting\n"));
     if (useModelSocket && model_sock) {
@@ -1347,29 +1347,29 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
 
     if (loggingLayer) {
         /* find the layer where our new layer is to be pushed */
-        aboveLayer = MPR_GetLayersIdentity(ssl_sock->lower);
+        aboveLayer = PR_GetLayersIdentity(ssl_sock->lower);
         if (aboveLayer == PR_INVALID_IO_LAYER) {
             errExit("PRGetUniqueIdentity");
         }
         /* create the new layer - this is a very cheap operation */
-        loggingFD = MPR_CreateIOLayerStub(log_layer_id, &loggingMethods);
+        loggingFD = PR_CreateIOLayerStub(log_layer_id, &loggingMethods);
         if (!loggingFD)
-            errExit("MPR_CreateIOLayerStub");
+            errExit("PR_CreateIOLayerStub");
         /* push the layer below ssl but above TCP */
-        rv = MPR_PushIOLayer(ssl_sock, aboveLayer, loggingFD);
+        rv = PR_PushIOLayer(ssl_sock, aboveLayer, loggingFD);
         if (rv != PR_SUCCESS) {
-            errExit("MPR_PushIOLayer");
+            errExit("PR_PushIOLayer");
         }
     }
 
     if (noDelay) {
         opt.option = PR_SockOpt_NoDelay;
         opt.value.no_delay = PR_TRUE;
-        status = MPR_SetSocketOption(ssl_sock, &opt);
+        status = PR_SetSocketOption(ssl_sock, &opt);
         if (status != PR_SUCCESS) {
-            errWarn("MPR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
+            errWarn("PR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
             if (ssl_sock) {
-                MPR_Close(ssl_sock);
+                PR_Close(ssl_sock);
             }
             return SECFailure;
         }
@@ -1378,15 +1378,15 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
     while (1) {
         newln = 0;
         reqLen = 0;
-        rv = MPR_Read(ssl_sock, pBuf, bufRem - 1);
+        rv = PR_Read(ssl_sock, pBuf, bufRem - 1);
         if (rv == 0 ||
-            (rv < 0 && PR_END_OF_FILE_ERROR == MPR_GetError())) {
+            (rv < 0 && PR_END_OF_FILE_ERROR == PR_GetError())) {
             if (verbose)
-                errWarn("HDX MPR_Read hit EOF");
+                errWarn("HDX PR_Read hit EOF");
             break;
         }
         if (rv < 0) {
-            errWarn("HDX MPR_Read");
+            errWarn("HDX PR_Read");
             goto cleanup;
         }
         /* NULL termination */
@@ -1461,17 +1461,17 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
                         fileName[fnLen] = 0; /* null terminate */
                         if ((protoEnd = strstr(fileName, "://")) != NULL) {
                             int protoLen = PR_MIN(protoEnd - fileName, sizeof(proto) - 1);
-                            MPL_strncpy(proto, fileName, protoLen);
+                            PL_strncpy(proto, fileName, protoLen);
                             proto[protoLen] = 0;
                             real_fileName = protoEnd + 3;
                         } else {
                             proto[0] = 0;
                         }
-                        status = MPR_GetFileInfo(real_fileName, &info);
+                        status = PR_GetFileInfo(real_fileName, &info);
                         if (status == PR_SUCCESS &&
                             info.type == PR_FILE_FILE &&
                             info.size >= 0) {
-                            local_file_fd = MPR_Open(real_fileName, PR_RDONLY, 0);
+                            local_file_fd = PR_Open(real_fileName, PR_RDONLY, 0);
                         }
                     }
                 }
@@ -1530,19 +1530,19 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
             if (local_file_fd) {
                 PRInt32 bytes;
                 int errLen;
-                if (!MPL_strlen(proto) || !MPL_strcmp(proto, "file")) {
-                    bytes = MPR_TransmitFile(ssl_sock, local_file_fd, outHeader,
+                if (!PL_strlen(proto) || !PL_strcmp(proto, "file")) {
+                    bytes = PR_TransmitFile(ssl_sock, local_file_fd, outHeader,
                                             sizeof outHeader - 1,
                                             PR_TRANSMITFILE_KEEP_OPEN,
                                             PR_INTERVAL_NO_TIMEOUT);
                     if (bytes >= 0) {
                         bytes -= sizeof outHeader - 1;
                         FPRINTF(stderr,
-                                "selfserv: MPR_TransmitFile wrote %d bytes from %s\n",
+                                "selfserv: PR_TransmitFile wrote %d bytes from %s\n",
                                 bytes, fileName);
                         break;
                     }
-                    errString = errWarn("MPR_TransmitFile");
+                    errString = errWarn("PR_TransmitFile");
                     errLen = PORT_Strlen(errString);
                     errLen = PR_MIN(errLen, sizeof msgBuf - 1);
                     PORT_Memcpy(msgBuf, errString, errLen);
@@ -1552,12 +1552,12 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
                     iovs[numIOVs].iov_len = PORT_Strlen(msgBuf);
                     numIOVs++;
                 }
-                if (!MPL_strcmp(proto, "crl")) {
+                if (!PL_strcmp(proto, "crl")) {
                     if (reload_crl(local_file_fd) == SECFailure) {
                         errString = errWarn("CERT_CacheCRL");
                         if (!errString)
                             errString = "Unknow error";
-                        MPR_snprintf(msgBuf, sizeof(msgBuf), "%s%s ",
+                        PR_snprintf(msgBuf, sizeof(msgBuf), "%s%s ",
                                     crlCacheErr, errString);
 
                         iovs[numIOVs].iov_base = msgBuf;
@@ -1602,15 +1602,15 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
                 numIOVs++;
             }
 
-            rv = MPR_Writev(ssl_sock, iovs, numIOVs, PR_INTERVAL_NO_TIMEOUT);
+            rv = PR_Writev(ssl_sock, iovs, numIOVs, PR_INTERVAL_NO_TIMEOUT);
             if (rv < 0) {
-                errWarn("MPR_Writev");
+                errWarn("PR_Writev");
                 break;
             }
 
             /* Send testBulkTotal chunks to the client. Unlimited if 0. */
             if (testBulk) {
-                while (0 < (rv = MPR_Write(ssl_sock, testBulkBuf, testBulkSize))) {
+                while (0 < (rv = PR_Write(ssl_sock, testBulkBuf, testBulkSize))) {
                     PR_ATOMIC_ADD(&loggerBytes, rv);
                     PR_ATOMIC_INCREMENT(&bulkSentChunks);
                     if ((bulkSentChunks > testBulkTotal) && (testBulkTotal != 0))
@@ -1619,7 +1619,7 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
 
                 /* There was a write error, so close this connection. */
                 if (bulkSentChunks <= testBulkTotal) {
-                    errWarn("MPR_Write");
+                    errWarn("PR_Write");
                 }
                 PR_ATOMIC_DECREMENT(&loggerOps);
                 break;
@@ -1628,12 +1628,12 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
 
 cleanup:
     if (ssl_sock) {
-        MPR_Close(ssl_sock);
+        PR_Close(ssl_sock);
     } else if (tcp_sock) {
-        MPR_Close(tcp_sock);
+        PR_Close(tcp_sock);
     }
     if (local_file_fd)
-        MPR_Close(local_file_fd);
+        PR_Close(local_file_fd);
     VLOG(("selfserv: handle_connection: exiting\n"));
 
     /* do a nice shutdown if asked. */
@@ -1668,9 +1668,9 @@ do_accepts(
 #endif
 
     VLOG(("selfserv: do_accepts: starting"));
-    MPR_SetThreadPriority(MPR_GetCurrentThread(), PR_PRIORITY_HIGH);
+    PR_SetThreadPriority(PR_GetCurrentThread(), PR_PRIORITY_HIGH);
 
-    acceptorThread = MPR_GetCurrentThread();
+    acceptorThread = PR_GetCurrentThread();
 #ifdef XP_UNIX
     /* set up the signal handler */
     act.sa_handler = sigusr1_handler;
@@ -1686,13 +1686,13 @@ do_accepts(
         PRCList *myLink;
 
         FPRINTF(stderr, "\n\n\nselfserv: About to call accept.\n");
-        tcp_sock = MPR_Accept(listen_sock, &addr, PR_INTERVAL_NO_TIMEOUT);
+        tcp_sock = PR_Accept(listen_sock, &addr, PR_INTERVAL_NO_TIMEOUT);
         if (tcp_sock == NULL) {
-            perr = MPR_GetError();
+            perr = PR_GetError();
             if ((perr != PR_CONNECT_RESET_ERROR &&
                  perr != PR_PENDING_INTERRUPT_ERROR) ||
                 verbose) {
-                errWarn("MPR_Accept");
+                errWarn("PR_Accept");
             }
             if (perr == PR_CONNECT_RESET_ERROR) {
                 FPRINTF(stderr,
@@ -1709,14 +1709,14 @@ do_accepts(
             PR_ATOMIC_INCREMENT(&loggerOps);
         }
 
-        MPR_Lock(qLock);
+        PR_Lock(qLock);
         while (PR_CLIST_IS_EMPTY(&freeJobs) && !stopping) {
-            MPR_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            PR_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (stopping) {
-            MPR_Unlock(qLock);
+            PR_Unlock(qLock);
             if (tcp_sock) {
-                MPR_Close(tcp_sock);
+                PR_Close(tcp_sock);
             }
             break;
         }
@@ -1732,14 +1732,14 @@ do_accepts(
         }
 
         PR_APPEND_LINK(myLink, &jobQ);
-        MPR_NotifyCondVar(jobQNotEmptyCv);
-        MPR_Unlock(qLock);
+        PR_NotifyCondVar(jobQNotEmptyCv);
+        PR_Unlock(qLock);
     }
 
     FPRINTF(stderr, "selfserv: Closing listen socket.\n");
     VLOG(("selfserv: do_accepts: exiting"));
     if (listen_sock) {
-        MPR_Close(listen_sock);
+        PR_Close(listen_sock);
     }
     return SECSuccess;
 }
@@ -1754,20 +1754,20 @@ getBoundListenSocket(unsigned short port)
     PRSocketOptionData opt;
 
     // We want to listen on the IP family that tstclnt will use.
-    // tstclnt uses MPR_GetPrefLoopbackAddrInfo to decide, if it's
+    // tstclnt uses PR_GetPrefLoopbackAddrInfo to decide, if it's
     // asked to connect to localhost.
 
-    prStatus = MPR_GetPrefLoopbackAddrInfo(&addr, port);
+    prStatus = PR_GetPrefLoopbackAddrInfo(&addr, port);
     if (prStatus == PR_FAILURE) {
         addr.inet.family = PR_AF_INET;
-        addr.inet.ip = MPR_htonl(PR_INADDR_ANY);
-        addr.inet.port = MPR_htons(port);
+        addr.inet.ip = PR_htonl(PR_INADDR_ANY);
+        addr.inet.port = PR_htons(port);
     }
 
     if (addr.inet.family == PR_AF_INET6) {
-        listen_sock = MPR_OpenTCPSocket(PR_AF_INET6);
+        listen_sock = PR_OpenTCPSocket(PR_AF_INET6);
     } else if (addr.inet.family == PR_AF_INET) {
-        listen_sock = MPR_NewTCPSocket();
+        listen_sock = PR_NewTCPSocket();
     }
     if (listen_sock == NULL) {
         errExit("Couldn't create socket");
@@ -1775,18 +1775,18 @@ getBoundListenSocket(unsigned short port)
 
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    prStatus = MPR_SetSocketOption(listen_sock, &opt);
+    prStatus = PR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        MPR_Close(listen_sock);
-        errExit("MPR_SetSocketOption(PR_SockOpt_Nonblocking)");
+        PR_Close(listen_sock);
+        errExit("PR_SetSocketOption(PR_SockOpt_Nonblocking)");
     }
 
     opt.option = PR_SockOpt_Reuseaddr;
     opt.value.reuse_addr = PR_TRUE;
-    prStatus = MPR_SetSocketOption(listen_sock, &opt);
+    prStatus = PR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        MPR_Close(listen_sock);
-        errExit("MPR_SetSocketOption(PR_SockOpt_Reuseaddr)");
+        PR_Close(listen_sock);
+        errExit("PR_SetSocketOption(PR_SockOpt_Reuseaddr)");
     }
 
     /* Set PR_SockOpt_Linger because it helps prevent a server bind issue
@@ -1794,23 +1794,23 @@ getBoundListenSocket(unsigned short port)
      */
     opt.option = PR_SockOpt_Linger;
     opt.value.linger.polarity = PR_TRUE;
-    opt.value.linger.linger = MPR_SecondsToInterval(1);
-    prStatus = MPR_SetSocketOption(listen_sock, &opt);
+    opt.value.linger.linger = PR_SecondsToInterval(1);
+    prStatus = PR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        MPR_Close(listen_sock);
-        errExit("MPR_SetSocketOption(PR_SockOpt_Linger)");
+        PR_Close(listen_sock);
+        errExit("PR_SetSocketOption(PR_SockOpt_Linger)");
     }
 
-    prStatus = MPR_Bind(listen_sock, &addr);
+    prStatus = PR_Bind(listen_sock, &addr);
     if (prStatus < 0) {
-        MPR_Close(listen_sock);
-        errExit("MPR_Bind");
+        PR_Close(listen_sock);
+        errExit("PR_Bind");
     }
 
-    prStatus = MPR_Listen(listen_sock, listenQueueDepth);
+    prStatus = PR_Listen(listen_sock, listenQueueDepth);
     if (prStatus < 0) {
-        MPR_Close(listen_sock);
-        errExit("MPR_Listen");
+        PR_Close(listen_sock);
+        errExit("PR_Listen");
     }
     return listen_sock;
 }
@@ -1864,12 +1864,12 @@ void
 initLoggingLayer(void)
 {
     /* get a new layer ID */
-    log_layer_id = MPR_GetUniqueIdentity("Selfserv Logging");
+    log_layer_id = PR_GetUniqueIdentity("Selfserv Logging");
     if (log_layer_id == PR_INVALID_IO_LAYER)
-        errExit("MPR_GetUniqueIdentity");
+        errExit("PR_GetUniqueIdentity");
 
     /* setup the default IO methods with my custom write methods */
-    memcpy(&loggingMethods, MPR_GetDefaultIOMethods(), sizeof(PRIOMethods));
+    memcpy(&loggingMethods, PR_GetDefaultIOMethods(), sizeof(PRIOMethods));
     loggingMethods.writev = logWritev;
     loggingMethods.write = logWrite;
     loggingMethods.send = logSend;
@@ -1892,7 +1892,7 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
     if (enabledExporters) {
         SECStatus rv = exportKeyingMaterials(fd, enabledExporters, enabledExporterCount);
         if (rv != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             fprintf(stderr,
                     "couldn't export keying material: %s\n",
                     SECU_Strerror(err));
@@ -2112,7 +2112,7 @@ zlibCertificateDecode(const SECItem *input,
                       size_t *usedLen)
 {
     if (!input || !input->data || input->len == 0 || !output || outputLen == 0) {
-        MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
         return SECFailure;
     }
 
@@ -2120,7 +2120,7 @@ zlibCertificateDecode(const SECItem *input,
     int ret = uncompress(output, &outputLenUL, input->data, input->len);
     *usedLen = outputLenUL;
     if (ret != Z_OK) {
-        MPR_SetError(SEC_ERROR_BAD_DATA, 0);
+        PR_SetError(SEC_ERROR_BAD_DATA, 0);
         return SECFailure;
     }
 
@@ -2131,7 +2131,7 @@ static SECStatus
 zlibCertificateEncode(const SECItem *input, SECItem *output)
 {
     if (!input || !input->data || input->len == 0 || !output) {
-        MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
         return SECFailure;
     }
 
@@ -2142,7 +2142,7 @@ zlibCertificateEncode(const SECItem *input, SECItem *output)
     int ret = compress(output->data, &outputLenUL, input->data, input->len);
     output->len = outputLenUL;
     if (ret != Z_OK) {
-        MPR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+        PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
         return SECFailure;
     }
 
@@ -2172,9 +2172,9 @@ server_main(
     SECStatus secStatus;
 
     if (useModelSocket) {
-        model_sock = MPR_NewTCPSocket();
+        model_sock = PR_NewTCPSocket();
         if (model_sock == NULL) {
-            errExit("MPR_NewTCPSocket on model socket");
+            errExit("PR_NewTCPSocket on model socket");
         }
         model_sock = SSL_ImportFD(NULL, model_sock);
         if (model_sock == NULL) {
@@ -2401,7 +2401,7 @@ server_main(
 
     if (useModelSocket && model_sock) {
         if (model_sock) {
-            MPR_Close(model_sock);
+            PR_Close(model_sock);
         }
     }
 }
@@ -2416,12 +2416,12 @@ readBigFile(const char *fileName)
     int hdrLen;
     PRFileDesc *local_file_fd = NULL;
 
-    status = MPR_GetFileInfo(fileName, &info);
+    status = PR_GetFileInfo(fileName, &info);
 
     if (status == PR_SUCCESS &&
         info.type == PR_FILE_FILE &&
         info.size > 0 &&
-        NULL != (local_file_fd = MPR_Open(fileName, PR_RDONLY, 0))) {
+        NULL != (local_file_fd = PR_Open(fileName, PR_RDONLY, 0))) {
 
         hdrLen = PORT_Strlen(outHeader);
         bigBuf.len = hdrLen + info.size;
@@ -2433,15 +2433,15 @@ readBigFile(const char *fileName)
 
         PORT_Memcpy(bigBuf.data, outHeader, hdrLen);
 
-        count = MPR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
+        count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
         if (count != info.size) {
-            errWarn("MPR_Read local file");
+            errWarn("PR_Read local file");
             goto done;
         }
         rv = SECSuccess;
     done:
         if (local_file_fd) {
-            MPR_Close(local_file_fd);
+            PR_Close(local_file_fd);
         }
     }
     return rv;
@@ -2455,7 +2455,7 @@ haveAChild(int argc, char **argv, PRProcessAttr *attr)
 {
     PRProcess *newProcess;
 
-    newProcess = MPR_CreateProcess(argv[0], argv, NULL, attr);
+    newProcess = PR_CreateProcess(argv[0], argv, NULL, attr);
     if (!newProcess) {
         errWarn("Can't create new process.");
     } else {
@@ -2473,7 +2473,7 @@ sigusr1_parent_handler(int sig)
     fprintf(stderr, "SIG_USER: Parent got sig_user, killing children (%d).\n", numChildren);
     for (i = 0; i < numChildren; i++) {
         process = child[i];
-        MPR_KillProcess(process); /* it would be nice to kill with a sigusr signal */
+        PR_KillProcess(process); /* it would be nice to kill with a sigusr signal */
     }
 }
 #endif
@@ -2500,17 +2500,17 @@ beAGoodParent(int argc, char **argv, int maxProcs, PRFileDesc *listen_sock)
     }
 #endif
 
-    rv = MPR_SetFDInheritable(listen_sock, PR_TRUE);
+    rv = PR_SetFDInheritable(listen_sock, PR_TRUE);
     if (rv != PR_SUCCESS)
-        errExit("MPR_SetFDInheritable");
+        errExit("PR_SetFDInheritable");
 
-    attr = MPR_NewProcessAttr();
+    attr = PR_NewProcessAttr();
     if (!attr)
-        errExit("MPR_NewProcessAttr");
+        errExit("PR_NewProcessAttr");
 
-    rv = MPR_ProcessAttrSetInheritableFD(attr, listen_sock, inheritableSockName);
+    rv = PR_ProcessAttrSetInheritableFD(attr, listen_sock, inheritableSockName);
     if (rv != PR_SUCCESS)
-        errExit("MPR_ProcessAttrSetInheritableFD");
+        errExit("PR_ProcessAttrSetInheritableFD");
 
     for (i = 0; i < maxProcs; ++i) {
         newProcess = haveAChild(argc, argv, attr);
@@ -2518,13 +2518,13 @@ beAGoodParent(int argc, char **argv, int maxProcs, PRFileDesc *listen_sock)
             break;
     }
 
-    rv = MPR_SetFDInheritable(listen_sock, PR_FALSE);
+    rv = PR_SetFDInheritable(listen_sock, PR_FALSE);
     if (rv != PR_SUCCESS)
-        errExit("MPR_SetFDInheritable");
+        errExit("PR_SetFDInheritable");
 
     while (numChildren > 0) {
         newProcess = child[numChildren - 1];
-        MPR_WaitProcess(newProcess, &exitCode);
+        PR_WaitProcess(newProcess, &exitCode);
         fprintf(stderr, "Child %d exited with exit code %x\n",
                 numChildren, exitCode);
         numChildren--;
@@ -2624,16 +2624,16 @@ main(int argc, char **argv)
     progName = strrchr(tmp, '\\');
     progName = progName ? progName + 1 : tmp;
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
     /* please keep this list of options in ASCII collating sequence.
     ** numbers, then capital letters, then lower case, alphabetical.
     ** XXX: 'B', and 'q' were used in the past but removed
     **      in 3.28, please leave some time before resuing those. */
-    optstate = MPL_CreateOptState(argc, argv,
+    optstate = PL_CreateOptState(argc, argv,
                                  "2:A:C:DEGH:I:J:L:M:NP:QRS:T:U:V:W:X:YZa:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:x:yz:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         ++optionsFound;
         switch (optstate->option) {
             case '2':
@@ -2861,7 +2861,7 @@ main(int argc, char **argv)
             case 'z':
                 rv = readPSK(optstate->value, &psk, &pskLabel);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad PSK specified.\n");
                     Usage(progName);
                     exit(1);
@@ -2875,7 +2875,7 @@ main(int argc, char **argv)
             case 'I':
                 rv = parseGroupList(optstate->value, &enabledGroups, &enabledGroupsCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad group specified.\n");
                     fprintf(stderr, "Run '%s -h' for usage information.\n", progName);
                     exit(5);
@@ -2885,7 +2885,7 @@ main(int argc, char **argv)
             case 'J':
                 rv = parseSigSchemeList(optstate->value, &enabledSigSchemes, &enabledSigSchemeCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad signature scheme specified.\n");
                     fprintf(stderr, "Run '%s -h' for usage information.\n", progName);
                     exit(5);
@@ -2896,7 +2896,7 @@ main(int argc, char **argv)
                 rv = parseExporters(optstate->value,
                                     &enabledExporters, &enabledExporterCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad exporter specified.\n");
                     fprintf(stderr, "Run '%s -h' for usage information.\n", progName);
                     exit(5);
@@ -2906,7 +2906,7 @@ main(int argc, char **argv)
             case 'X':
                 echParamsStr = PORT_Strdup(optstate->value);
                 if (echParamsStr == NULL) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "echParamsStr copy failed.\n");
                     exit(5);
                 }
@@ -2919,7 +2919,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     if (status == PL_OPT_BAD) {
         fprintf(stderr, "Unrecognized or bad option specified.\n");
         fprintf(stderr, "Run '%s -h' for usage information.\n", progName);
@@ -2954,7 +2954,7 @@ main(int argc, char **argv)
             exit(1);
         }
         if (listen_sock) {
-            MPR_Close(listen_sock);
+            PR_Close(listen_sock);
         }
         exit(0);
     }
@@ -2975,7 +2975,7 @@ main(int argc, char **argv)
         exit(14);
     }
 
-    envString = MPR_GetEnvSecure(envVarName);
+    envString = PR_GetEnvSecure(envVarName);
     if (!envString && pidFile) {
         FILE *tmpfile = fopen(pidFile, "w+");
 
@@ -2994,30 +2994,30 @@ main(int argc, char **argv)
             testBulkBuf[i] = i;
     }
 
-    envString = MPR_GetEnvSecure(envVarName);
-    tmp = MPR_GetEnvSecure("TMP");
+    envString = PR_GetEnvSecure(envVarName);
+    tmp = PR_GetEnvSecure("TMP");
     if (!tmp)
-        tmp = MPR_GetEnvSecure("TMPDIR");
+        tmp = PR_GetEnvSecure("TMPDIR");
     if (!tmp)
-        tmp = MPR_GetEnvSecure("TEMP");
+        tmp = PR_GetEnvSecure("TEMP");
 
     if (envString) {
         /* we're one of the children in a multi-process server. */
-        listen_sock = MPR_GetInheritedFD(inheritableSockName);
+        listen_sock = PR_GetInheritedFD(inheritableSockName);
         if (!listen_sock)
-            errExit("MPR_GetInheritedFD");
+            errExit("PR_GetInheritedFD");
 #ifndef WINNT
         /* we can't do this on NT because it breaks NSPR and
-    MPR_Accept will fail on the socket in the child process if
+    PR_Accept will fail on the socket in the child process if
     the socket state is change to non inheritable
     It is however a security issue to leave it accessible,
     but it is OK for a test server such as selfserv.
     NSPR should fix it eventually . see bugzilla 101617
     and 102077
     */
-        prStatus = MPR_SetFDInheritable(listen_sock, PR_FALSE);
+        prStatus = PR_SetFDInheritable(listen_sock, PR_FALSE);
         if (prStatus != PR_SUCCESS)
-            errExit("MPR_SetFDInheritable");
+            errExit("PR_SetFDInheritable");
 #endif
         rv = SSL_InheritMPServerSIDCache(envString);
         if (rv != SECSuccess)
@@ -3047,9 +3047,9 @@ main(int argc, char **argv)
         }
         /* we're an ordinary single process server. */
         listen_sock = getBoundListenSocket(port);
-        prStatus = MPR_SetFDInheritable(listen_sock, PR_FALSE);
+        prStatus = PR_SetFDInheritable(listen_sock, PR_FALSE);
         if (prStatus != PR_SUCCESS)
-            errExit("MPR_SetFDInheritable");
+            errExit("PR_SetFDInheritable");
         if (!NoReuse) {
             rv = SSL_ConfigServerSessionIDCache(NumSidCacheEntries,
                                                 0, 0, tmp);
@@ -3059,7 +3059,7 @@ main(int argc, char **argv)
         }
     }
 
-    lm = MPR_NewLogModule("TestCase");
+    lm = PR_NewLogModule("TestCase");
 
     if (fileName)
         readBigFile(fileName);
@@ -3148,7 +3148,7 @@ main(int argc, char **argv)
         fprintf(stderr, "selfserv: Done creating dynamic weak DH parameters\n");
     }
     if (zeroRTT) {
-        rv = SSL_CreateAntiReplayContext(MPR_Now(), 10L * PR_USEC_PER_SEC, 7, 14, &antiReplay);
+        rv = SSL_CreateAntiReplayContext(PR_Now(), 10L * PR_USEC_PER_SEC, 7, 14, &antiReplay);
         if (rv != SECSuccess) {
             errExit("Unable to create anti-replay context for 0-RTT.");
         }
@@ -3158,7 +3158,7 @@ main(int argc, char **argv)
     rv = launch_threads(&jobLoop, 0, 0, useLocalThreads);
 
     if (rv == SECSuccess && logStats) {
-        loggerThread = MPR_CreateThread(PR_SYSTEM_THREAD,
+        loggerThread = PR_CreateThread(PR_SYSTEM_THREAD,
                                        logger, NULL, PR_PRIORITY_NORMAL,
                                        useLocalThreads ? PR_LOCAL_THREAD
                                                        : PR_GLOBAL_THREAD,
@@ -3237,12 +3237,12 @@ cleanup:
     if (NSS_Shutdown() != SECSuccess) {
         SECU_PrintError(progName, "NSS_Shutdown");
         if (loggerThread) {
-            MPR_JoinThread(loggerThread);
+            PR_JoinThread(loggerThread);
         }
-        MPR_Cleanup();
+        PR_Cleanup();
         exit(1);
     }
-    MPR_Cleanup();
+    PR_Cleanup();
     printf("selfserv: normal termination\n");
     return 0;
 }

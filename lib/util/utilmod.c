@@ -221,8 +221,8 @@ nssutil_Rename(const char *from, const char *to)
 #define os_open_permissions_type mode_t
 #define os_open_permissions_default 0600
 #define os_stat_type struct stat
-#define nssutil_Delete MPR_Delete
-#define nssutil_Rename MPR_Rename
+#define nssutil_Delete PR_Delete
+#define nssutil_Rename PR_Rename
 #endif
 
 /****************************************************************
@@ -326,9 +326,9 @@ _NSSUTIL_GetOldSecmodName(const char *dbname, const char *filename)
 #endif
     if (sep) {
         *sep = 0;
-        file = MPR_smprintf("%s" NSSUTIL_PATH_SEPARATOR "%s", dirPath, filename);
+        file = PR_smprintf("%s" NSSUTIL_PATH_SEPARATOR "%s", dirPath, filename);
     } else {
-        file = MPR_smprintf("%s", filename);
+        file = PR_smprintf("%s", filename);
     }
     PORT_Free(dirPath);
     return file;
@@ -583,7 +583,7 @@ done:
         /* old one exists */
         status = _NSSUTIL_Access(olddbname, PR_ACCESS_EXISTS);
         if (status == PR_SUCCESS) {
-            MPR_smprintf_free(olddbname);
+            PR_smprintf_free(olddbname);
             PORT_ZFree(moduleList, useCount * sizeof(char *));
             PORT_SetError(SEC_ERROR_LEGACY_DATABASE);
             return NULL;
@@ -591,7 +591,7 @@ done:
 
     bail:
         if (olddbname) {
-            MPR_smprintf_free(olddbname);
+            PR_smprintf_free(olddbname);
         }
     }
 #endif // NSS_DISABLE_DBM
@@ -941,7 +941,7 @@ NSSUTIL_DoModuleDBFunction(unsigned long function, char *parameters, void *args)
     }
 done:
     if (secmod)
-        MPR_smprintf_free(secmod);
+        PR_smprintf_free(secmod);
     if (appName)
         PORT_Free(appName);
     if (filename)

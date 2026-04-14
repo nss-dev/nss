@@ -49,10 +49,10 @@ SECStatus
 nss_cmstype_shutdown(void *appData, void *reserved)
 {
     if (nsscmstypeHashLock) {
-        MPR_Lock(nsscmstypeHashLock);
+        PR_Lock(nsscmstypeHashLock);
     }
     if (nsscmstypeHash) {
-        MPL_HashTableDestroy(nsscmstypeHash);
+        PL_HashTableDestroy(nsscmstypeHash);
         nsscmstypeHash = NULL;
     }
     if (nsscmstypeArena) {
@@ -60,13 +60,13 @@ nss_cmstype_shutdown(void *appData, void *reserved)
         nsscmstypeArena = NULL;
     }
     if (nsscmstypeAddLock) {
-        MPR_DestroyLock(nsscmstypeAddLock);
+        PR_DestroyLock(nsscmstypeAddLock);
     }
     if (nsscmstypeHashLock) {
         PRLock *oldLock = nsscmstypeHashLock;
         nsscmstypeHashLock = NULL;
-        MPR_Unlock(oldLock);
-        MPR_DestroyLock(oldLock);
+        PR_Unlock(oldLock);
+        PR_DestroyLock(oldLock);
     }
 
     /* don't clear out the PR_ONCE data if we failed our inital call */
@@ -100,17 +100,17 @@ nss_cmstype_init(void)
 {
     SECStatus rv;
 
-    nsscmstypeHashLock = MPR_NewLock();
+    nsscmstypeHashLock = PR_NewLock();
     if (nsscmstypeHashLock == NULL) {
         return PR_FAILURE;
     }
-    nsscmstypeAddLock = MPR_NewLock();
+    nsscmstypeAddLock = PR_NewLock();
     if (nsscmstypeHashLock == NULL) {
         goto fail;
     }
-    nsscmstypeHash = MPL_NewHashTable(64, nss_cmstype_hash_key,
+    nsscmstypeHash = PL_NewHashTable(64, nss_cmstype_hash_key,
                                      nss_cmstype_compare_keys,
-                                     MPL_CompareValues, NULL, NULL);
+                                     PL_CompareValues, NULL, NULL);
     if (nsscmstypeHash == NULL) {
         goto fail;
     }
@@ -140,11 +140,11 @@ nss_cmstype_lookup(SECOidTag type)
     if (!nsscmstypeHash) {
         return NULL;
     }
-    MPR_Lock(nsscmstypeHashLock);
+    PR_Lock(nsscmstypeHashLock);
     if (nsscmstypeHash) {
-        typeInfo = MPL_HashTableLookupConst(nsscmstypeHash, (void *)type);
+        typeInfo = PL_HashTableLookupConst(nsscmstypeHash, (void *)type);
     }
-    MPR_Unlock(nsscmstypeHashLock);
+    PR_Unlock(nsscmstypeHashLock);
     return typeInfo;
 }
 
@@ -160,15 +160,15 @@ nss_cmstype_add(SECOidTag type, nsscmstypeInfo *typeinfo)
         /* assert? this shouldn't happen */
         return SECFailure;
     }
-    MPR_Lock(nsscmstypeHashLock);
+    PR_Lock(nsscmstypeHashLock);
     /* this is really paranoia. If we really are racing nsscmstypeHash, we'll
      * also be racing nsscmstypeHashLock... */
     if (!nsscmstypeHash) {
-        MPR_Unlock(nsscmstypeHashLock);
+        PR_Unlock(nsscmstypeHashLock);
         return SECFailure;
     }
-    entry = MPL_HashTableAdd(nsscmstypeHash, (void *)type, typeinfo);
-    MPR_Unlock(nsscmstypeHashLock);
+    entry = PL_HashTableAdd(nsscmstypeHash, (void *)type, typeinfo);
+    PR_Unlock(nsscmstypeHashLock);
     return entry ? SECSuccess : SECFailure;
 }
 
@@ -411,14 +411,14 @@ NSS_CMSType_RegisterContentType(SECOidTag type,
     nsscmstypeInfo *typeInfo;
     const nsscmstypeInfo *exists;
 
-    rc = MPR_CallOnce(&nsscmstypeOnce, nss_cmstype_init);
+    rc = PR_CallOnce(&nsscmstypeOnce, nss_cmstype_init);
     if (rc == PR_FAILURE) {
         return SECFailure;
     }
-    MPR_Lock(nsscmstypeAddLock);
+    PR_Lock(nsscmstypeAddLock);
     exists = nss_cmstype_lookup(type);
     if (exists) {
-        MPR_Unlock(nsscmstypeAddLock);
+        PR_Unlock(nsscmstypeAddLock);
         /* already added */
         return SECSuccess;
     }
@@ -435,6 +435,6 @@ NSS_CMSType_RegisterContentType(SECOidTag type,
     typeInfo->encode_before = encode_before;
     typeInfo->encode_after = encode_after;
     rv = nss_cmstype_add(type, typeInfo);
-    MPR_Unlock(nsscmstypeAddLock);
+    PR_Unlock(nsscmstypeAddLock);
     return rv;
 }

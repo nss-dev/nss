@@ -40,38 +40,38 @@ pkix_pl_LdapResponse_Destroy(
         m = &ldapRsp->decoded;
 
         if (m->messageID.data != NULL) {
-                MPR_Free(m->messageID.data);
+                PR_Free(m->messageID.data);
         }
 
         if (m->protocolOp.selector ==
                 LDAP_SEARCHRESPONSEENTRY_TYPE) {
                 entry = &m->protocolOp.op.searchResponseEntryMsg;
                 if (entry->objectName.data != NULL) {
-                        MPR_Free(entry->objectName.data);
+                        PR_Free(entry->objectName.data);
                 }
                 if (entry->attributes != NULL) {
                         for (attributes = entry->attributes;
                                 *attributes != NULL;
                                 attributes++) {
                                 attr = *attributes;
-                                MPR_Free(attr->attrType.data);
+                                PR_Free(attr->attrType.data);
                                 for (valp = attr->val; *valp != NULL; valp++) {
                                         val = *valp;
                                         if (val->data != NULL) {
-                                                MPR_Free(val->data);
+                                                PR_Free(val->data);
                                         }
-                                        MPR_Free(val);
+                                        PR_Free(val);
                                 }
-                                MPR_Free(attr->val);
-                                MPR_Free(attr);
+                                PR_Free(attr->val);
+                                PR_Free(attr);
                         }
-                        MPR_Free(entry->attributes);
+                        PR_Free(entry->attributes);
                 }
         } else if (m->protocolOp.selector ==
                 LDAP_SEARCHRESPONSERESULT_TYPE) {
                 result = &m->protocolOp.op.searchResponseResultMsg;
                 if (result->resultCode.data != NULL) {
-                        MPR_Free(result->resultCode.data);
+                        PR_Free(result->resultCode.data);
                 }
         }
 

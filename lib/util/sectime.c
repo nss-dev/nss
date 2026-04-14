@@ -59,12 +59,12 @@ CERT_UTCTime2FormattedAscii(PRTime utcTime, char *format)
     char *timeString;
 
     /* Converse time to local time and decompose it into components */
-    MPR_ExplodeTime(utcTime, MPR_LocalTimeParameters, &printableTime);
+    PR_ExplodeTime(utcTime, PR_LocalTimeParameters, &printableTime);
 
     timeString = (char *)PORT_Alloc(256);
 
     if (timeString) {
-        if (!MPR_FormatTime(timeString, 256, format, &printableTime)) {
+        if (!PR_FormatTime(timeString, 256, format, &printableTime)) {
             PORT_Free(timeString);
             timeString = NULL;
         }
@@ -80,12 +80,12 @@ CERT_GenTime2FormattedAscii(PRTime genTime, char *format)
     char *timeString;
 
     /* Decompose time into components */
-    MPR_ExplodeTime(genTime, MPR_GMTParameters, &printableTime);
+    PR_ExplodeTime(genTime, PR_GMTParameters, &printableTime);
 
     timeString = (char *)PORT_Alloc(256);
 
     if (timeString) {
-        if (!MPR_FormatTime(timeString, 256, format, &printableTime)) {
+        if (!PR_FormatTime(timeString, 256, format, &printableTime)) {
             PORT_Free(timeString);
             timeString = NULL;
             PORT_SetError(SEC_ERROR_OUTPUT_LEN);

@@ -53,7 +53,7 @@ pk11_CheckPassword(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
     int len = 0;
     CK_RV crv;
     SECStatus rv;
-    PRTime currtime = MPR_Now();
+    PRTime currtime = PR_Now();
     PRBool mustRetry;
     int retry = 0;
 
@@ -135,7 +135,7 @@ PK11_CheckUserPassword(PK11SlotInfo *slot, const char *pw)
     int len = 0;
     CK_RV crv;
     SECStatus rv;
-    PRTime currtime = MPR_Now();
+    PRTime currtime = PR_Now();
 
     if (slot->protectedAuthPath) {
         len = 0;
@@ -724,7 +724,7 @@ pk11_InDelayPeriod(PRIntervalTime lastTime, PRIntervalTime delayTime,
 {
     PRIntervalTime time;
 
-    *retTime = time = MPR_IntervalNow();
+    *retTime = time = PR_IntervalNow();
     return (PRBool)(lastTime) && ((time - lastTime) < delayTime);
 }
 
@@ -743,7 +743,7 @@ PK11_IsLoggedIn(PK11SlotInfo *slot, void *wincx)
     static PRIntervalTime login_delay_time = 0;
 
     if (login_delay_time == 0) {
-        login_delay_time = MPR_SecondsToInterval(1);
+        login_delay_time = PR_SecondsToInterval(1);
     }
 
     /* If we don't have our own password default values, use the system
@@ -765,7 +765,7 @@ PK11_IsLoggedIn(PK11SlotInfo *slot, void *wincx)
 
     /* forget the password if we've been inactive too long */
     if (askpw == 1) {
-        PRTime currtime = MPR_Now();
+        PRTime currtime = PR_Now();
         PRTime result;
         PRTime mult;
 

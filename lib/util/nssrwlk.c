@@ -78,20 +78,20 @@ NSSRWLock_New(PRUint32 lock_rank, const char *lock_name)
     if (rwlock == NULL)
         return NULL;
 
-    rwlock->rw_lock = MPR_NewLock();
+    rwlock->rw_lock = PR_NewLock();
     if (rwlock->rw_lock == NULL) {
         goto loser;
     }
-    rwlock->rw_reader_waitq = MPR_NewCondVar(rwlock->rw_lock);
+    rwlock->rw_reader_waitq = PR_NewCondVar(rwlock->rw_lock);
     if (rwlock->rw_reader_waitq == NULL) {
         goto loser;
     }
-    rwlock->rw_writer_waitq = MPR_NewCondVar(rwlock->rw_lock);
+    rwlock->rw_writer_waitq = PR_NewCondVar(rwlock->rw_lock);
     if (rwlock->rw_writer_waitq == NULL) {
         goto loser;
     }
     if (lock_name != NULL) {
-        rwlock->rw_name = (char *)MPR_Malloc((PRUint32)strlen(lock_name) + 1);
+        rwlock->rw_name = (char *)PR_Malloc((PRUint32)strlen(lock_name) + 1);
         if (rwlock->rw_name == NULL) {
             goto loser;
         }
@@ -126,13 +126,13 @@ NSSRWLock_Destroy(NSSRWLock *rwlock)
     /* XXX Shouldn't we lock the PRLock before destroying this?? */
 
     if (rwlock->rw_name)
-        MPR_Free(rwlock->rw_name);
+        PR_Free(rwlock->rw_name);
     if (rwlock->rw_reader_waitq)
-        MPR_DestroyCondVar(rwlock->rw_reader_waitq);
+        PR_DestroyCondVar(rwlock->rw_reader_waitq);
     if (rwlock->rw_writer_waitq)
-        MPR_DestroyCondVar(rwlock->rw_writer_waitq);
+        PR_DestroyCondVar(rwlock->rw_writer_waitq);
     if (rwlock->rw_lock)
-        MPR_DestroyLock(rwlock->rw_lock);
+        PR_DestroyLock(rwlock->rw_lock);
     PR_DELETE(rwlock);
 }
 
@@ -142,9 +142,9 @@ NSSRWLock_Destroy(NSSRWLock *rwlock)
 void
 NSSRWLock_LockRead(NSSRWLock *rwlock)
 {
-    PRThread *me = MPR_GetCurrentThread();
+    PRThread *me = PR_GetCurrentThread();
 
-    MPR_Lock(rwlock->rw_lock);
+    PR_Lock(rwlock->rw_lock);
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
 
     /*
@@ -164,12 +164,12 @@ NSSRWLock_LockRead(NSSRWLock *rwlock)
     { /* no-one is waiting to own */
 
         rwlock->rw_waiting_readers++;
-        MPR_WaitCondVar(rwlock->rw_reader_waitq, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(rwlock->rw_reader_waitq, PR_INTERVAL_NO_TIMEOUT);
         rwlock->rw_waiting_readers--;
     }
     rwlock->rw_reader_locks++; /* Increment read-lock count */
 
-    MPR_Unlock(rwlock->rw_lock);
+    PR_Unlock(rwlock->rw_lock);
 
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
     nssRWLock_SetThreadRank(me, rwlock); /* update thread's lock rank */
@@ -181,7 +181,7 @@ NSSRWLock_LockRead(NSSRWLock *rwlock)
 void
 NSSRWLock_UnlockRead(NSSRWLock *rwlock)
 {
-    MPR_Lock(rwlock->rw_lock);
+    PR_Lock(rwlock->rw_lock);
 
     PR_ASSERT(rwlock->rw_reader_locks > 0); /* lock must be read locked */
 
@@ -190,10 +190,10 @@ NSSRWLock_UnlockRead(NSSRWLock *rwlock)
         (rwlock->rw_owner == NULL) &&       /* not write locked */
         (rwlock->rw_waiting_writers > 0)) { /* someone's waiting. */
 
-        MPR_NotifyCondVar(rwlock->rw_writer_waitq); /* wake him up. */
+        PR_NotifyCondVar(rwlock->rw_writer_waitq); /* wake him up. */
     }
 
-    MPR_Unlock(rwlock->rw_lock);
+    PR_Unlock(rwlock->rw_lock);
 
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
     /*
@@ -210,9 +210,9 @@ NSSRWLock_UnlockRead(NSSRWLock *rwlock)
 void
 NSSRWLock_LockWrite(NSSRWLock *rwlock)
 {
-    PRThread *me = MPR_GetCurrentThread();
+    PRThread *me = PR_GetCurrentThread();
 
-    MPR_Lock(rwlock->rw_lock);
+    PR_Lock(rwlock->rw_lock);
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
     /*
      * assert that rank ordering is not violated; the rank of 'rwlock' should
@@ -234,7 +234,7 @@ NSSRWLock_LockWrite(NSSRWLock *rwlock)
     { /* no readers, either. */
 
         rwlock->rw_waiting_writers++;
-        MPR_WaitCondVar(rwlock->rw_writer_waitq, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(rwlock->rw_writer_waitq, PR_INTERVAL_NO_TIMEOUT);
         rwlock->rw_waiting_writers--;
         PR_ASSERT(rwlock->rw_reader_locks >= 0);
     }
@@ -246,7 +246,7 @@ NSSRWLock_LockWrite(NSSRWLock *rwlock)
     rwlock->rw_owner = me;
     rwlock->rw_writer_locks++; /* Increment write-lock count */
 
-    MPR_Unlock(rwlock->rw_lock);
+    PR_Unlock(rwlock->rw_lock);
 
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
     /*
@@ -261,9 +261,9 @@ NSSRWLock_LockWrite(NSSRWLock *rwlock)
 void
 NSSRWLock_UnlockWrite(NSSRWLock *rwlock)
 {
-    PRThread *me = MPR_GetCurrentThread();
+    PRThread *me = PR_GetCurrentThread();
 
-    MPR_Lock(rwlock->rw_lock);
+    PR_Lock(rwlock->rw_lock);
     PR_ASSERT(rwlock->rw_owner == me);      /* lock must be write-locked by me.  */
     PR_ASSERT(rwlock->rw_writer_locks > 0); /* lock must be write locked */
 
@@ -276,12 +276,12 @@ NSSRWLock_UnlockWrite(NSSRWLock *rwlock)
         /* Give preference to waiting writers. */
         if (rwlock->rw_waiting_writers > 0) {
             if (rwlock->rw_reader_locks == 0)
-                MPR_NotifyCondVar(rwlock->rw_writer_waitq);
+                PR_NotifyCondVar(rwlock->rw_writer_waitq);
         } else if (rwlock->rw_waiting_readers > 0) {
-            MPR_NotifyAllCondVar(rwlock->rw_reader_waitq);
+            PR_NotifyAllCondVar(rwlock->rw_reader_waitq);
         }
     }
-    MPR_Unlock(rwlock->rw_lock);
+    PR_Unlock(rwlock->rw_lock);
 
 #ifdef NSS_RWLOCK_RANK_ORDER_DEBUG
     /*
@@ -297,7 +297,7 @@ PRBool
 NSSRWLock_HaveWriteLock(NSSRWLock *rwlock)
 {
     PRBool ownWriteLock;
-    PRThread *me = MPR_GetCurrentThread();
+    PRThread *me = PR_GetCurrentThread();
 
 /* This lock call isn't really necessary.
  ** If this thread is the owner, that fact cannot change during this call,
@@ -306,11 +306,11 @@ NSSRWLock_HaveWriteLock(NSSRWLock *rwlock)
  ** could not become this thread.
  */
 #if UNNECESSARY
-    MPR_Lock(rwlock->rw_lock);
+    PR_Lock(rwlock->rw_lock);
 #endif
     ownWriteLock = (PRBool)(me == rwlock->rw_owner);
 #if UNNECESSARY
-    MPR_Unlock(rwlock->rw_lock);
+    PR_Unlock(rwlock->rw_lock);
 #endif
     return ownWriteLock;
 }
@@ -338,7 +338,7 @@ nssRWLock_SetThreadRank(PRThread *me, NSSRWLock *rwlock)
          * allocate tpd, only if not failed already
          */
         if (!nss_thread_rwlock_alloc_failed) {
-            if (MPR_NewThreadPrivateIndex(&nss_thread_rwlock,
+            if (PR_NewThreadPrivateIndex(&nss_thread_rwlock,
                                          nssRWLock_ReleaseLockStack) == PR_FAILURE) {
                 nss_thread_rwlock_alloc_failed = 1;
                 return;
@@ -349,11 +349,11 @@ nssRWLock_SetThreadRank(PRThread *me, NSSRWLock *rwlock)
     /*
      * allocate a lock stack
      */
-    if ((lock_stack = MPR_GetThreadPrivate(nss_thread_rwlock)) == NULL) {
+    if ((lock_stack = PR_GetThreadPrivate(nss_thread_rwlock)) == NULL) {
         lock_stack = (thread_rwlock_stack *)
             PR_CALLOC(1 * sizeof(thread_rwlock_stack));
         if (lock_stack) {
-            rv = MPR_SetThreadPrivate(nss_thread_rwlock, lock_stack);
+            rv = PR_SetThreadPrivate(nss_thread_rwlock, lock_stack);
             if (rv == PR_FAILURE) {
                 PR_DELETE(lock_stack);
                 nss_thread_rwlock_alloc_failed = 1;
@@ -394,7 +394,7 @@ nssRWLock_GetThreadRank(PRThread *me)
     thread_rwlock_stack *lock_stack;
 
     if (nss_thread_rwlock_initialized) {
-        if ((lock_stack = MPR_GetThreadPrivate(nss_thread_rwlock)) == NULL)
+        if ((lock_stack = PR_GetThreadPrivate(nss_thread_rwlock)) == NULL)
             return (NSS_RWLOCK_RANK_NONE);
         else
             return (lock_stack->trs_stack[lock_stack->trs_index - 1]->rw_rank);
@@ -419,7 +419,7 @@ nssRWLock_UnsetThreadRank(PRThread *me, NSSRWLock *rwlock)
     if (!nss_thread_rwlock_initialized)
         return;
 
-    lock_stack = MPR_GetThreadPrivate(nss_thread_rwlock);
+    lock_stack = PR_GetThreadPrivate(nss_thread_rwlock);
 
     PR_ASSERT(lock_stack != NULL);
 

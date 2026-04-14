@@ -62,10 +62,10 @@ lg_certdb_name_cb(void *arg, int dbVersion)
 
     /* make sure we return something allocated with PORT_ so we have properly
      * matched frees at the end */
-    smpname = MPR_smprintf(CERT_DB_FMT, configdir, dbver);
+    smpname = PR_smprintf(CERT_DB_FMT, configdir, dbver);
     if (smpname) {
         dbname = PORT_Strdup(smpname);
-        MPR_smprintf_free(smpname);
+        PR_smprintf_free(smpname);
     }
     return dbname;
 }
@@ -94,10 +94,10 @@ lg_keydb_name_cb(void *arg, int dbVersion)
             break;
     }
 
-    smpname = MPR_smprintf(KEY_DB_FMT, configdir, dbver);
+    smpname = PR_smprintf(KEY_DB_FMT, configdir, dbver);
     if (smpname) {
         dbname = PORT_Strdup(smpname);
-        MPR_smprintf_free(smpname);
+        PR_smprintf_free(smpname);
     }
     return dbname;
 }
@@ -151,15 +151,15 @@ rdbopen(const char *appName, const char *prefix,
     /*
      * try to open the library.
      */
-    lib = MPR_LoadLibrary(RDBLIB);
+    lib = PR_LoadLibrary(RDBLIB);
 
     if (!lib) {
         return NULL;
     }
 
     /* get the entry points */
-    lg_rdbstatusfunc = (rdbstatusfunc)MPR_FindSymbol(lib, "rdbstatus");
-    lg_rdbfunc = (rdbfunc)MPR_FindSymbol(lib, "rdbopen");
+    lg_rdbstatusfunc = (rdbstatusfunc)PR_FindSymbol(lib, "rdbstatus");
+    lg_rdbfunc = (rdbfunc)PR_FindSymbol(lib, "rdbopen");
     if (lg_rdbfunc) {
         db = (*lg_rdbfunc)(appName, prefix, type, rdbmapflags(flags));
         if (!db && status && lg_rdbstatusfunc) {
@@ -169,9 +169,9 @@ rdbopen(const char *appName, const char *prefix,
     }
 
     /* couldn't find the entry point, unload the library and fail */
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (!disableUnload) {
-        MPR_UnloadLibrary(lib);
+        PR_UnloadLibrary(lib);
     }
     return NULL;
 }
@@ -352,7 +352,7 @@ lg_OpenCertDB(const char *configdir, const char *prefix, PRBool readOnly,
 
     configdir = lg_EvaluateConfigDir(configdir, &appName);
 
-    name = MPR_smprintf("%s" PATH_SEPARATOR "%s", configdir, prefix);
+    name = PR_smprintf("%s" PATH_SEPARATOR "%s", configdir, prefix);
     if (name == NULL)
         goto loser;
 
@@ -371,9 +371,9 @@ lg_OpenCertDB(const char *configdir, const char *prefix, PRBool readOnly,
     }
 loser:
     if (certdb)
-        MPR_Free(certdb);
+        PR_Free(certdb);
     if (name)
-        MPR_smprintf_free(name);
+        PR_smprintf_free(name);
     if (appName)
         PORT_Free(appName);
     return crv;
@@ -392,12 +392,12 @@ lg_OpenKeyDB(const char *configdir, const char *prefix, PRBool readOnly,
     }
     configdir = lg_EvaluateConfigDir(configdir, &appName);
 
-    name = MPR_smprintf("%s" PATH_SEPARATOR "%s", configdir, prefix);
+    name = PR_smprintf("%s" PATH_SEPARATOR "%s", configdir, prefix);
     if (name == NULL)
         return CKR_HOST_MEMORY;
     keydb = nsslowkey_OpenKeyDB(readOnly, appName, prefix,
                                 lg_keydb_name_cb, (void *)name);
-    MPR_smprintf_free(name);
+    PR_smprintf_free(name);
     if (appName)
         PORT_Free(appName);
     if (keydb == NULL)
@@ -414,14 +414,14 @@ void
 lg_DBLock(SDB *sdb)
 {
     LGPrivate *lgdb_p = (LGPrivate *)sdb->private;
-    SKIP_AFTER_FORK(MPR_Lock(lgdb_p->dbLock));
+    SKIP_AFTER_FORK(PR_Lock(lgdb_p->dbLock));
 }
 
 void
 lg_DBUnlock(SDB *sdb)
 {
     LGPrivate *lgdb_p = (LGPrivate *)sdb->private;
-    SKIP_AFTER_FORK(MPR_Unlock(lgdb_p->dbLock));
+    SKIP_AFTER_FORK(PR_Unlock(lgdb_p->dbLock));
 }
 
 PLHashTable *
@@ -467,10 +467,10 @@ lg_Close(SDB *sdb)
             nsslowkey_CloseKeyDB(lgdb_p->keyDB);
         }
         if (lgdb_p->dbLock) {
-            SKIP_AFTER_FORK(MPR_DestroyLock(lgdb_p->dbLock));
+            SKIP_AFTER_FORK(PR_DestroyLock(lgdb_p->dbLock));
         }
         if (lgdb_p->hashTable) {
-            MPL_HashTableDestroy(lgdb_p->hashTable);
+            PL_HashTableDestroy(lgdb_p->hashTable);
         }
         PORT_Free(lgdb_p);
     }
@@ -508,14 +508,14 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
     /* invariant fields */
     lgdb_p->certDB = certdbPtr;
     lgdb_p->keyDB = keydbPtr;
-    lgdb_p->dbLock = MPR_NewLock();
+    lgdb_p->dbLock = PR_NewLock();
     if (lgdb_p->dbLock == NULL) {
         goto loser;
     }
-    lgdb_p->hashTable = MPL_NewHashTable(64, lg_HashNumber, MPL_CompareValues,
+    lgdb_p->hashTable = PL_NewHashTable(64, lg_HashNumber, PL_CompareValues,
                                         SECITEM_HashCompare, NULL, 0);
     if (lgdb_p->hashTable == NULL) {
-        MPR_DestroyLock(lgdb_p->dbLock);
+        PR_DestroyLock(lgdb_p->dbLock);
         goto loser;
     }
 

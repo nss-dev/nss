@@ -41,7 +41,7 @@ struct ScopedDelete {
   void operator()(PK11URI* uri) { PK11URI_DestroyURI(uri); }
   void operator()(PLArenaPool* arena) { PORT_FreeArena(arena, PR_FALSE); }
   void operator()(PQGParams* pqg) { PK11_PQG_DestroyParams(pqg); }
-  void operator()(PRFileDesc* fd) { MPR_Close(fd); }
+  void operator()(PRFileDesc* fd) { PR_Close(fd); }
   void operator()(SECAlgorithmID* id) { SECOID_DestroyAlgorithmID(id, true); }
   void operator()(SECKEYEncryptedPrivateKeyInfo* e) {
     SECKEY_DestroyEncryptedPrivateKeyInfo(e, true);

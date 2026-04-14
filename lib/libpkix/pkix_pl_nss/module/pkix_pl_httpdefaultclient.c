@@ -122,11 +122,11 @@ pkix_pl_HttpDefaultClient_HdrCheckComplete(
             /* Back up and restart scanning over a few bytes that were
              * scanned before */
             PKIX_UInt32 searchStartPos = alreadyScanned - eohMarkLen;
-            eoh = MPL_strnstr(&(client->rcvBuf[searchStartPos]), eohMarker,
+            eoh = PL_strnstr(&(client->rcvBuf[searchStartPos]), eohMarker,
                              bytesRead + searchStartPos);
         } else {
             /* A search from the beginning of the buffer. */
-            eoh = MPL_strnstr(client->rcvBuf, eohMarker, bytesRead);
+            eoh = PL_strnstr(client->rcvBuf, eohMarker, bytesRead);
         }
 
         client->filledupBytes += bytesRead;
@@ -158,7 +158,7 @@ pkix_pl_HttpDefaultClient_HdrCheckComplete(
         }
 
         /* Check that message status is okay. */
-        statusLineEnd = MPL_strnstr(client->rcvBuf, crlf, client->capacity);
+        statusLineEnd = PL_strnstr(client->rcvBuf, crlf, client->capacity);
         if (statusLineEnd == NULL) {
                 client->connectStatus = HTTP_ERROR;
                 PORT_SetError(SEC_ERROR_OCSP_BAD_HTTP_RESPONSE);
@@ -452,7 +452,7 @@ pkix_pl_HttpDefaultClient_Destroy(
             client->rcvContentType = NULL;
         }
         if (client->GETBuf != NULL) {
-                MPR_smprintf_free(client->GETBuf);
+                PR_smprintf_free(client->GETBuf);
                 client->GETBuf = NULL;
         }
         if (client->POSTBuf != NULL) {
@@ -1359,12 +1359,12 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                 /* prepare the message */
                 portstr[0] = '\0';
                 if (client->portnum != 80) {
-                        MPR_snprintf(portstr, sizeof(portstr), ":%d", 
+                        PR_snprintf(portstr, sizeof(portstr), ":%d", 
                                     client->portnum);
                 }
                 
                 if (client->send_http_method == HTTP_POST_METHOD) {
-                        sendbuf = MPR_smprintf
+                        sendbuf = PR_smprintf
                             ("POST %s HTTP/1.0\r\nHost: %s%s\r\n"
                             "Content-Type: %s\r\nContent-Length: %u\r\n\r\n",
                             client->path,
@@ -1391,12 +1391,12 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                                     client->send_http_data,
                                     client->send_http_data_len);
 
-                        /* MPR_smprintf_free original header buffer */
-                        MPR_smprintf_free(sendbuf);
+                        /* PR_smprintf_free original header buffer */
+                        PR_smprintf_free(sendbuf);
                         sendbuf = NULL;
                         
                 } else if (client->send_http_method == HTTP_GET_METHOD) {
-                        client->GETBuf = MPR_smprintf
+                        client->GETBuf = PR_smprintf
                             ("GET %s HTTP/1.0\r\nHost: %s%s\r\n\r\n",
                             client->path,
                             client->host,
@@ -1468,7 +1468,7 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
 
 cleanup:
         if (sendbuf) {
-            MPR_smprintf_free(sendbuf);
+            PR_smprintf_free(sendbuf);
         }
 
         PKIX_RETURN(HTTPDEFAULTCLIENT);

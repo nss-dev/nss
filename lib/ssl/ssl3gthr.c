@@ -122,7 +122,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
             break;
         } else /* if (nb < 0) */ {
             SSL_DBG(("%d: SSL3[%d]: recv error %d", SSL_GETPID(), ss->fd,
-                     MPR_GetError()));
+                     PR_GetError()));
             rv = SECFailure;
             break;
         }
@@ -333,7 +333,7 @@ dtls_GatherData(sslSocket *ss, sslGather *gs, int flags)
             return 0;
         } else /* if (nb < 0) */ {
             SSL_DBG(("%d: SSL3[%d]: recv error %d", SSL_GETPID(), ss->fd,
-                     MPR_GetError()));
+                     PR_GetError()));
             /* DTLS Record Errors, including overlong records, are silently
              * dropped [RFC6347, Section 4.1.2.7]. */
             return -1;
@@ -779,7 +779,7 @@ SSLExp_RecordLayerData(PRFileDesc *fd, PRUint16 epoch,
     }
 
     /* ...and process it.  Just saving application data is enough for it to be
-     * available to MPR_Read(). */
+     * available to PR_Read(). */
     if (contentType != ssl_ct_application_data) {
         rv = ssl3_HandleNonApplicationData(ss, contentType, 0, 0, &ss->gs.buf);
         /* This occasionally blocks, but that's OK here. */

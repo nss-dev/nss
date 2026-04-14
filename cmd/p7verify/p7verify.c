@@ -178,8 +178,8 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = MPL_CreateOptState(argc, argv, "c:d:o:s:u:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "c:d:o:s:u:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);
@@ -208,7 +208,7 @@ main(int argc, char **argv)
                 break;
 
             case 's':
-                signatureFile = MPR_Open(optstate->value, PR_RDONLY, 0);
+                signatureFile = PR_Open(optstate->value, PR_RDONLY, 0);
                 if (!signatureFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
@@ -227,7 +227,7 @@ main(int argc, char **argv)
             }
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     if (!contentFile)
         Usage(progName);
@@ -237,7 +237,7 @@ main(int argc, char **argv)
         outFile = stdout;
 
     /* Call the NSS initialization routines */
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) {
         SECU_PrintPRandOSError(progName);
@@ -251,7 +251,7 @@ main(int argc, char **argv)
     }
 
     fclose(contentFile);
-    MPR_Close(signatureFile);
+    PR_Close(signatureFile);
     if (outFile && outFile != stdout) {
         fclose(outFile);
     }

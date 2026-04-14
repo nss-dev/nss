@@ -155,11 +155,11 @@ main(int argc, char **argv)
     /*  Open the input content file. */
     if (signver.options[opt_InputDataFile].activated &&
         signver.options[opt_InputDataFile].arg) {
-        if (MPL_strcmp("-", signver.options[opt_InputDataFile].arg)) {
-            contentFile = MPR_Open(signver.options[opt_InputDataFile].arg,
+        if (PL_strcmp("-", signver.options[opt_InputDataFile].arg)) {
+            contentFile = PR_Open(signver.options[opt_InputDataFile].arg,
                                   PR_RDONLY, 0);
             if (!contentFile) {
-                MPR_fprintf(PR_STDERR,
+                PR_fprintf(PR_STDERR,
                            "%s: unable to open \"%s\" for reading.\n",
                            progName, signver.options[opt_InputDataFile].arg);
                 goto cleanup;
@@ -171,11 +171,11 @@ main(int argc, char **argv)
     /*  Open the input signature file.  */
     if (signver.options[opt_InputSigFile].activated &&
         signver.options[opt_InputSigFile].arg) {
-        if (MPL_strcmp("-", signver.options[opt_InputSigFile].arg)) {
-            signFile = MPR_Open(signver.options[opt_InputSigFile].arg,
+        if (PL_strcmp("-", signver.options[opt_InputSigFile].arg)) {
+            signFile = PR_Open(signver.options[opt_InputSigFile].arg,
                                PR_RDONLY, 0);
             if (!signFile) {
-                MPR_fprintf(PR_STDERR,
+                PR_fprintf(PR_STDERR,
                            "%s: unable to open \"%s\" for reading.\n",
                            progName, signver.options[opt_InputSigFile].arg);
                 goto cleanup;
@@ -184,7 +184,7 @@ main(int argc, char **argv)
     }
 
     if (contentFile == PR_STDIN && signFile == PR_STDIN && doVerify) {
-        MPR_fprintf(PR_STDERR,
+        PR_fprintf(PR_STDERR,
                    "%s: cannot read both content and signature from standard input\n",
                    progName);
         goto cleanup;
@@ -194,7 +194,7 @@ main(int argc, char **argv)
     if (signver.options[opt_OutputFile].activated) {
         outFile = fopen(signver.options[opt_OutputFile].arg, "w");
         if (!outFile) {
-            MPR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for writing.\n",
+            PR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for writing.\n",
                        progName, signver.options[opt_OutputFile].arg);
             goto cleanup;
         }
@@ -204,7 +204,7 @@ main(int argc, char **argv)
     rv = SECU_ReadDERFromFile(&pkcs7der, signFile,
                               signver.options[opt_ASCII].activated, PR_FALSE);
     if (signFile != PR_STDIN)
-        MPR_Close(signFile);
+        PR_Close(signFile);
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "problem reading PKCS7 input");
         goto cleanup;
@@ -212,7 +212,7 @@ main(int argc, char **argv)
     if (contentFile) {
         rv = SECU_FileToItem(&content, contentFile);
         if (contentFile != PR_STDIN)
-            MPR_Close(contentFile);
+            PR_Close(contentFile);
         if (rv != SECSuccess)
             content.data = NULL;
     }
@@ -227,18 +227,18 @@ main(int argc, char **argv)
         cinfo = SEC_PKCS7DecodeItem(&pkcs7der, NULL, NULL, NULL, NULL,
                                     NULL, NULL, NULL);
         if (cinfo == NULL) {
-            MPR_fprintf(PR_STDERR, "Unable to decode PKCS7 data\n");
+            PR_fprintf(PR_STDERR, "Unable to decode PKCS7 data\n");
             goto cleanup;
         }
         /* below here, goto done */
 
         contentIsSigned = SEC_PKCS7ContentIsSigned(cinfo);
         if (debugInfo) {
-            MPR_fprintf(PR_STDERR, "Content is%s encrypted.\n",
+            PR_fprintf(PR_STDERR, "Content is%s encrypted.\n",
                        SEC_PKCS7ContentIsEncrypted(cinfo) ? "" : " not");
         }
         if (debugInfo || !contentIsSigned) {
-            MPR_fprintf(PR_STDERR, "Content is%s signed.\n",
+            PR_fprintf(PR_STDERR, "Content is%s signed.\n",
                        contentIsSigned ? "" : " not");
         }
 
@@ -250,7 +250,7 @@ main(int argc, char **argv)
         /* assume that there is only one digest algorithm for now */
         digestType = AlgorithmToHashType(signedData->digestAlgorithms[0]);
         if (digestType == HASH_AlgNULL) {
-            MPR_fprintf(PR_STDERR, "Invalid hash algorithmID\n");
+            PR_fprintf(PR_STDERR, "Invalid hash algorithmID\n");
             goto done;
         }
         if (content.data) {
@@ -259,7 +259,7 @@ main(int argc, char **argv)
             unsigned char digestBuffer[HASH_LENGTH_MAX];
 
             if (debugInfo)
-                MPR_fprintf(PR_STDERR, "contentToVerify=%s\n", content.data);
+                PR_fprintf(PR_STDERR, "contentToVerify=%s\n", content.data);
 
             digest.data = digestBuffer;
             digest.len = sizeof digestBuffer;
@@ -271,10 +271,10 @@ main(int argc, char **argv)
 
             if (debugInfo) {
                 unsigned int i;
-                MPR_fprintf(PR_STDERR, "Data Digest=:");
+                PR_fprintf(PR_STDERR, "Data Digest=:");
                 for (i = 0; i < digest.len; i++)
-                    MPR_fprintf(PR_STDERR, "%02x:", digest.data[i]);
-                MPR_fprintf(PR_STDERR, "\n");
+                    PR_fprintf(PR_STDERR, "%02x:", digest.data[i]);
+                PR_fprintf(PR_STDERR, "\n");
             }
 
             fprintf(outFile, "signatureValid=");

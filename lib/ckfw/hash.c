@@ -87,8 +87,8 @@ nssCKFWHash_Create(
         return (nssCKFWHash *)NULL;
     }
 
-    rv->plHashTable = MPL_NewHashTable(0, nss_ckfw_identity_hash,
-                                      MPL_CompareValues, MPL_CompareValues, &nssArenaHashAllocOps, arena);
+    rv->plHashTable = PL_NewHashTable(0, nss_ckfw_identity_hash,
+                                      PL_CompareValues, PL_CompareValues, &nssArenaHashAllocOps, arena);
     if (!rv->plHashTable) {
         (void)nssCKFWMutex_Destroy(rv->mutex);
         (void)nss_ZFreeIf(rv);
@@ -110,7 +110,7 @@ nssCKFWHash_Destroy(
     nssCKFWHash *hash)
 {
     (void)nssCKFWMutex_Destroy(hash->mutex);
-    MPL_HashTableDestroy(hash->plHashTable);
+    PL_HashTableDestroy(hash->plHashTable);
     (void)nss_ZFreeIf(hash);
 }
 
@@ -132,7 +132,7 @@ nssCKFWHash_Add(
         return error;
     }
 
-    he = MPL_HashTableAdd(hash->plHashTable, key, (void *)value);
+    he = PL_HashTableAdd(hash->plHashTable, key, (void *)value);
     if (!he) {
         error = CKR_HOST_MEMORY;
     } else {
@@ -159,7 +159,7 @@ nssCKFWHash_Remove(
         return;
     }
 
-    found = MPL_HashTableRemove(hash->plHashTable, it);
+    found = PL_HashTableRemove(hash->plHashTable, it);
     if (found) {
         hash->count--;
     }
@@ -204,7 +204,7 @@ nssCKFWHash_Exists(
         return CK_FALSE;
     }
 
-    value = MPL_HashTableLookup(hash->plHashTable, it);
+    value = PL_HashTableLookup(hash->plHashTable, it);
 
     (void)nssCKFWMutex_Unlock(hash->mutex);
 
@@ -230,7 +230,7 @@ nssCKFWHash_Lookup(
         return (void *)NULL;
     }
 
-    rv = MPL_HashTableLookup(hash->plHashTable, it);
+    rv = PL_HashTableLookup(hash->plHashTable, it);
 
     (void)nssCKFWMutex_Unlock(hash->mutex);
 
@@ -272,7 +272,7 @@ nssCKFWHash_Iterate(
         return;
     }
 
-    MPL_HashTableEnumerateEntries(hash->plHashTable, nss_ckfwhash_enumerator, &as);
+    PL_HashTableEnumerateEntries(hash->plHashTable, nss_ckfwhash_enumerator, &as);
 
     (void)nssCKFWMutex_Unlock(hash->mutex);
 

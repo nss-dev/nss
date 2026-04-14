@@ -68,14 +68,14 @@ isSize(char *var, int *isArray)
     char *end;
     int array = 0;
 
-    if (MPL_strncasecmp(var, "sizeof(", /*)*/ 7) == 0) {
+    if (PL_strncasecmp(var, "sizeof(", /*)*/ 7) == 0) {
         ptr = var + 7;
-    } else if (MPL_strncasecmp(var, "size(", /*)*/ 5) == 0) {
+    } else if (PL_strncasecmp(var, "size(", /*)*/ 5) == 0) {
         ptr = var + 5;
-    } else if (MPL_strncasecmp(var, "sizeofarray(", /*)*/ 12) == 0) {
+    } else if (PL_strncasecmp(var, "sizeofarray(", /*)*/ 12) == 0) {
         ptr = var + 12;
         array = 1;
-    } else if (MPL_strncasecmp(var, "sizea(", /*)*/ 6) == 0) {
+    } else if (PL_strncasecmp(var, "sizea(", /*)*/ 6) == 0) {
         ptr = var + 6;
         array = 1;
     } else {
@@ -432,7 +432,7 @@ varLookup(const char *bp, char *vname, int max, int *error)
     }
 
     for (current = varHead; current; current = current->next) {
-        if (MPL_strcasecmp(current->vname, vname) == 0) {
+        if (PL_strcasecmp(current->vname, vname) == 0) {
             char *target;
             if (index == INVALID_INDEX) {
                 (current->value->reference)++;
@@ -535,7 +535,7 @@ AddVariable(const char *bp, Value **ptr)
     }
 
     for (current = varHead; current; current = current->next) {
-        if (MPL_strcasecmp(current->vname, vname) == 0) {
+        if (PL_strcasecmp(current->vname, vname) == 0) {
             char *target;
             /* found a complete object, return the found one */
             if (index == INVALID_INDEX) {
@@ -578,12 +578,12 @@ FindTypeByName(const char *typeName)
     int i;
 
     for (i = 0; i < valueCount; i++) {
-        if (MPL_strcasecmp(typeName, valueString[i]) == 0) {
+        if (PL_strcasecmp(typeName, valueString[i]) == 0) {
             return (ArgType)i;
         }
         if (valueString[i][0] == 'C' && valueString[i][1] == 'K' &&
             valueString[i][2] == '_' &&
-            (MPL_strcasecmp(typeName, &valueString[i][3]) == 0)) {
+            (PL_strcasecmp(typeName, &valueString[i][3]) == 0)) {
             return (ArgType)i;
         }
     }
@@ -741,7 +741,7 @@ DeleteVariable(const char *bp)
     bp = readChars(bp, vname, sizeof(vname));
 
     for (current = &varHead; *current; current = &(*current)->next) {
-        if (MPL_strcasecmp((*current)->vname, vname) == 0) {
+        if (PL_strcasecmp((*current)->vname, vname) == 0) {
             argFree((*current)->value);
             *current = (*current)->next;
             break;
@@ -802,8 +802,8 @@ constLookup(const char *bp, CK_ULONG *value, ConstType *type)
     bp = readChars(bp, vname, sizeof(vname));
 
     for (i = 0; i < constCount; i++) {
-        if ((MPL_strcasecmp(consts[i].name, vname) == 0) ||
-            MPL_strcasecmp(consts[i].name + 5, vname) == 0) {
+        if ((PL_strcasecmp(consts[i].name, vname) == 0) ||
+            PL_strcasecmp(consts[i].name + 5, vname) == 0) {
             *value = consts[i].value;
             *type = consts[i].type;
             return bp;
@@ -1260,7 +1260,7 @@ parseArgs(int index, const char *bp)
         /* create space for our argument */
         argList[i] = NewValue(type, 1);
 
-        if ((MPL_strncasecmp(bp, "null", 4) == 0) && ((bp[4] == 0) ||
+        if ((PL_strncasecmp(bp, "null", 4) == 0) && ((bp[4] == 0) ||
                                                      (bp[4] ==
                                                       ' ') ||
                                                      (bp[4] ==
@@ -1283,17 +1283,17 @@ parseArgs(int index, const char *bp)
 
         /* if we're an output variable, we need to add it */
         if (cp->args[i] & ArgOut) {
-            if (MPL_strncasecmp(bp, "file(", 5) == 0 /* ) */) {
+            if (PL_strncasecmp(bp, "file(", 5) == 0 /* ) */) {
                 char filename[512];
                 bp = readChars(bp + 5, filename, sizeof(filename));
-                size = MPL_strlen(filename);
+                size = PL_strlen(filename);
                 if ((size > 0) && (/* ( */ filename[size - 1] == ')')) {
                     filename[size - 1] = 0;
                 }
                 filename[size] = 0;
                 argList[i]->filename = (char *)malloc(size + 1);
 
-                MPL_strcpy(argList[i]->filename, filename);
+                PL_strcpy(argList[i]->filename, filename);
 
                 argList[i]->type |= ArgOut | ArgFile;
                 break;
@@ -1303,11 +1303,11 @@ parseArgs(int index, const char *bp)
             continue;
         }
 
-        if (MPL_strncasecmp(bp, "file(", 5) == 0 /* ) */) {
+        if (PL_strncasecmp(bp, "file(", 5) == 0 /* ) */) {
             char filename[512];
 
             bp = readChars(bp + 5, filename, sizeof(filename));
-            size = MPL_strlen(filename);
+            size = PL_strlen(filename);
             if ((size > 0) && (/* ( */ filename[size - 1] == ')')) {
                 filename[size - 1] = 0;
             }
@@ -1358,19 +1358,19 @@ lookup(const char *buf)
     int size, i;
     int buflen;
 
-    buflen = MPL_strlen(buf);
+    buflen = PL_strlen(buf);
 
     for (i = 0; i < commandCount; i++) {
-        size = MPL_strlen(commands[i].fname);
+        size = PL_strlen(commands[i].fname);
 
         if (size <= buflen) {
-            if (MPL_strncasecmp(buf, commands[i].fname, size) == 0) {
+            if (PL_strncasecmp(buf, commands[i].fname, size) == 0) {
                 return i;
             }
         }
         if (size - 2 <= buflen) {
             if (commands[i].fname[0] == 'C' && commands[i].fname[1] == '_' &&
-                (MPL_strncasecmp(buf, &commands[i].fname[2], size - 2) == 0)) {
+                (PL_strncasecmp(buf, &commands[i].fname[2], size - 2) == 0)) {
                 return i;
             }
         }
@@ -1412,10 +1412,10 @@ unloadModule(Module *module)
 {
     char *disableUnload = NULL;
 
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
 
     if (module->library && !disableUnload) {
-        MPR_UnloadLibrary(module->library);
+        PR_UnloadLibrary(module->library);
     }
 
     module->library = NULL;
@@ -1432,13 +1432,13 @@ loadModule(Module *module, char *library)
     CK_FUNCTION_LIST *functionList;
     CK_RV ckrv;
 
-    newLibrary = MPR_LoadLibrary(library);
+    newLibrary = PR_LoadLibrary(library);
     if (!newLibrary) {
         fprintf(stderr, "Couldn't load library %s\n", library);
         return CKR_FUNCTION_FAILED;
     }
     getFunctionList = (CK_C_GetFunctionList)
-        MPR_FindSymbol(newLibrary, "C_GetFunctionList");
+        PR_FindSymbol(newLibrary, "C_GetFunctionList");
     if (!getFunctionList) {
         fprintf(stderr, "Couldn't find \"C_GetFunctionList\" in %s\n", library);
         return CKR_FUNCTION_FAILED;
@@ -1450,7 +1450,7 @@ loadModule(Module *module, char *library)
     }
 
     if (module->library) {
-        MPR_UnloadLibrary(module->library);
+        PR_UnloadLibrary(module->library);
     }
 
     module->library = newLibrary;
@@ -1482,13 +1482,13 @@ printTopicHelp(char *topic)
     int size, i;
     int topicLen;
 
-    topicLen = MPL_strlen(topic);
+    topicLen = PL_strlen(topic);
 
     for (i = 0; i < topicCount; i++) {
-        size = MPL_strlen(topics[i].name);
+        size = PL_strlen(topics[i].name);
 
         if (size <= topicLen) {
-            if (MPL_strncasecmp(topic, topics[i].name, size) == 0) {
+            if (PL_strncasecmp(topic, topics[i].name, size) == 0) {
                 break;
             }
         }
@@ -2146,16 +2146,16 @@ CK_RV
 timeCommand(const char *command)
 {
     CK_RV ckrv;
-    PRIntervalTime startTime = MPR_IntervalNow();
+    PRIntervalTime startTime = PR_IntervalNow();
     PRIntervalTime endTime;
     PRIntervalTime elapsedTime;
 
     ckrv = processCommand(command);
 
-    endTime = MPR_IntervalNow();
+    endTime = PR_IntervalNow();
     elapsedTime = endTime - startTime;
     printf("Time -- %d msec \n",
-           MPR_IntervalToMilliseconds(elapsedTime));
+           PR_IntervalToMilliseconds(elapsedTime));
 
     return ckrv;
 }

@@ -125,14 +125,14 @@ static PRLock *pk11sdrLock = NULL;
 void
 pk11sdr_Init(void)
 {
-    pk11sdrLock = MPR_NewLock();
+    pk11sdrLock = PR_NewLock();
 }
 
 void
 pk11sdr_Shutdown(void)
 {
     if (pk11sdrLock) {
-        MPR_DestroyLock(pk11sdrLock);
+        PR_DestroyLock(pk11sdrLock);
         pk11sdrLock = NULL;
     }
 }
@@ -216,7 +216,7 @@ PK11SDR_EncryptWithMechanism(PK11SlotInfo *slot, SECItem *keyid, CK_MECHANISM_TY
          */
 
         if (pk11sdrLock)
-            MPR_Lock(pk11sdrLock);
+            PR_Lock(pk11sdrLock);
 
         /* Try to find the key */
         key = PK11_FindFixedKey(slot, type, pKeyID, cx);
@@ -225,7 +225,7 @@ PK11SDR_EncryptWithMechanism(PK11SlotInfo *slot, SECItem *keyid, CK_MECHANISM_TY
         if (!key)
             key = PK11_TokenKeyGen(slot, type, 0, keySize, pKeyID, PR_TRUE, cx);
         if (pk11sdrLock)
-            MPR_Unlock(pk11sdrLock);
+            PR_Unlock(pk11sdrLock);
     } else {
         key = PK11_FindFixedKey(slot, type, pKeyID, cx);
     }

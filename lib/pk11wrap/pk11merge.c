@@ -830,7 +830,7 @@ pk11_mergeCert(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
         char *tokenNickname = NULL;
 
         do {
-            tokenNickname = MPR_smprintf("%s:%s", tokenName, nickname);
+            tokenNickname = PR_smprintf("%s:%s", tokenName, nickname);
             if (!tokenNickname) {
                 break;
             }
@@ -842,10 +842,10 @@ pk11_mergeCert(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
             if (!nickname) {
                 break;
             }
-            MPR_smprintf_free(tokenNickname);
+            PR_smprintf_free(tokenNickname);
         } while (1);
         if (tokenNickname) {
-            MPR_smprintf_free(tokenNickname);
+            PR_smprintf_free(tokenNickname);
         }
     }
 

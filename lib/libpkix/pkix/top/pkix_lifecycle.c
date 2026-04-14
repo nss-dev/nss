@@ -123,9 +123,9 @@ PKIX_Initialize(
                        PKIX_MONITORLOCKCREATEFAILED);
         }
 #else
-        fnInvTable = MPL_NewHashTable(0, pkix_ErrorGen_Hash,
-                                     MPL_CompareValues,
-                                     MPL_CompareValues, NULL, NULL);
+        fnInvTable = PL_NewHashTable(0, pkix_ErrorGen_Hash,
+                                     PL_CompareValues,
+                                     PL_CompareValues, NULL, NULL);
         if (!fnInvTable) {
             PKIX_ERROR(PKIX_HASHTABLECREATEFAILED);
         }
@@ -201,7 +201,7 @@ PKIX_Shutdown(void *plContext)
 #ifdef PKIX_OBJECT_LEAK_TEST
         PORT_Free(fnStackInvCountArr);
         PORT_Free(fnStackNameArr);
-        MPL_HashTableDestroy(fnInvTable);
+        PL_HashTableDestroy(fnInvTable);
 #endif
 
 cleanup:

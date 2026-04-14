@@ -39,8 +39,8 @@ ThreadEntry(void* data)
 {
     tData* tdata = (tData*)data;
     PRIntervalTime duration = tdata->duration;
-    PRTime now = MPR_Now();
-    PRIntervalTime start = MPR_IntervalNow();
+    PRTime now = PR_Now();
+    PRIntervalTime start = PR_IntervalNow();
 
     PR_ASSERT(duration);
     if (!duration) {
@@ -61,7 +61,7 @@ ThreadEntry(void* data)
             return;
         }
         tdata->iterations++;
-    } while ((MPR_IntervalNow() - start) < duration);
+    } while ((PR_IntervalNow() - start) < duration);
 }
 
 static void
@@ -79,14 +79,14 @@ Test(CERTCertificate* cert, PRIntervalTime duration, PRUint32 threads)
     data.cert = cert;
     data.iterations = 0;
 
-    starttime = MPR_IntervalNow();
-    pthreads = (PRThread**)MPR_Malloc(threads * sizeof(PRThread*));
-    alldata = (tData**)MPR_Malloc(threads * sizeof(tData*));
+    starttime = PR_IntervalNow();
+    pthreads = (PRThread**)PR_Malloc(threads * sizeof(PRThread*));
+    alldata = (tData**)PR_Malloc(threads * sizeof(tData*));
     for (i = 0; i < threads; i++) {
-        alldata[i] = (tData*)MPR_Malloc(sizeof(tData));
+        alldata[i] = (tData*)PR_Malloc(sizeof(tData));
         *alldata[i] = data;
         pthreads[i] =
-            MPR_CreateThread(PR_USER_THREAD,
+            PR_CreateThread(PR_USER_THREAD,
                             ThreadEntry,
                             (void*)alldata[i],
                             PR_PRIORITY_NORMAL,
@@ -96,17 +96,17 @@ Test(CERTCertificate* cert, PRIntervalTime duration, PRUint32 threads)
     }
     for (i = 0; i < threads; i++) {
         tData* args = alldata[i];
-        MPR_JoinThread(pthreads[i]);
+        PR_JoinThread(pthreads[i]);
         total += args->iterations;
-        MPR_Free((void*)args);
+        PR_Free((void*)args);
     }
-    MPR_Free((void*)pthreads);
-    MPR_Free((void*)alldata);
-    endtime = MPR_IntervalNow();
+    PR_Free((void*)pthreads);
+    PR_Free((void*)alldata);
+    endtime = PR_IntervalNow();
 
-    endtime = MPR_IntervalNow();
+    endtime = PR_IntervalNow();
     elapsed = endtime - starttime;
-    msecs = MPR_IntervalToMilliseconds(elapsed);
+    msecs = PR_IntervalToMilliseconds(elapsed);
     total /= msecs;
     total *= 1000;
     (void)fprintf(stdout, "%f operations per second.\n", total);
@@ -133,13 +133,13 @@ nss_threads(int argc, char** argv)
     SECStatus rv = SECSuccess;
     CERTCertDBHandle* handle = NULL;
     CERTCertificate* cert = NULL;
-    PRIntervalTime duration = MPR_SecondsToInterval(1);
+    PRIntervalTime duration = PR_SecondsToInterval(1);
     PRUint32 threads = 1;
     if (argc != 4) {
         usage(argv[0]);
     }
     if (atoi(argv[1]) > 0) {
-        duration = MPR_SecondsToInterval(atoi(argv[1]));
+        duration = PR_SecondsToInterval(atoi(argv[1]));
     }
     if (atoi(argv[2]) > 0) {
         threads = atoi(argv[2]);

@@ -61,7 +61,7 @@ static PKIX_Boolean socketTraceFlag = PKIX_FALSE;
  */
 static void pkix_pl_socket_timestamp() {
         PRInt64 prTime;
-        prTime = MPR_Now();
+        prTime = PR_Now();
 /* We shouldn't use PR_ALTERNATE_INT64_TYPEDEF, but nor can we use PRId64 */
 #if PR_BYTES_PER_LONG == 8 && !defined(PR_ALTERNATE_INT64_TYPEDEF)
         printf("%ld:\n", prTime);
@@ -339,13 +339,13 @@ pkix_pl_Socket_CreateClient(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateClient");
         PKIX_NULLCHECK_ONE(socket);
 
-        PKIX_PL_NSSCALLRV(SOCKET, mySock, MPR_NewTCPSocket, ());
+        PKIX_PL_NSSCALLRV(SOCKET, mySock, PR_NewTCPSocket, ());
         if (!mySock) {
 #ifdef PKIX_SOCKETDEBUG
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_CreateClient: %s\n",
-                        MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                        PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                 PKIX_ERROR(PKIX_PRNEWTCPSOCKETFAILED);
         }
@@ -404,13 +404,13 @@ pkix_pl_Socket_CreateServer(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateServer");
         PKIX_NULLCHECK_ONE(socket);
 
-        PKIX_PL_NSSCALLRV(SOCKET, serverSock, MPR_NewTCPSocket, ());
+        PKIX_PL_NSSCALLRV(SOCKET, serverSock, PR_NewTCPSocket, ());
         if (!serverSock) {
 #ifdef PKIX_SOCKETDEBUG
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_CreateServer: %s\n",
-                        MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                        PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                 PKIX_ERROR(PKIX_PRNEWTCPSOCKETFAILED);
         }
@@ -436,14 +436,14 @@ pkix_pl_Socket_CreateServer(
                 PKIX_ERROR(PKIX_UNABLETOSETSOCKETTONONBLOCKING);
         }
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, MPR_Bind, (serverSock, socket->netAddr));
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind, (serverSock, socket->netAddr));
 
         if (rv == PR_FAILURE) {
 /* #ifdef PKIX_SOCKETDEBUG */
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_CreateServer: %s\n",
-                        MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                        PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 /* #endif */
                 PKIX_ERROR(PKIX_PRBINDFAILED);
         }
@@ -491,11 +491,11 @@ pkix_pl_Socket_Connect(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Connect");
         PKIX_NULLCHECK_TWO(socket, socket->clientSock);
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, MPR_Connect,
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Connect,
                 (socket->clientSock, socket->netAddr, socket->timeout));
 
         if (rv == PR_FAILURE) {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 *pStatus = errorcode;
                 if (errorcode == PR_IN_PROGRESS_ERROR) {
                         socket->status = SOCKET_CONNECTPENDING;
@@ -504,7 +504,7 @@ pkix_pl_Socket_Connect(
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_Connect: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRCONNECTFAILED);
                 }
@@ -560,7 +560,7 @@ pkix_pl_Socket_ConnectContinue(
         pollDesc.fd = socket->clientSock;
         pollDesc.in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
         pollDesc.out_flags = 0;
-        PKIX_PL_NSSCALLRV(SOCKET, numEvents, MPR_Poll, (&pollDesc, 1, 0));
+        PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
         if (numEvents < 0) {
                 PKIX_ERROR(PKIX_PRPOLLFAILED);
         }
@@ -570,11 +570,11 @@ pkix_pl_Socket_ConnectContinue(
                 goto cleanup;
         }
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, MPR_ConnectContinue,
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
                 (socket->clientSock, pollDesc.out_flags));
 
         /*
-         * MPR_ConnectContinue sometimes lies. It returns PR_SUCCESS
+         * PR_ConnectContinue sometimes lies. It returns PR_SUCCESS
          * even though the connection is not yet ready. But its deceit
          * is betrayed by the contents of out_flags!
          */
@@ -584,7 +584,7 @@ pkix_pl_Socket_ConnectContinue(
         }
 
         if (rv == PR_FAILURE) {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 *pStatus = errorcode;
                 if (errorcode == PR_IN_PROGRESS_ERROR) {
                         goto cleanup;
@@ -592,7 +592,7 @@ pkix_pl_Socket_ConnectContinue(
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_ConnectContinue: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRCONNECTCONTINUEFAILED);
                 }
@@ -632,11 +632,11 @@ pkix_pl_Socket_Destroy(
 
         if (socket->isServer) {
                 if (socket->serverSock) {
-                        MPR_Close(socket->serverSock);
+                        PR_Close(socket->serverSock);
                 }
         } else {
                 if (socket->clientSock) {
-                        MPR_Close(socket->clientSock);
+                        PR_Close(socket->clientSock);
                 }
         }
 
@@ -765,7 +765,7 @@ pkix_pl_Socket_RegisterSelf(void *plContext)
 #ifdef PKIX_SOCKETTRACE
         {
                 char *val = NULL;
-                val = MPR_GetEnvSecure("SOCKETTRACE");
+                val = PR_GetEnvSecure("SOCKETTRACE");
                 /* Is SOCKETTRACE set in the environment? */
                 if ((val != NULL) && (*val != '\0')) {
                         socketTraceFlag =
@@ -813,15 +813,15 @@ pkix_pl_Socket_Listen(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Listen");
         PKIX_NULLCHECK_TWO(socket, socket->serverSock);
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, MPR_Listen,
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Listen,
                 (socket->serverSock, (PRIntn)backlog));
 
         if (rv == PR_FAILURE) {
 #ifdef PKIX_SOCKETDEBUG
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_Listen: %s\n",
-                        MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                        PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                 PKIX_ERROR(PKIX_PRLISTENFAILED);
         }
@@ -870,15 +870,15 @@ pkix_pl_Socket_Shutdown(
         fileDesc =
                 (socket->isServer)?(socket->serverSock):(socket->clientSock);
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, MPR_Shutdown,
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Shutdown,
                 (fileDesc, PR_SHUTDOWN_BOTH));
 
         if (rv == PR_FAILURE) {
 #ifdef PKIX_SOCKETDEBUG
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_Shutdown: %s\n",
-                        MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                        PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                 PKIX_ERROR(PKIX_PRSHUTDOWNFAILED);
         }
@@ -936,7 +936,7 @@ pkix_pl_Socket_Send(
 
         fd = sendSock->clientSock;
 
-        PKIX_PL_NSSCALLRV(SOCKET, bytesWritten, MPR_Send,
+        PKIX_PL_NSSCALLRV(SOCKET, bytesWritten, PR_Send,
                 (fd, buf, (PRInt32)bytesToWrite, 0, sendSock->timeout));
 
         if (bytesWritten >= 0) {
@@ -949,12 +949,12 @@ pkix_pl_Socket_Send(
                 pkix_pl_socket_tracebuff(buf, bytesWritten);
 #endif
         } else {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_Send: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRSENDFAILED);
                 }
@@ -1024,7 +1024,7 @@ pkix_pl_Socket_Recv(
 
         fd = rcvSock->clientSock;
 
-        PKIX_PL_NSSCALLRV(SOCKET, bytesRead, MPR_Recv,
+        PKIX_PL_NSSCALLRV(SOCKET, bytesRead, PR_Recv,
                 (fd, buf, (PRInt32)capacity, 0, rcvSock->timeout));
 
         if (bytesRead > 0) {
@@ -1039,12 +1039,12 @@ pkix_pl_Socket_Recv(
         } else if (bytesRead == 0) {
                 PKIX_ERROR(PKIX_PRRECVREPORTSNETWORKCONNECTIONCLOSED);
         } else {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_Recv: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRRECVFAILED);
                 }
@@ -1125,7 +1125,7 @@ pkix_pl_Socket_Poll(
                 pollDesc.in_flags |= PR_POLL_READ;
         }
 
-        PKIX_PL_NSSCALLRV(SOCKET, numEvents, MPR_Poll, (&pollDesc, 1, 0));
+        PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
 
         if (numEvents < 0) {
                 PKIX_ERROR(PKIX_PRPOLLFAILED);
@@ -1160,12 +1160,12 @@ pkix_pl_Socket_Poll(
                         }
                 }
         } else if (numEvents == 0) {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_Poll: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRPOLLFAILED);
                 }
@@ -1223,16 +1223,16 @@ pkix_pl_Socket_Accept(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Accept");
         PKIX_NULLCHECK_TWO(serverSocket, pRendezvousSocket);
 
-        PKIX_PL_NSSCALLRV(SOCKET, rendezvousSock, MPR_Accept,
+        PKIX_PL_NSSCALLRV(SOCKET, rendezvousSock, PR_Accept,
                 (serverSocket->serverSock, clientAddr, serverSocket->timeout));
 
         if (!rendezvousSock) {
-                errorcode = MPR_GetError();
+                errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
 #ifdef PKIX_SOCKETDEBUG
                         printf
                                 ("pkix_pl_Socket_Accept: %s\n",
-                                MPR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
                         PKIX_ERROR(PKIX_PRACCEPTFAILED);
                 }
@@ -1431,7 +1431,7 @@ pkix_pl_Socket_CreateByName(
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateByName");
         PKIX_NULLCHECK_TWO(serverName, pSocket);
 
-        localCopyName = MPL_strdup(serverName);
+        localCopyName = PL_strdup(serverName);
 
         sepPtr = strchr(localCopyName, ':');
         /* First strip off the portnum, if present, from the end of the name */
@@ -1442,7 +1442,7 @@ pkix_pl_Socket_CreateByName(
                  portNum = (PRUint16)LDAP_PORT;
         }
 
-        prstatus = MPR_GetHostByName(localCopyName, buf, sizeof(buf), &hostent);
+        prstatus = PR_GetHostByName(localCopyName, buf, sizeof(buf), &hostent);
 
         if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                 /*
@@ -1453,7 +1453,7 @@ pkix_pl_Socket_CreateByName(
                 if (sepPtr) {
                         *sepPtr++ = '\0';
                 }
-                prstatus = MPR_GetHostByName
+                prstatus = PR_GetHostByName
                         (localCopyName, buf, sizeof(buf), &hostent);
 
                 if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
@@ -1463,15 +1463,15 @@ pkix_pl_Socket_CreateByName(
         }
 
         netAddr.inet.family = PR_AF_INET;
-        netAddr.inet.port = MPR_htons(portNum);
+        netAddr.inet.port = PR_htons(portNum);
 
         if (isServer) {
 
-                netAddr.inet.ip = MPR_htonl(PR_INADDR_ANY);
+                netAddr.inet.ip = PR_htonl(PR_INADDR_ANY);
 
         } else {
 
-                hostenum = MPR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
+                hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
                 if (hostenum == -1) {
                         PKIX_ERROR(PKIX_PRENUMERATEHOSTENTFAILED);
                 }
@@ -1513,7 +1513,7 @@ pkix_pl_Socket_CreateByName(
         *pSocket = socket;
 
 cleanup:
-        MPL_strfree(localCopyName);
+        PL_strfree(localCopyName);
 
         if (PKIX_ERROR_RECEIVED) {
                 PKIX_DECREF(socket);
@@ -1583,7 +1583,7 @@ pkix_pl_Socket_CreateByHostAndPort(
         PKIX_NULLCHECK_THREE(hostname, pStatus, pSocket);
 
 
-        prstatus = MPR_GetHostByName(hostname, buf, sizeof(buf), &hostent);
+        prstatus = PR_GetHostByName(hostname, buf, sizeof(buf), &hostent);
 
         if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                 /*
@@ -1594,7 +1594,7 @@ pkix_pl_Socket_CreateByHostAndPort(
                 if (sepPtr) {
                         *sepPtr++ = '\0';
                 }
-                prstatus = MPR_GetHostByName(hostname, buf, sizeof(buf), &hostent);
+                prstatus = PR_GetHostByName(hostname, buf, sizeof(buf), &hostent);
 
                 if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                         PKIX_ERROR
@@ -1603,15 +1603,15 @@ pkix_pl_Socket_CreateByHostAndPort(
         }
 
         netAddr.inet.family = PR_AF_INET;
-        netAddr.inet.port = MPR_htons(portnum);
+        netAddr.inet.port = PR_htons(portnum);
 
         if (isServer) {
 
-                netAddr.inet.ip = MPR_htonl(PR_INADDR_ANY);
+                netAddr.inet.ip = PR_htonl(PR_INADDR_ANY);
 
         } else {
 
-                hostenum = MPR_EnumerateHostEnt(0, &hostent, portnum, &netAddr);
+                hostenum = PR_EnumerateHostEnt(0, &hostent, portnum, &netAddr);
                 if (hostenum == -1) {
                         PKIX_ERROR(PKIX_PRENUMERATEHOSTENTFAILED);
                 }

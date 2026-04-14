@@ -65,7 +65,7 @@ static char *GetModulePassword(PK11SlotInfo *slot, int retry, void *arg) {
       std::cerr << "Password input method not supported." << std::endl;
       return nullptr;
     case PW_PLAINTEXT:
-      return MPL_strdup(pwData->data);
+      return PL_strdup(pwData->data);
     default:
       break;
   }
@@ -162,7 +162,7 @@ bool DBLoginIfNeeded(const ScopedPK11SlotInfo &slot) {
   if (rv != SECSuccess) {
     std::cerr << "Could not authenticate to token "
               << PK11_GetTokenName(slot.get()) << ". Failed with error "
-              << MPR_ErrorToName(MPR_GetError()) << std::endl;
+              << PR_ErrorToName(PR_GetError()) << std::endl;
     return false;
   }
   std::cout << std::endl;

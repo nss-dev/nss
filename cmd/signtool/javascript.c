@@ -60,10 +60,10 @@ InlineJavaScript(char *dir, PRBool recurse)
 {
     jartree = dir;
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "\nGenerating inline signatures from HTML files in: %s\n",
+        PR_fprintf(outputFD, "\nGenerating inline signatures from HTML files in: %s\n",
                    dir);
     }
-    if (MPR_GetEnvSecure("SIGNTOOL_DUMP_PARSE")) {
+    if (PR_GetEnvSecure("SIGNTOOL_DUMP_PARSE")) {
         dumpParse = PR_TRUE;
     }
 
@@ -82,27 +82,27 @@ javascript_fn(char *relpath, char *basedir, char *reldir, char *filename, void *
 
     /* only process inline scripts from .htm, .html, and .shtml*/
 
-    if (!(MPL_strcaserstr(filename, ".htm") == filename + strlen(filename) - 4) &&
-        !(MPL_strcaserstr(filename, ".html") == filename + strlen(filename) - 5) &&
-        !(MPL_strcaserstr(filename, ".shtml") == filename + strlen(filename) - 6)) {
+    if (!(PL_strcaserstr(filename, ".htm") == filename + strlen(filename) - 4) &&
+        !(PL_strcaserstr(filename, ".html") == filename + strlen(filename) - 5) &&
+        !(PL_strcaserstr(filename, ".shtml") == filename + strlen(filename) - 6)) {
         return 0;
     }
 
     /* don't process scripts that signtool has already
      extracted (those that are inside .arc directories) */
 
-    if (MPL_strcaserstr(filename, ".arc") == filename + strlen(filename) - 4)
+    if (PL_strcaserstr(filename, ".arc") == filename + strlen(filename) - 4)
         return 0;
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "Processing HTML file: %s\n", relpath);
+        PR_fprintf(outputFD, "Processing HTML file: %s\n", relpath);
     }
 
     /* reset firstArchive at top of each HTML file */
 
     /* skip directories that contain extracted scripts */
 
-    if (MPL_strcaserstr(reldir, ".arc") == reldir + strlen(reldir) - 4)
+    if (PL_strcaserstr(reldir, ".arc") == reldir + strlen(reldir) - 4)
         return 0;
 
     snprintf(fullname, sizeof(fullname), "%s/%s", basedir, relpath);
@@ -238,7 +238,7 @@ CreateTextItem(char *text, unsigned int startline, unsigned int endline)
 {
     HTMLItem *item;
 
-    item = MPR_Malloc(sizeof(HTMLItem));
+    item = PR_Malloc(sizeof(HTMLItem));
     if (!item) {
         return NULL;
     }
@@ -261,7 +261,7 @@ CreateTagItem(TagItem *ti, unsigned int startline, unsigned int endline)
 {
     HTMLItem *item;
 
-    item = MPR_Malloc(sizeof(HTMLItem));
+    item = PR_Malloc(sizeof(HTMLItem));
     if (!item) {
         return NULL;
     }
@@ -304,7 +304,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
     startText = startID;
     firstAtt = PR_TRUE;
 
-    ti = (TagItem *)MPR_Malloc(sizeof(TagItem));
+    ti = (TagItem *)PR_Malloc(sizeof(TagItem));
     if (!ti)
         out_of_memory();
     ti->type = OTHER_TAG;
@@ -318,7 +318,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
         linenum = FB_GetLineNum(fb);
         curchar = FB_GetChar(fb);
         if (curchar == EOF) {
-            *errStr = MPR_smprintf(
+            *errStr = PR_smprintf(
                 "line %d: Unexpected end-of-file while parsing tag starting at line %d.\n",
                 linenum, startline);
             state = ERR_STATE;
@@ -345,7 +345,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                         curchar = FB_GetChar(fb);
                         if (curchar == EOF) {
                             /* Uh oh, EOF inside comment */
-                            *errStr = MPR_smprintf(
+                            *errStr = PR_smprintf(
                                 "line %d: Unexpected end-of-file inside comment starting at line %d.\n",
                                 linenum, startline);
                             state = ERR_STATE;
@@ -384,7 +384,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     curPos = FB_GetPointer(fb) - 2;
                     if (curPos >= startID) {
                         /* We have an attribute */
-                        curPair = (AVPair *)MPR_Malloc(sizeof(AVPair));
+                        curPair = (AVPair *)PR_Malloc(sizeof(AVPair));
                         if (!curPair)
                             out_of_memory();
                         curPair->value = NULL;
@@ -413,7 +413,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                         if (curchar == '=') {
                             /* If we don't have any attribute but we do have an
                              * equal sign, that's an error */
-                            *errStr = MPR_smprintf("line %d: Malformed tag starting at line %d.\n",
+                            *errStr = PR_smprintf("line %d: Malformed tag starting at line %d.\n",
                                                   linenum, startline);
                             state = ERR_STATE;
                             break;
@@ -436,7 +436,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     state = GET_ATT_STATE;
                 } else {
                     /* bogus char */
-                    *errStr = MPR_smprintf("line %d: Bogus chararacter '%c' in tag.\n",
+                    *errStr = PR_smprintf("line %d: Bogus chararacter '%c' in tag.\n",
                                           linenum, curchar);
                     state = ERR_STATE;
                     break;
@@ -453,7 +453,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     state = GET_ATT_STATE;
                 } else {
                     /* bogus char */
-                    *errStr = MPR_smprintf("line %d: Bogus character '%c' in tag.\n",
+                    *errStr = PR_smprintf("line %d: Bogus character '%c' in tag.\n",
                                           linenum, curchar);
                     state = ERR_STATE;
                     break;
@@ -474,7 +474,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     state = PRE_VAL_WS_STATE;
                 } else {
                     /* bogus char */
-                    *errStr = MPR_smprintf("line %d: Bogus character '%c' in tag.\n",
+                    *errStr = PR_smprintf("line %d: Bogus character '%c' in tag.\n",
                                           linenum, curchar);
                     state = ERR_STATE;
                     break;
@@ -483,7 +483,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
             case PRE_VAL_WS_STATE:
                 if (curchar == '>') {
                     /* premature end-of-tag (sounds like a personal problem). */
-                    *errStr = MPR_smprintf(
+                    *errStr = PR_smprintf(
                         "line %d: End of tag while waiting for value.\n",
                         linenum);
                     state = ERR_STATE;
@@ -576,7 +576,7 @@ DestroyHTMLItem(HTMLItem *item)
         DestroyTagItem(item->item.tag);
     } else {
         if (item->item.text) {
-            MPR_Free(item->item.text);
+            PR_Free(item->item.text);
         }
     }
 }
@@ -591,7 +591,7 @@ DestroyTagItem(TagItem *ti)
     AVPair *temp;
 
     if (ti->text) {
-        MPR_Free(ti->text);
+        PR_Free(ti->text);
         ti->text = NULL;
     }
 
@@ -600,17 +600,17 @@ DestroyTagItem(TagItem *ti)
         ti->attList = ti->attList->next;
 
         if (temp->attribute) {
-            MPR_Free(temp->attribute);
+            PR_Free(temp->attribute);
             temp->attribute = NULL;
         }
         if (temp->value) {
-            MPR_Free(temp->value);
+            PR_Free(temp->value);
             temp->value = NULL;
         }
-        MPR_Free(temp);
+        PR_Free(temp);
     }
 
-    MPR_Free(ti);
+    PR_Free(ti);
 }
 
 /************************************************************************
@@ -646,12 +646,12 @@ FB_Create(PRFileDesc *fd)
     PRInt32 amountRead;
     PRInt32 storedOffset;
 
-    fb = (FileBuffer *)MPR_Malloc(sizeof(FileBuffer));
+    fb = (FileBuffer *)PR_Malloc(sizeof(FileBuffer));
     fb->fd = fd;
-    storedOffset = MPR_Seek(fd, 0, PR_SEEK_CUR);
-    MPR_Seek(fd, 0, PR_SEEK_SET);
+    storedOffset = PR_Seek(fd, 0, PR_SEEK_CUR);
+    PR_Seek(fd, 0, PR_SEEK_SET);
     fb->startOffset = 0;
-    amountRead = MPR_Read(fd, fb->buf, FILE_BUFFER_BUFSIZE);
+    amountRead = PR_Read(fd, fb->buf, FILE_BUFFER_BUFSIZE);
     if (amountRead == -1)
         goto loser;
     fb->maxIndex = amountRead - 1;
@@ -659,11 +659,11 @@ FB_Create(PRFileDesc *fd)
     fb->IsEOF = (fb->curIndex > fb->maxIndex) ? PR_TRUE : PR_FALSE;
     fb->lineNum = 1;
 
-    MPR_Seek(fd, storedOffset, PR_SEEK_SET);
+    PR_Seek(fd, storedOffset, PR_SEEK_SET);
     return fb;
 loser:
-    MPR_Seek(fd, storedOffset, PR_SEEK_SET);
-    MPR_Free(fb);
+    PR_Seek(fd, storedOffset, PR_SEEK_SET);
+    PR_Free(fb);
     return NULL;
 }
 
@@ -682,7 +682,7 @@ FB_GetChar(FileBuffer *fb)
         return EOF;
     }
 
-    storedOffset = MPR_Seek(fb->fd, 0, PR_SEEK_CUR);
+    storedOffset = PR_Seek(fb->fd, 0, PR_SEEK_CUR);
 
     retval = (unsigned char)fb->buf[fb->curIndex++];
     if (retval == '\n')
@@ -692,8 +692,8 @@ FB_GetChar(FileBuffer *fb)
         /* We're at the end of the buffer. Try to get some new data from the
          * file */
         fb->startOffset += fb->maxIndex + 1;
-        MPR_Seek(fb->fd, fb->startOffset, PR_SEEK_SET);
-        amountRead = MPR_Read(fb->fd, fb->buf, FILE_BUFFER_BUFSIZE);
+        PR_Seek(fb->fd, fb->startOffset, PR_SEEK_SET);
+        amountRead = PR_Read(fb->fd, fb->buf, FILE_BUFFER_BUFSIZE);
         if (amountRead == -1)
             goto loser;
         fb->maxIndex = amountRead - 1;
@@ -703,7 +703,7 @@ FB_GetChar(FileBuffer *fb)
     fb->IsEOF = (fb->curIndex > fb->maxIndex) ? PR_TRUE : PR_FALSE;
 
 loser:
-    MPR_Seek(fb->fd, storedOffset, PR_SEEK_SET);
+    PR_Seek(fb->fd, storedOffset, PR_SEEK_SET);
     return retval;
 }
 
@@ -740,17 +740,17 @@ FB_GetRange(FileBuffer *fb, PRInt32 start, PRInt32 end, char **buf)
     PRInt32 amountRead;
     PRInt32 storedOffset;
 
-    *buf = MPR_Malloc(end - start + 2);
+    *buf = PR_Malloc(end - start + 2);
     if (*buf == NULL) {
         return 0;
     }
 
-    storedOffset = MPR_Seek(fb->fd, 0, PR_SEEK_CUR);
-    MPR_Seek(fb->fd, start, PR_SEEK_SET);
-    amountRead = MPR_Read(fb->fd, *buf, end - start + 1);
-    MPR_Seek(fb->fd, storedOffset, PR_SEEK_SET);
+    storedOffset = PR_Seek(fb->fd, 0, PR_SEEK_CUR);
+    PR_Seek(fb->fd, start, PR_SEEK_SET);
+    amountRead = PR_Read(fb->fd, *buf, end - start + 1);
+    PR_Seek(fb->fd, storedOffset, PR_SEEK_SET);
     if (amountRead == -1) {
-        MPR_Free(*buf);
+        PR_Free(*buf);
         *buf = NULL;
         return 0;
     }
@@ -768,7 +768,7 @@ static void
 FB_Destroy(FileBuffer *fb)
 {
     if (fb) {
-        MPR_Free(fb);
+        PR_Free(fb);
     }
 }
 
@@ -782,37 +782,37 @@ PrintTagItem(PRFileDesc *fd, TagItem *ti)
 {
     AVPair *pair;
 
-    MPR_fprintf(fd, "TAG:\n----\nType: ");
+    PR_fprintf(fd, "TAG:\n----\nType: ");
     switch (ti->type) {
         case APPLET_TAG:
-            MPR_fprintf(fd, "applet\n");
+            PR_fprintf(fd, "applet\n");
             break;
         case SCRIPT_TAG:
-            MPR_fprintf(fd, "script\n");
+            PR_fprintf(fd, "script\n");
             break;
         case LINK_TAG:
-            MPR_fprintf(fd, "link\n");
+            PR_fprintf(fd, "link\n");
             break;
         case STYLE_TAG:
-            MPR_fprintf(fd, "style\n");
+            PR_fprintf(fd, "style\n");
             break;
         case COMMENT_TAG:
-            MPR_fprintf(fd, "comment\n");
+            PR_fprintf(fd, "comment\n");
             break;
         case OTHER_TAG:
         default:
-            MPR_fprintf(fd, "other\n");
+            PR_fprintf(fd, "other\n");
             break;
     }
 
-    MPR_fprintf(fd, "Attributes:\n");
+    PR_fprintf(fd, "Attributes:\n");
     for (pair = ti->attList; pair; pair = pair->next) {
-        MPR_fprintf(fd, "\t%s=%s\n", pair->attribute,
+        PR_fprintf(fd, "\t%s=%s\n", pair->attribute,
                    pair->value ? pair->value : "");
     }
-    MPR_fprintf(fd, "Text:%s\n", ti->text ? ti->text : "");
+    PR_fprintf(fd, "Text:%s\n", ti->text ? ti->text : "");
 
-    MPR_fprintf(fd, "---End of tag---\n");
+    PR_fprintf(fd, "---End of tag---\n");
 }
 
 /************************************************************************
@@ -827,7 +827,7 @@ PrintHTMLStream(PRFileDesc *fd, HTMLItem *head)
         if (head->type == TAG_ITEM) {
             PrintTagItem(fd, head->item.tag);
         } else {
-            MPR_fprintf(fd, "\nTEXT:\n-----\n%s\n-----\n\n", head->item.text);
+            PR_fprintf(fd, "\nTEXT:\n-----\n%s\n-----\n\n", head->item.text);
         }
         head = head->next;
     }
@@ -852,55 +852,55 @@ SaveInlineScript(char *text, char *id, char *basedir, char *archiveDir)
     }
 
     if (dumpParse) {
-        MPR_fprintf(outputFD, "SaveInlineScript: text=%s, id=%s, \n"
+        PR_fprintf(outputFD, "SaveInlineScript: text=%s, id=%s, \n"
                              "basedir=%s, archiveDir=%s\n",
                    text, id, basedir, archiveDir);
     }
 
     /* Make sure the archive directory is around */
     if (ensureExists(basedir, archiveDir) != PR_SUCCESS) {
-        MPR_fprintf(errorFD,
+        PR_fprintf(errorFD,
                    "ERROR: Unable to create archive directory %s.\n", archiveDir);
         errorCount++;
         return -1;
     }
 
     /* Make sure the inline script directory is around */
-    ilDir = MPR_smprintf("%s/inlineScripts", archiveDir);
+    ilDir = PR_smprintf("%s/inlineScripts", archiveDir);
     scriptdir = "inlineScripts";
     if (ensureExists(basedir, ilDir) != PR_SUCCESS) {
-        MPR_fprintf(errorFD,
+        PR_fprintf(errorFD,
                    "ERROR: Unable to create directory %s.\n", ilDir);
         errorCount++;
         return -1;
     }
 
-    filename = MPR_smprintf("%s/%s/%s", basedir, ilDir, id);
+    filename = PR_smprintf("%s/%s/%s", basedir, ilDir, id);
 
     /* If the file already exists, give a warning, then blow it away */
-    if (MPR_Access(filename, PR_ACCESS_EXISTS) == PR_SUCCESS) {
-        MPR_fprintf(errorFD,
+    if (PR_Access(filename, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+        PR_fprintf(errorFD,
                    "warning: file \"%s\" already exists--will overwrite.\n",
                    filename);
         warningCount++;
         if (rm_dash_r(filename)) {
-            MPR_fprintf(errorFD, "ERROR: Unable to delete %s.\n", filename);
+            PR_fprintf(errorFD, "ERROR: Unable to delete %s.\n", filename);
             errorCount++;
             goto finish;
         }
     }
 
     /* Write text into file with name id */
-    fd = MPR_Open(filename, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0777);
+    fd = PR_Open(filename, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0777);
     if (!fd) {
-        MPR_fprintf(errorFD, "ERROR: Unable to create file \"%s\".\n",
+        PR_fprintf(errorFD, "ERROR: Unable to create file \"%s\".\n",
                    filename);
         errorCount++;
         goto finish;
     }
     writeLen = strlen(text);
-    if (MPR_Write(fd, text, writeLen) != writeLen) {
-        MPR_fprintf(errorFD, "ERROR: Unable to write to file \"%s\".\n",
+    if (PR_Write(fd, text, writeLen) != writeLen) {
+        PR_fprintf(errorFD, "ERROR: Unable to write to file \"%s\".\n",
                    filename);
         errorCount++;
         goto finish;
@@ -909,13 +909,13 @@ SaveInlineScript(char *text, char *id, char *basedir, char *archiveDir)
     retval = 0;
 finish:
     if (filename) {
-        MPR_smprintf_free(filename);
+        PR_smprintf_free(filename);
     }
     if (ilDir) {
-        MPR_smprintf_free(ilDir);
+        PR_smprintf_free(ilDir);
     }
     if (fd) {
-        MPR_Close(fd);
+        PR_Close(fd);
     }
     return retval;
 }
@@ -939,14 +939,14 @@ SaveUnnamableScript(char *text, char *basedir, char *archiveDir,
     }
 
     if (dumpParse) {
-        MPR_fprintf(outputFD, "SaveUnnamableScript: text=%s, basedir=%s,\n"
+        PR_fprintf(outputFD, "SaveUnnamableScript: text=%s, basedir=%s,\n"
                              "archiveDir=%s, filename=%s\n",
                    text, basedir, archiveDir,
                    HTMLfilename);
     }
 
     /* Construct the filename */
-    ext = MPL_strrchr(HTMLfilename, '.');
+    ext = PL_strrchr(HTMLfilename, '.');
     if (ext) {
         *ext = '\0';
     }
@@ -955,7 +955,7 @@ SaveUnnamableScript(char *text, char *basedir, char *archiveDir,
         /* do nothing */;
     if (*start == '\0')
         start = HTMLfilename;
-    id = MPR_smprintf("_%s%d", start, idOrdinal++);
+    id = PR_smprintf("_%s%d", start, idOrdinal++);
     if (ext) {
         *ext = '.';
     }
@@ -963,7 +963,7 @@ SaveUnnamableScript(char *text, char *basedir, char *archiveDir,
     /* Now call SaveInlineScript to do the work */
     retval = SaveInlineScript(text, id, basedir, archiveDir);
 
-    MPR_Free(id);
+    PR_Free(id);
 
     return retval;
 }
@@ -985,27 +985,27 @@ SaveSource(char *src, char *codebase, char *basedir, char *archiveDir)
     }
 
     if (dumpParse) {
-        MPR_fprintf(outputFD, "SaveSource: src=%s, codebase=%s, basedir=%s,\n"
+        PR_fprintf(outputFD, "SaveSource: src=%s, codebase=%s, basedir=%s,\n"
                              "archiveDir=%s\n",
                    src, codebase, basedir, archiveDir);
     }
 
     if (codebase) {
-        arcDir = MPR_smprintf("%s/%s/%s/", basedir, codebase, archiveDir);
+        arcDir = PR_smprintf("%s/%s/%s/", basedir, codebase, archiveDir);
     } else {
-        arcDir = MPR_smprintf("%s/%s/", basedir, archiveDir);
+        arcDir = PR_smprintf("%s/%s/", basedir, archiveDir);
     }
 
     if (codebase) {
-        from = MPR_smprintf("%s/%s/%s", basedir, codebase, src);
-        to = MPR_smprintf("%s%s", arcDir, src);
+        from = PR_smprintf("%s/%s/%s", basedir, codebase, src);
+        to = PR_smprintf("%s%s", arcDir, src);
     } else {
-        from = MPR_smprintf("%s/%s", basedir, src);
-        to = MPR_smprintf("%s%s", arcDir, src);
+        from = PR_smprintf("%s/%s", basedir, src);
+        to = PR_smprintf("%s%s", arcDir, src);
     }
 
     if (make_dirs(to, 0777)) {
-        MPR_fprintf(errorFD,
+        PR_fprintf(errorFD,
                    "ERROR: Unable to create archive directory %s.\n", archiveDir);
         errorCount++;
         goto finish;
@@ -1014,11 +1014,11 @@ SaveSource(char *src, char *codebase, char *basedir, char *archiveDir)
     retval = copyinto(from, to);
 finish:
     if (from)
-        MPR_Free(from);
+        PR_Free(from);
     if (to)
-        MPR_Free(to);
+        PR_Free(to);
     if (arcDir)
-        MPR_Free(arcDir);
+        PR_Free(arcDir);
     return retval;
 }
 
@@ -1082,9 +1082,9 @@ extract_js(char *filename)
      * First, parse the HTML into a stream of tags and text.
      */
 
-    fd = MPR_Open(filename, PR_RDONLY, 0);
+    fd = PR_Open(filename, PR_RDONLY, 0);
     if (!fd) {
-        MPR_fprintf(errorFD, "Unable to open %s for reading.\n", filename);
+        PR_fprintf(errorFD, "Unable to open %s for reading.\n", filename);
         errorCount++;
         return -1;
     }
@@ -1093,17 +1093,17 @@ extract_js(char *filename)
     {
         char *cp;
 
-        basedir = MPL_strdup(filename);
+        basedir = PL_strdup(filename);
 
         /* Remove trailing slashes */
-        while ((cp = MPL_strprbrk(basedir, "/\\")) ==
+        while ((cp = PL_strprbrk(basedir, "/\\")) ==
                (basedir + strlen(basedir) - 1)) {
             *cp = '\0';
         }
 
         /* Now remove everything from the last slash (which will be followed
          * by a filename) to the end */
-        cp = MPL_strprbrk(basedir, "/\\");
+        cp = PL_strprbrk(basedir, "/\\");
         if (cp) {
             *cp = '\0';
         }
@@ -1128,7 +1128,7 @@ extract_js(char *filename)
                         if (FB_GetRange(fb, textStart, curOffset,
                                         &text) !=
                             curOffset - textStart + 1) {
-                            MPR_fprintf(errorFD,
+                            PR_fprintf(errorFD,
                                        "Unable to read from %s.\n",
                                        filename);
                             errorCount++;
@@ -1154,11 +1154,11 @@ extract_js(char *filename)
                     tagp = ProcessTag(fb, &tagerr);
                     if (!tagp) {
                         if (tagerr) {
-                            MPR_fprintf(errorFD, "Error in file %s: %s\n",
+                            PR_fprintf(errorFD, "Error in file %s: %s\n",
                                        filename, tagerr);
                             errorCount++;
                         } else {
-                            MPR_fprintf(errorFD,
+                            PR_fprintf(errorFD,
                                        "Error in file %s, in tag starting at line %d\n",
                                        filename, linenum);
                             errorCount++;
@@ -1197,7 +1197,7 @@ extract_js(char *filename)
                     cp = NULL;
                     if (FB_GetRange(fb, curOffset, curOffset + 8, &cp) != 9) {
                         if (cp) {
-                            MPR_Free(cp);
+                            PR_Free(cp);
                             cp = NULL;
                         }
                     } else {
@@ -1208,7 +1208,7 @@ extract_js(char *filename)
                             if (curOffset >= textStart) {
                                 if (FB_GetRange(fb, textStart, curOffset, &text) !=
                                     curOffset - textStart + 1) {
-                                    MPR_fprintf(errorFD, "Unable to read from %s.\n",
+                                    PR_fprintf(errorFD, "Unable to read from %s.\n",
                                                filename);
                                     errorCount++;
                                     goto loser;
@@ -1227,10 +1227,10 @@ extract_js(char *filename)
                             tagp = ProcessTag(fb, &tagerr);
                             if (!tagp) {
                                 if (tagerr) {
-                                    MPR_fprintf(errorFD, "Error in file %s: %s\n",
+                                    PR_fprintf(errorFD, "Error in file %s: %s\n",
                                                filename, tagerr);
                                 } else {
-                                    MPR_fprintf(errorFD,
+                                    PR_fprintf(errorFD,
                                                "Error in file %s, in tag starting at"
                                                " line %d\n",
                                                filename, linenum);
@@ -1262,11 +1262,11 @@ extract_js(char *filename)
     /* End of the file.  Wrap up any remaining text */
     if (state == SCRIPT_HTML_STATE) {
         if (tail && tail->type == TAG_ITEM) {
-            MPR_fprintf(errorFD, "ERROR: <SCRIPT> tag at %s:%d is not followed "
+            PR_fprintf(errorFD, "ERROR: <SCRIPT> tag at %s:%d is not followed "
                                 "by a </SCRIPT> tag.\n",
                        filename, tail->startLine);
         } else {
-            MPR_fprintf(errorFD, "ERROR: <SCRIPT> tag in file %s is not followed"
+            PR_fprintf(errorFD, "ERROR: <SCRIPT> tag in file %s is not followed"
                                 " by a </SCRIPT tag.\n",
                        filename);
         }
@@ -1278,7 +1278,7 @@ extract_js(char *filename)
         text = NULL;
         if (FB_GetRange(fb, textStart, curOffset, &text) !=
             curOffset - textStart + 1) {
-            MPR_fprintf(errorFD, "Unable to read from %s.\n", filename);
+            PR_fprintf(errorFD, "Unable to read from %s.\n", filename);
             errorCount++;
             goto loser;
         }
@@ -1307,7 +1307,7 @@ extract_js(char *filename)
 
         /* Reset archive directory for each tag */
         if (archiveDir) {
-            MPR_Free(archiveDir);
+            PR_Free(archiveDir);
             archiveDir = NULL;
         }
 
@@ -1322,46 +1322,46 @@ extract_js(char *filename)
         for (pairp = tagp->attList; pairp; pairp = pairp->next) {
 
             /* ARCHIVE= */
-            if (!MPL_strcasecmp(pairp->attribute, "archive")) {
+            if (!PL_strcasecmp(pairp->attribute, "archive")) {
                 if (archiveDir) {
                     /* Duplicate attribute.  Print warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: \"%s\" attribute overwrites previous attribute"
                                " in tag starting at %s:%d.\n",
                                pairp->attribute, filename, curitem->startLine);
                     warningCount++;
-                    MPR_Free(archiveDir);
+                    PR_Free(archiveDir);
                 }
-                archiveDir = MPL_strdup(pairp->value);
+                archiveDir = PL_strdup(pairp->value);
 
                 /* Substiture ".arc" for ".jar" */
-                if ((MPL_strlen(archiveDir) < 4) ||
-                    MPL_strcasecmp((archiveDir + strlen(archiveDir) - 4),
+                if ((PL_strlen(archiveDir) < 4) ||
+                    PL_strcasecmp((archiveDir + strlen(archiveDir) - 4),
                                   ".jar")) {
                     char *newArchiveDir = NULL;
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: ARCHIVE attribute should end in \".jar\" in tag"
                                " starting on %s:%d.\n",
                                filename, curitem->startLine);
                     warningCount++;
-                    newArchiveDir = MPR_smprintf("%s.arc", archiveDir);
-                    MPR_Free(archiveDir);
+                    newArchiveDir = PR_smprintf("%s.arc", archiveDir);
+                    PR_Free(archiveDir);
                     archiveDir = newArchiveDir;
                 } else {
-                    MPL_strcpy(archiveDir + strlen(archiveDir) - 4, ".arc");
+                    PL_strcpy(archiveDir + strlen(archiveDir) - 4, ".arc");
                 }
 
                 /* Record the first archive.  This will be used later if
                  * the archive is not specified */
                 if (firstArchiveDir == NULL) {
-                    firstArchiveDir = MPL_strdup(archiveDir);
+                    firstArchiveDir = PL_strdup(archiveDir);
                 }
             }
             /* CODEBASE= */
-            else if (!MPL_strcasecmp(pairp->attribute, "codebase")) {
+            else if (!PL_strcasecmp(pairp->attribute, "codebase")) {
                 if (codebase) {
                     /* Duplicate attribute.  Print warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: \"%s\" attribute overwrites previous attribute"
                                " in tag staring at %s:%d.\n",
                                pairp->attribute, filename, curitem->startLine);
@@ -1374,7 +1374,7 @@ extract_js(char *filename)
                      !PORT_Strcasecmp(pairp->attribute, "href")) {
                 if (src) {
                     /* Duplicate attribute.  Print warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: \"%s\" attribute overwrites previous attribute"
                                " in tag staring at %s:%d.\n",
                                pairp->attribute, filename, curitem->startLine);
@@ -1387,7 +1387,7 @@ extract_js(char *filename)
                 /*!!!XXX Change PORT to PL all over this code !!! */
                 if (src) {
                     /* Duplicate attribute.  Print warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: \"%s\" attribute overwrites previous attribute"
                                " ,in tag staring at %s:%d.\n",
                                pairp->attribute, filename, curitem->startLine);
@@ -1396,20 +1396,20 @@ extract_js(char *filename)
                 src = pairp->value;
 
                 /* Append a .class if one is not already present */
-                if ((MPL_strlen(src) < 6) ||
-                    MPL_strcasecmp((src + MPL_strlen(src) - 6), ".class")) {
-                    src = MPR_smprintf("%s.class", src);
+                if ((PL_strlen(src) < 6) ||
+                    PL_strcasecmp((src + PL_strlen(src) - 6), ".class")) {
+                    src = PR_smprintf("%s.class", src);
                     /* Put this string back into the data structure so it
                      * will be deallocated properly */
-                    MPR_Free(pairp->value);
+                    PR_Free(pairp->value);
                     pairp->value = src;
                 }
             }
             /* ID= */
-            else if (!MPL_strcasecmp(pairp->attribute, "id")) {
+            else if (!PL_strcasecmp(pairp->attribute, "id")) {
                 if (id) {
                     /* Duplicate attribute.  Print warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: \"%s\" attribute overwrites previous attribute"
                                " in tag staring at %s:%d.\n",
                                pairp->attribute, filename, curitem->startLine);
@@ -1427,10 +1427,10 @@ extract_js(char *filename)
              * will be processed before this style=attribute.  So we need
              * to record the line that this _tag_ (not the attribute) ends on.
              */
-            else if (!MPL_strcasecmp(pairp->attribute, "style") && pairp->value) {
+            else if (!PL_strcasecmp(pairp->attribute, "style") && pairp->value) {
                 HTMLItem *styleItem;
                 /* Put this item on the style list */
-                styleItem = CreateTextItem(MPL_strdup(pairp->value),
+                styleItem = CreateTextItem(PL_strdup(pairp->value),
                                            curitem->startLine, curitem->endLine);
                 if (styleListTail == NULL) {
                     styleList = styleListTail = styleItem;
@@ -1442,7 +1442,7 @@ extract_js(char *filename)
             /* Event handlers */
             else {
                 for (i = 0; i < num_handlers; i++) {
-                    if (!MPL_strcasecmp(event_handlers[i], pairp->attribute)) {
+                    if (!PL_strcasecmp(event_handlers[i], pairp->attribute)) {
                         hasEventHandler = PR_TRUE;
                         break;
                     }
@@ -1463,13 +1463,13 @@ extract_js(char *filename)
                  */
                 entityEnd = pairp->value;
                 while (entityEnd &&
-                       (entityStart = MPL_strstr(entityEnd, "&{")) /*}*/ != NULL) {
+                       (entityStart = PL_strstr(entityEnd, "&{")) /*}*/ != NULL) {
                     entityStart += 2; /* point at beginning of actual entity */
-                    entityEnd = MPL_strchr(entityStart, '}');
+                    entityEnd = PL_strchr(entityStart, '}');
                     if (entityEnd) {
                         /* Put this item on the entity list */
                         *entityEnd = '\0';
-                        entityItem = CreateTextItem(MPL_strdup(entityStart),
+                        entityItem = CreateTextItem(PL_strdup(entityStart),
                                                     pairp->valueLine, pairp->valueLine);
                         *entityEnd = /* { */ '}';
                         if (entityListTail) {
@@ -1485,19 +1485,19 @@ extract_js(char *filename)
 
         /* If no archive was supplied, we use the first one of the file */
         if (!archiveDir && firstArchiveDir) {
-            archiveDir = MPL_strdup(firstArchiveDir);
+            archiveDir = PL_strdup(firstArchiveDir);
         }
 
         /* If we have an event handler, we need to archive this tag */
         if (hasEventHandler) {
             if (!id) {
-                MPR_fprintf(errorFD,
+                PR_fprintf(errorFD,
                            "warning: tag starting at %s:%d has event handler but"
                            " no ID attribute.  The tag will not be signed.\n",
                            filename, curitem->startLine);
                 warningCount++;
             } else if (!archiveDir) {
-                MPR_fprintf(errorFD,
+                PR_fprintf(errorFD,
                            "warning: tag starting at %s:%d has event handler but"
                            " no ARCHIVE attribute.  The tag will not be signed.\n",
                            filename, curitem->startLine);
@@ -1512,14 +1512,14 @@ extract_js(char *filename)
         switch (tagp->type) {
             case APPLET_TAG:
                 if (!src) {
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "error: APPLET tag starting on %s:%d has no CODE "
                                "attribute.\n",
                                filename, curitem->startLine);
                     errorCount++;
                     goto loser;
                 } else if (!archiveDir) {
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "error: APPLET tag starting on %s:%d has no ARCHIVE "
                                "attribute.\n",
                                filename, curitem->startLine);
@@ -1535,7 +1535,7 @@ extract_js(char *filename)
             case LINK_TAG:
             case STYLE_TAG:
                 if (!archiveDir) {
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "error: %s tag starting on %s:%d has no ARCHIVE "
                                "attribute.\n",
                                TagTypeToString(tagp->type),
@@ -1550,7 +1550,7 @@ extract_js(char *filename)
                     /* Save the next text item */
                     if (!curitem->next || (curitem->next->type !=
                                            TEXT_ITEM)) {
-                        MPR_fprintf(errorFD,
+                        PR_fprintf(errorFD,
                                    "warning: %s tag starting on %s:%d is not followed"
                                    " by script text.\n",
                                    TagTypeToString(tagp->type),
@@ -1570,7 +1570,7 @@ extract_js(char *filename)
                     }
                 } else {
                     /* No src or id tag--warning */
-                    MPR_fprintf(errorFD,
+                    PR_fprintf(errorFD,
                                "warning: %s tag starting on %s:%d has no SRC or"
                                " ID attributes.  Will not sign.\n",
                                TagTypeToString(tagp->type), filename, curitem->startLine);
@@ -1627,7 +1627,7 @@ loser:
         DestroyHTMLItem(curitem);
     }
     if (text) {
-        MPR_Free(text);
+        PR_Free(text);
         text = NULL;
     }
     if (fb) {
@@ -1635,25 +1635,25 @@ loser:
         fb = NULL;
     }
     if (fd) {
-        MPR_Close(fd);
+        PR_Close(fd);
     }
     if (tagerr) {
-        MPR_smprintf_free(tagerr);
+        PR_smprintf_free(tagerr);
         tagerr = NULL;
     }
     if (archiveDir) {
-        MPR_Free(archiveDir);
+        PR_Free(archiveDir);
         archiveDir = NULL;
     }
     if (firstArchiveDir) {
-        MPR_Free(firstArchiveDir);
+        PR_Free(firstArchiveDir);
         firstArchiveDir = NULL;
     }
     if (entityListTail) {
-        MPR_Free(entityListTail);
+        PR_Free(entityListTail);
     }
     if (basedir) {
-        MPR_Free(basedir);
+        PR_Free(basedir);
     }
     return retval;
 }
@@ -1676,13 +1676,13 @@ ensureExists(char *basepath, char *path)
         return PR_FAILURE;
     }
 
-    /*MPR_fprintf(outputFD, "Trying to open directory %s.\n", fn);*/
+    /*PR_fprintf(outputFD, "Trying to open directory %s.\n", fn);*/
 
-    if ((dir = MPR_OpenDir(fn))) {
-        MPR_CloseDir(dir);
+    if ((dir = PR_OpenDir(fn))) {
+        PR_CloseDir(dir);
         return PR_SUCCESS;
     }
-    return MPR_MkDir(fn, 0777);
+    return PR_MkDir(fn, 0777);
 }
 
 /***************************************************************************
@@ -1705,7 +1705,7 @@ make_dirs(char *path, int file_perms)
         return 0;
     }
 
-    Path = MPL_strdup(path);
+    Path = PL_strdup(path);
     if (!Path) {
         return 0;
     }
@@ -1720,10 +1720,10 @@ make_dirs(char *path, int file_perms)
     while ((sep = strpbrk(start, "/\\"))) {
         *sep = '\0';
 
-        if (MPR_GetFileInfo(Path, &info) != PR_SUCCESS) {
+        if (PR_GetFileInfo(Path, &info) != PR_SUCCESS) {
             /* No such dir, we have to create it */
-            if (MPR_MkDir(Path, file_perms) != PR_SUCCESS) {
-                MPR_fprintf(errorFD, "ERROR: Unable to create directory %s.\n",
+            if (PR_MkDir(Path, file_perms) != PR_SUCCESS) {
+                PR_fprintf(errorFD, "ERROR: Unable to create directory %s.\n",
                            Path);
                 errorCount++;
                 ret = -1;
@@ -1732,7 +1732,7 @@ make_dirs(char *path, int file_perms)
         } else {
             /* something exists by this name, make sure it's a directory */
             if (info.type != PR_FILE_DIRECTORY) {
-                MPR_fprintf(errorFD, "ERROR: Unable to create directory %s.\n",
+                PR_fprintf(errorFD, "ERROR: Unable to create directory %s.\n",
                            Path);
                 errorCount++;
                 ret = -1;
@@ -1745,7 +1745,7 @@ make_dirs(char *path, int file_perms)
     }
 
 loser:
-    MPR_Free(Path);
+    PR_Free(Path);
     return ret;
 }
 
@@ -1763,44 +1763,44 @@ copyinto(char *from, char *to)
     PRFileDesc *infp = NULL, *outfp = NULL;
     int retval = -1;
 
-    if ((infp = MPR_Open(from, PR_RDONLY, 0777)) == NULL) {
-        MPR_fprintf(errorFD, "ERROR: Unable to open \"%s\" for reading.\n",
+    if ((infp = PR_Open(from, PR_RDONLY, 0777)) == NULL) {
+        PR_fprintf(errorFD, "ERROR: Unable to open \"%s\" for reading.\n",
                    from);
         errorCount++;
         goto finish;
     }
 
     /* If to already exists, print a warning before deleting it */
-    if (MPR_Access(to, PR_ACCESS_EXISTS) == PR_SUCCESS) {
-        MPR_fprintf(errorFD, "warning: %s already exists--will overwrite\n", to);
+    if (PR_Access(to, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+        PR_fprintf(errorFD, "warning: %s already exists--will overwrite\n", to);
         warningCount++;
         if (rm_dash_r(to)) {
-            MPR_fprintf(errorFD,
+            PR_fprintf(errorFD,
                        "ERROR: Unable to remove %s.\n", to);
             errorCount++;
             goto finish;
         }
     }
 
-    if ((outfp = MPR_Open(to, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0777)) ==
+    if ((outfp = PR_Open(to, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE, 0777)) ==
         NULL) {
         char *errBuf = NULL;
 
-        errBuf = MPR_Malloc(MPR_GetErrorTextLength() + 1);
-        MPR_fprintf(errorFD, "ERROR: Unable to open \"%s\" for writing.\n", to);
-        if (MPR_GetErrorText(errBuf)) {
-            MPR_fprintf(errorFD, "Cause: %s\n", errBuf);
+        errBuf = PR_Malloc(PR_GetErrorTextLength() + 1);
+        PR_fprintf(errorFD, "ERROR: Unable to open \"%s\" for writing.\n", to);
+        if (PR_GetErrorText(errBuf)) {
+            PR_fprintf(errorFD, "Cause: %s\n", errBuf);
         }
         if (errBuf) {
-            MPR_Free(errBuf);
+            PR_Free(errBuf);
         }
         errorCount++;
         goto finish;
     }
 
-    while ((num = MPR_Read(infp, buf, BUFSIZ)) > 0) {
-        if (MPR_Write(outfp, buf, num) != num) {
-            MPR_fprintf(errorFD, "ERROR: Error writing to %s.\n", to);
+    while ((num = PR_Read(infp, buf, BUFSIZ)) > 0) {
+        if (PR_Write(outfp, buf, num) != num) {
+            PR_fprintf(errorFD, "ERROR: Error writing to %s.\n", to);
             errorCount++;
             goto finish;
         }
@@ -1809,9 +1809,9 @@ copyinto(char *from, char *to)
     retval = 0;
 finish:
     if (infp)
-        MPR_Close(infp);
+        PR_Close(infp);
     if (outfp)
-        MPR_Close(outfp);
+        PR_Close(outfp);
 
     return retval;
 }

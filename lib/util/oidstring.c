@@ -37,9 +37,9 @@ SEC_StringToOID(PLArenaPool *pool, SECItem *to, const char *from, PRUint32 len)
         return SECFailure;
     }
     if (!len) {
-        len = MPL_strlen(from);
+        len = PL_strlen(from);
     }
-    if (len >= 4 && !MPL_strncasecmp(from, OIDstring, 4)) {
+    if (len >= 4 && !PL_strncasecmp(from, OIDstring, 4)) {
         from += 4; /* skip leading "OID." if present */
         len -= 4;
     }

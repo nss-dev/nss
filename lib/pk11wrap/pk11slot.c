@@ -114,7 +114,7 @@ PK11_NewSlotList(void)
         return NULL;
     list->head = NULL;
     list->tail = NULL;
-    list->lock = MPR_NewLock();
+    list->lock = PR_NewLock();
     if (list->lock == NULL) {
         PORT_Free(list);
         return NULL;
@@ -136,11 +136,11 @@ PK11_FreeSlotListElement(PK11SlotList *list, PK11SlotListElement *le)
         return SECFailure;
     }
 
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     if (le->refCount-- == 1) {
         freeit = PR_TRUE;
     }
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
     if (freeit) {
         PK11_FreeSlot(le->slot);
         PORT_Free(le);
@@ -160,7 +160,7 @@ pk11_FreeSlotListStatic(PK11SlotList *list)
         PK11_FreeSlotListElement(list, le);
     }
     if (list->lock) {
-        MPR_DestroyLock(list->lock);
+        PR_DestroyLock(list->lock);
     }
     list->lock = NULL;
     list->head = NULL;
@@ -197,7 +197,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
     le->slot = PK11_ReferenceSlot(slot);
     le->prev = NULL;
     le->refCount = 1;
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     element = list->head;
     /* Insertion sort, with higher cipherOrders are sorted first in the list */
     while (element && sorted && (element->slot->module->cipherOrder > le->slot->module->cipherOrder)) {
@@ -216,7 +216,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
         le->prev->next = le;
     if (list->head == element)
         list->head = le;
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
 
     return SECSuccess;
 }
@@ -227,7 +227,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
 SECStatus
 PK11_DeleteSlotFromList(PK11SlotList *list, PK11SlotListElement *le)
 {
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     if (le->prev)
         le->prev->next = le->next;
     else
@@ -237,7 +237,7 @@ PK11_DeleteSlotFromList(PK11SlotList *list, PK11SlotListElement *le)
     else
         list->tail = le->prev;
     le->next = le->prev = NULL;
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
     PK11_FreeSlotListElement(list, le);
     return SECSuccess;
 }
@@ -301,11 +301,11 @@ PK11_GetFirstSafe(PK11SlotList *list)
 {
     PK11SlotListElement *le;
 
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     le = list->head;
     if (le != NULL)
         (le)->refCount++;
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
     return le;
 }
 
@@ -318,7 +318,7 @@ PK11SlotListElement *
 PK11_GetNextSafe(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
 {
     PK11SlotListElement *new_le;
-    MPR_Lock(list->lock);
+    PR_Lock(list->lock);
     new_le = le->next;
     if (le->next == NULL) {
         /* if the prev and next fields are NULL then either this element
@@ -330,7 +330,7 @@ PK11_GetNextSafe(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
     }
     if (new_le)
         new_le->refCount++;
-    MPR_Unlock(list->lock);
+    PR_Unlock(list->lock);
     PK11_FreeSlotListElement(list, le);
     return new_le;
 }
@@ -391,21 +391,21 @@ PK11_NewSlotInfo(SECMODModule *mod)
     if (slot == NULL) {
         return slot;
     }
-    slot->freeListLock = MPR_NewLock();
+    slot->freeListLock = PR_NewLock();
     if (slot->freeListLock == NULL) {
         PORT_Free(slot);
         return NULL;
     }
-    slot->nssTokenLock = MPR_NewLock();
+    slot->nssTokenLock = PR_NewLock();
     if (slot->nssTokenLock == NULL) {
-        MPR_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->freeListLock);
         PORT_Free(slot);
         return NULL;
     }
-    slot->sessionLock = mod->isThreadSafe ? MPR_NewLock() : mod->refLock;
+    slot->sessionLock = mod->isThreadSafe ? PR_NewLock() : mod->refLock;
     if (slot->sessionLock == NULL) {
-        MPR_DestroyLock(slot->nssTokenLock);
-        MPR_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->nssTokenLock);
+        PR_DestroyLock(slot->freeListLock);
         PORT_Free(slot);
         return NULL;
     }
@@ -489,15 +489,15 @@ PK11_DestroySlot(PK11SlotInfo *slot)
         PORT_Free(slot->profileList);
     }
     if (slot->isThreadSafe && slot->sessionLock) {
-        MPR_DestroyLock(slot->sessionLock);
+        PR_DestroyLock(slot->sessionLock);
     }
     slot->sessionLock = NULL;
     if (slot->freeListLock) {
-        MPR_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->freeListLock);
         slot->freeListLock = NULL;
     }
     if (slot->nssTokenLock) {
-        MPR_DestroyLock(slot->nssTokenLock);
+        PR_DestroyLock(slot->nssTokenLock);
         slot->nssTokenLock = NULL;
     }
 
@@ -522,13 +522,13 @@ PK11_FreeSlot(PK11SlotInfo *slot)
 void
 PK11_EnterSlotMonitor(PK11SlotInfo *slot)
 {
-    MPR_Lock(slot->sessionLock);
+    PR_Lock(slot->sessionLock);
 }
 
 void
 PK11_ExitSlotMonitor(PK11SlotInfo *slot)
 {
-    MPR_Unlock(slot->sessionLock);
+    PR_Unlock(slot->sessionLock);
 }
 
 /***********************************************************
@@ -848,7 +848,7 @@ PK11_RestoreROSession(PK11SlotInfo *slot, CK_SESSION_HANDLE rwsession)
 static void
 pk11_InitSlotListStatic(PK11SlotList *list)
 {
-    list->lock = MPR_NewLock();
+    list->lock = PR_NewLock();
     list->head = NULL;
 }
 
@@ -2776,10 +2776,10 @@ PK11Slot_SetNSSToken(PK11SlotInfo *sl, NSSToken *nsst)
         nsst = nssToken_AddRef(nsst);
     }
 
-    MPR_Lock(sl->nssTokenLock);
+    PR_Lock(sl->nssTokenLock);
     old = sl->nssToken;
     sl->nssToken = nsst;
-    MPR_Unlock(sl->nssTokenLock);
+    PR_Unlock(sl->nssTokenLock);
 
     if (old) {
         (void)nssToken_Destroy(old);
@@ -2791,11 +2791,11 @@ PK11Slot_GetNSSToken(PK11SlotInfo *sl)
 {
     NSSToken *rv = NULL;
 
-    MPR_Lock(sl->nssTokenLock);
+    PR_Lock(sl->nssTokenLock);
     if (sl->nssToken) {
         rv = nssToken_AddRef(sl->nssToken);
     }
-    MPR_Unlock(sl->nssTokenLock);
+    PR_Unlock(sl->nssTokenLock);
 
     return rv;
 }
@@ -2879,7 +2879,7 @@ PK11_WaitForTokenEvent(PK11SlotInfo *slot, PK11TokenEvent event,
         return PK11TokenNotRemovable;
     }
     if (latency == 0) {
-        latency = MPR_SecondsToInterval(5);
+        latency = PR_SecondsToInterval(5);
     }
     waitForRemoval = (PRBool)(event == PK11TokenRemovedOrChangedEvent);
 
@@ -2896,7 +2896,7 @@ PK11_WaitForTokenEvent(PK11SlotInfo *slot, PK11TokenEvent event,
             return waitForRemoval ? PK11TokenPresent : PK11TokenRemoved;
         }
         if (timeout != PR_INTERVAL_NO_TIMEOUT) {
-            interval = MPR_IntervalNow();
+            interval = PR_IntervalNow();
             if (!first_time_set) {
                 first_time = interval;
                 first_time_set = PR_TRUE;
@@ -2905,7 +2905,7 @@ PK11_WaitForTokenEvent(PK11SlotInfo *slot, PK11TokenEvent event,
                 return waitForRemoval ? PK11TokenPresent : PK11TokenRemoved;
             }
         }
-        MPR_Sleep(latency);
+        PR_Sleep(latency);
     }
     return waitForRemoval ? PK11TokenRemoved : PK11TokenPresent;
 }

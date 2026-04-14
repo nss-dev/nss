@@ -43,7 +43,7 @@ typedef struct error_stack_str error_stack;
  * error_stack_index
  *
  * Thread-private data must be indexed.  This is that index.
- * See MPR_NewThreadPrivateIndex for more information.
+ * See PR_NewThreadPrivateIndex for more information.
  *
  * Thread-private data indexes are in the range [0, 127].
  */
@@ -86,14 +86,14 @@ error_once_function(void)
 #if defined(__MINGW32__)
     HMODULE nss3 = GetModuleHandleW(L"nss3");
     if (nss3) {
-        PRThreadPrivateDTOR freePtr = (PRThreadPrivateDTOR)GetProcAddress(nss3, "MPR_Free");
+        PRThreadPrivateDTOR freePtr = (PRThreadPrivateDTOR)GetProcAddress(nss3, "PR_Free");
         if (freePtr) {
-            return MPR_NewThreadPrivateIndex(&error_stack_index, freePtr);
+            return PR_NewThreadPrivateIndex(&error_stack_index, freePtr);
         }
     }
-    return MPR_NewThreadPrivateIndex(&error_stack_index, MPR_Free);
+    return PR_NewThreadPrivateIndex(&error_stack_index, PR_Free);
 #else
-    return MPR_NewThreadPrivateIndex(&error_stack_index, MPR_Free);
+    return PR_NewThreadPrivateIndex(&error_stack_index, PR_Free);
 #endif
 }
 
@@ -115,13 +115,13 @@ error_get_my_stack(void)
     error_stack *new_stack;
 
     if (INVALID_TPD_INDEX == error_stack_index) {
-        st = MPR_CallOnce(&error_call_once, error_once_function);
+        st = PR_CallOnce(&error_call_once, error_once_function);
         if (PR_SUCCESS != st) {
             return (error_stack *)NULL;
         }
     }
 
-    rv = (error_stack *)MPR_GetThreadPrivate(error_stack_index);
+    rv = (error_stack *)PR_GetThreadPrivate(error_stack_index);
     if ((error_stack *)NULL == rv) {
         /* Doesn't exist; create one */
         new_size = 16;
@@ -136,7 +136,7 @@ error_get_my_stack(void)
 
     new_bytes = (new_size * sizeof(PRInt32)) + sizeof(error_stack);
     /* Use NSPR's calloc/realloc, not NSS's, to avoid loops! */
-    new_stack = MPR_Calloc(1, new_bytes);
+    new_stack = PR_Calloc(1, new_bytes);
 
     if ((error_stack *)NULL != new_stack) {
         if ((error_stack *)NULL != rv) {
@@ -146,7 +146,7 @@ error_get_my_stack(void)
     }
 
     /* Set the value, whether or not the allocation worked */
-    MPR_SetThreadPrivate(error_stack_index, new_stack);
+    PR_SetThreadPrivate(error_stack_index, new_stack);
     return new_stack;
 }
 
@@ -293,7 +293,7 @@ NSS_IMPLEMENT void
 nss_DestroyErrorStack(void)
 {
     if (INVALID_TPD_INDEX != error_stack_index) {
-        MPR_SetThreadPrivate(error_stack_index, NULL);
+        PR_SetThreadPrivate(error_stack_index, NULL);
         error_stack_index = INVALID_TPD_INDEX;
         error_call_once = error_call_again; /* allow to init again */
     }

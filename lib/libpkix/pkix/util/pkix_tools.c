@@ -1499,11 +1499,11 @@ pkix_CheckForGeneratedError(PKIX_StdVars * stdVars,
         return NULL;
     }
 
-    if (MPL_HashTableLookup(fnInvTable, &fnStackInvCountArr[stackPosition - 1])) {
+    if (PL_HashTableLookup(fnInvTable, &fnStackInvCountArr[stackPosition - 1])) {
         return NULL;
     }
 
-    MPL_HashTableAdd(fnInvTable, &fnStackInvCountArr[stackPosition - 1], nonNullValue);
+    PL_HashTableAdd(fnInvTable, &fnStackInvCountArr[stackPosition - 1], nonNullValue);
     errorGenerated = PKIX_TRUE;
     noErrorState = PKIX_TRUE;
     genErr = PKIX_DoThrow(stdVars, errClass, PKIX_MEMLEAKGENERATEDERROR,

@@ -34,9 +34,9 @@ nssSlot_Destroy(
     if (slot) {
         if (PR_ATOMIC_DECREMENT(&slot->base.refCount) == 0) {
             PK11_FreeSlot(slot->pk11slot);
-            MPR_DestroyLock(slot->base.lock);
-            MPR_DestroyCondVar(slot->isPresentCondition);
-            MPR_DestroyLock(slot->isPresentLock);
+            PR_DestroyLock(slot->base.lock);
+            PR_DestroyCondVar(slot->isPresentCondition);
+            PR_DestroyLock(slot->isPresentLock);
             return nssArena_Destroy(slot->base.arena);
         }
     }
@@ -47,7 +47,7 @@ void
 nssSlot_EnterMonitor(NSSSlot *slot)
 {
     if (slot->lock) {
-        MPR_Lock(slot->lock);
+        PR_Lock(slot->lock);
     }
 }
 
@@ -55,7 +55,7 @@ void
 nssSlot_ExitMonitor(NSSSlot *slot)
 {
     if (slot->lock) {
-        MPR_Unlock(slot->lock);
+        PR_Unlock(slot->lock);
     }
 }
 
@@ -85,9 +85,9 @@ NSS_IMPLEMENT void
 nssSlot_ResetDelay(
     NSSSlot *slot)
 {
-    MPR_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     slot->lastTokenPingState = nssSlotLastPingState_Reset;
-    MPR_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 }
 
 static PRBool
@@ -98,14 +98,14 @@ token_status_checked(const NSSSlot *slot)
     /* When called from the same thread, that means
      * nssSlot_IsTokenPresent() is called recursively through
      * nssSlot_Refresh(). Return immediately in that case. */
-    if (slot->isPresentThread == MPR_GetCurrentThread()) {
+    if (slot->isPresentThread == PR_GetCurrentThread()) {
         return PR_TRUE;
     }
     /* Set the delay time for checking the token presence */
     if (s_token_delay_time == 0) {
-        s_token_delay_time = MPR_SecondsToInterval(NSSSLOT_TOKEN_DELAY_TIME);
+        s_token_delay_time = PR_SecondsToInterval(NSSSLOT_TOKEN_DELAY_TIME);
     }
-    time = MPR_IntervalNow();
+    time = PR_IntervalNow();
     if ((lastPingState == nssSlotLastPingState_Valid) && ((time - slot->lastTokenPingTime) < s_token_delay_time)) {
         return PR_TRUE;
     }
@@ -132,13 +132,13 @@ nssSlot_IsTokenPresent(
     }
 
     /* avoid repeated calls to check token status within set interval */
-    MPR_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     if (token_status_checked(slot)) {
         CK_FLAGS ckFlags = slot->ckFlags;
-        MPR_Unlock(slot->isPresentLock);
+        PR_Unlock(slot->isPresentLock);
         return ((ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
-    MPR_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 
     /* First obtain the slot epv before we set up the condition
      * variable, so we can just return if we couldn't get it. */
@@ -148,23 +148,23 @@ nssSlot_IsTokenPresent(
     }
 
     /* set up condition so only one thread is active in this part of the code at a time */
-    MPR_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     while (slot->isPresentThread) {
-        MPR_WaitCondVar(slot->isPresentCondition, PR_INTERVAL_NO_TIMEOUT);
+        PR_WaitCondVar(slot->isPresentCondition, PR_INTERVAL_NO_TIMEOUT);
     }
     /* if we were one of multiple threads here, the first thread will have
      * given us the answer, no need to make more queries of the token. */
     if (token_status_checked(slot)) {
         CK_FLAGS ckFlags = slot->ckFlags;
-        MPR_Unlock(slot->isPresentLock);
+        PR_Unlock(slot->isPresentLock);
         return ((ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
     /* this is the winning thread, block all others until we've determined
      * if the token is present and that it needs initialization. */
     slot->lastTokenPingState = nssSlotLastPingState_Update;
-    slot->isPresentThread = MPR_GetCurrentThread();
+    slot->isPresentThread = PR_GetCurrentThread();
 
-    MPR_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 
     nssToken = PK11Slot_GetNSSToken(slot->pk11slot);
     if (!nssToken) {
@@ -265,16 +265,16 @@ done:
      *  2) Indicate we're complete, waking up all other threads that may still
      *     be waiting on initialization can progress.
      */
-    MPR_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     /* don't update the time if we were reset while we were
      * getting the token state */
     if (slot->lastTokenPingState == nssSlotLastPingState_Update) {
-        slot->lastTokenPingTime = MPR_IntervalNow();
+        slot->lastTokenPingTime = PR_IntervalNow();
         slot->lastTokenPingState = nssSlotLastPingState_Valid;
     }
     slot->isPresentThread = NULL;
-    MPR_NotifyAllCondVar(slot->isPresentCondition);
-    MPR_Unlock(slot->isPresentLock);
+    PR_NotifyAllCondVar(slot->isPresentCondition);
+    PR_Unlock(slot->isPresentLock);
     return isPresent;
 }
 
@@ -303,7 +303,7 @@ nssSession_EnterMonitor(
     nssSession *s)
 {
     if (s->lock)
-        MPR_Lock(s->lock);
+        PR_Lock(s->lock);
     return PR_SUCCESS;
 }
 
@@ -311,7 +311,7 @@ NSS_IMPLEMENT PRStatus
 nssSession_ExitMonitor(
     nssSession *s)
 {
-    return (s->lock) ? MPR_Unlock(s->lock) : PR_SUCCESS;
+    return (s->lock) ? PR_Unlock(s->lock) : PR_SUCCESS;
 }
 
 NSS_EXTERN PRBool

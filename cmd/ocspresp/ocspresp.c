@@ -39,7 +39,7 @@ static SECItem *
 encode(PLArenaPool *arena, CERTOCSPCertID *cid, CERTCertificate *ca)
 {
     SECItem *response;
-    PRTime now = MPR_Now();
+    PRTime now = PR_Now();
     PRTime nextUpdate;
     CERTOCSPSingleResponse **responses;
     CERTOCSPSingleResponse *sr;
@@ -69,7 +69,7 @@ static SECItem *
 encodeRevoked(PLArenaPool *arena, CERTOCSPCertID *cid, CERTCertificate *ca)
 {
     SECItem *response;
-    PRTime now = MPR_Now();
+    PRTime now = PR_Now();
     PRTime revocationTime;
     CERTOCSPSingleResponse **responses;
     CERTOCSPSingleResponse *sr;
@@ -100,19 +100,19 @@ int
 Usage(void)
 {
     PRFileDesc *pr_stderr = PR_STDERR;
-    MPR_fprintf(pr_stderr, "ocspresp runs an internal selftest for OCSP response creation");
-    MPR_fprintf(pr_stderr, "Usage:");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr, "ocspresp runs an internal selftest for OCSP response creation");
+    PR_fprintf(pr_stderr, "Usage:");
+    PR_fprintf(pr_stderr,
                "\tocspresp <dbdir> <CA-nick> <EE-nick> [-p <pass>] [-f <file>]\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "\tdbdir:   Find security databases in \"dbdir\"\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "\tCA-nick: nickname of a trusted CA certificate with private key\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "\tEE-nick: nickname of a entity cert issued by CA\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "\t-p:      a password for db\n");
-    MPR_fprintf(pr_stderr,
+    PR_fprintf(pr_stderr,
                "\t-f:      a filename containing the password for db\n");
     return -1;
 }
@@ -126,7 +126,7 @@ main(int argc, char **argv)
     CERTCertificate *caCert = NULL, *cert = NULL;
     CERTOCSPCertID *cid = NULL;
     PLArenaPool *arena = NULL;
-    PRTime now = MPR_Now();
+    PRTime now = PR_Now();
 
     SECItem *encoded = NULL;
     CERTOCSPResponse *decoded = NULL;
@@ -154,7 +154,7 @@ main(int argc, char **argv)
             return Usage();
     }
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     /*rv = NSS_Init(SECU_ConfigDirectory(NULL));*/
     rv = NSS_Init(argv[1]);
     if (rv != SECSuccess) {

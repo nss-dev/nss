@@ -34,13 +34,13 @@ static const char *libraryName = NULL;
 #undef PORT_Alloc
 #undef PORT_Free
 #define PORT_Alloc malloc
-#define MPR_Malloc malloc
+#define PR_Malloc malloc
 #define PORT_Free free
-#define MPR_Free free
-#define MPR_GetDirectorySeparator() '/'
-#define MPR_LoadLibraryWithFlags(libspec, flags) \
+#define PR_Free free
+#define PR_GetDirectorySeparator() '/'
+#define PR_LoadLibraryWithFlags(libspec, flags) \
     (PRLibrary *)dlopen(libSpec.value.pathname, RTLD_NOW | RTLD_LOCAL)
-#define MPR_GetLibraryFilePathname(name, addr) \
+#define PR_GetLibraryFilePathname(name, addr) \
     freebl_lowhash_getLibraryFilePath(addr)
 
 static char *
@@ -54,7 +54,7 @@ freebl_lowhash_getLibraryFilePath(void *addr)
 }
 
 /*
- * The MPR_LoadLibraryWithFlags call above defines this variable away, so we
+ * The PR_LoadLibraryWithFlags call above defines this variable away, so we
  * don't need it..
  */
 #ifdef nodef
@@ -73,7 +73,7 @@ freebl_LoadDSO(void)
     const char *name = getLibName();
 
     if (!name) {
-        /*MPR_SetError(PR_LOAD_LIBRARY_ERROR,0); */
+        /*PR_SetError(PR_LOAD_LIBRARY_ERROR,0); */
         return PR_FAILURE;
     }
     handle = loader_LoadLibrary(name);
@@ -105,7 +105,7 @@ static PRCallOnceType loadFreeBLOnce;
 static void
 freebl_RunLoaderOnce(void)
 {
-    /* Don't have NSPR, so can use the real MPR_CallOnce, implement a stripped
+    /* Don't have NSPR, so can use the real PR_CallOnce, implement a stripped
      * down version. */
     if (loadFreeBLOnce.initialized) {
         return;

@@ -107,6 +107,6 @@ TEST_F(Alg1485Test, BrokenOIDTest) {
   char* result = CERT_GetOidString(&oid);
   EXPECT_EQ(15U, strlen(result));
   EXPECT_EQ(0, strncmp("OID.UNSUPPORTED", result, 15));
-  MPR_smprintf_free(result);
+  PR_smprintf_free(result);
 }
 }  // namespace nss_test

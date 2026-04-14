@@ -724,7 +724,7 @@ cleanup:
  * The function builds and validates a cert chain based on certificate
  * selection criterias from procParams. This function call PKIX_BuildChain
  * to accomplish chain building. If PKIX_BuildChain returns with incomplete
- * IO, the function waits with MPR_Poll until the blocking IO is finished and
+ * IO, the function waits with PR_Poll until the blocking IO is finished and
  * return control back to PKIX_BuildChain.
  *
  * PARAMETERS:
@@ -765,7 +765,7 @@ cert_BuildAndValidateChain(
              * See bug 391180 */
             PRInt32 filesReady = 0;
             PRPollDesc *pollDesc = (PRPollDesc *)nbioContext;
-            filesReady = MPR_Poll(pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
+            filesReady = PR_Poll(pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
             if (filesReady <= 0) {
                 PKIX_ERROR(PKIX_PRPOLLRETBADFILENUM);
             }
@@ -1148,7 +1148,7 @@ cert_VerifyCertChainPkix(
     fnStackNameArr[0] = "cert_VerifyCertChainPkix";
     fnStackInvCountArr[0] = 0;
     PKIX_Boolean abortOnLeak =
-        (MPR_GetEnvSecure("PKIX_OBJECT_LEAK_TEST_ABORT_ON_LEAK") == NULL) ? PKIX_FALSE
+        (PR_GetEnvSecure("PKIX_OBJECT_LEAK_TEST_ABORT_ON_LEAK") == NULL) ? PKIX_FALSE
                                                                          : PKIX_TRUE;
     runningLeakTest = PKIX_TRUE;
 
@@ -1226,7 +1226,7 @@ cert_VerifyCertChainPkix(
                                 "Stack %s\n",
                                 memLeakLoopCount, errorFnStackString));
         }
-        MPR_Free(errorFnStackString);
+        PR_Free(errorFnStackString);
         errorFnStackString = NULL;
         if (abortOnLeak) {
             PORT_Assert(leakedObjNum == 0);
@@ -2071,7 +2071,7 @@ CERT_PKIXVerifyCert(
     fnStackNameArr[0] = "CERT_PKIXVerifyCert";
     fnStackInvCountArr[0] = 0;
     PKIX_Boolean abortOnLeak =
-        (MPR_GetEnvSecure("PKIX_OBJECT_LEAK_TEST_ABORT_ON_LEAK") == NULL) ? PKIX_FALSE
+        (PR_GetEnvSecure("PKIX_OBJECT_LEAK_TEST_ABORT_ON_LEAK") == NULL) ? PKIX_FALSE
                                                                          : PKIX_TRUE;
     runningLeakTest = PKIX_TRUE;
 
@@ -2284,7 +2284,7 @@ CERT_PKIXVerifyCert(
                                 "Stack %s\n",
                                 memLeakLoopCount, errorFnStackString));
         }
-        MPR_Free(errorFnStackString);
+        PR_Free(errorFnStackString);
         errorFnStackString = NULL;
         if (abortOnLeak) {
             PORT_Assert(leakedObjNum == 0);

@@ -99,7 +99,7 @@ class TlsExtensionTestBase : public TlsConnectTestBase {
 
   static void InitSimpleSni(DataBuffer* extension) {
     const char* name = "host.name";
-    const size_t namelen = MPL_strlen(name);
+    const size_t namelen = PL_strlen(name);
     extension->Allocate(namelen + 5);
     extension->Write(0, namelen + 3, 2);
     extension->Write(2, static_cast<uint32_t>(0), 1);  // 0 == hostname

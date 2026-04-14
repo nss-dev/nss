@@ -279,7 +279,7 @@ pkix_Logger_CheckWithCode(
 #if defined PKIX_ERROR_DESCRIPTION
     errorString = PKIX_ErrorText[errorCode];
 #else
-    MPR_snprintf(error, 32, "Error code: %d", errorCode);
+    PR_snprintf(error, 32, "Error code: %d", errorCode);
     errorString = error;
 #endif /* PKIX_ERROR_DESCRIPTION */
 

@@ -11,7 +11,7 @@
 
 /*-----------------------------------------------------------------------
  * JAR_FOPEN_to_PR_Open
- * Translate JAR_FOPEN arguments to MPR_Open arguments
+ * Translate JAR_FOPEN arguments to PR_Open arguments
  */
 PRFileDesc*
 JAR_FOPEN_to_PR_Open(const char* name, const char* mode)
@@ -48,5 +48,5 @@ JAR_FOPEN_to_PR_Open(const char* name, const char* mode)
            mode for created files */
     prmode = 0755;
 
-    return MPR_Open(name, prflags, prmode);
+    return PR_Open(name, prflags, prmode);
 }

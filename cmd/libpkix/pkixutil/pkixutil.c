@@ -224,8 +224,8 @@ getTestArguments(int argc,
     wArgv[0] = fnName;
     wArgc += 1;
 
-    optstate = MPL_CreateOptState(argc - 1, argv + 1, "d:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc - 1, argv + 1, "d:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'd':
                 dbPath = (char *)optstate->value;
@@ -237,7 +237,7 @@ getTestArguments(int argc,
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     *ptestFn = testFunction;
     *pdbPath = dbPath;
@@ -256,7 +256,7 @@ runCmd(mainTestFn fnPointer,
     int retStat = 0;
 
     /*  Initialize NSPR and NSS.  */
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     /* if using databases, use NSS_Init and not NSS_NoDB_Init */
     if (dbPath && PORT_Strlen(dbPath) != 0) {
@@ -271,7 +271,7 @@ runCmd(mainTestFn fnPointer,
     if (NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
-    MPR_Cleanup();
+    PR_Cleanup();
     return retStat;
 }
 

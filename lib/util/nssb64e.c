@@ -81,7 +81,7 @@ struct PLBase64EncoderStr {
      * Where to write the encoded data (used when streaming, not when
      * doing all in-memory (buffer) operations).
      *
-     * Note that this definition is chosen to be compatible with MPR_Write.
+     * Note that this definition is chosen to be compatible with PR_Write.
      */
     PRInt32 (*output_fn)(void *output_arg, const char *buf, PRInt32 size);
     void *output_arg;
@@ -201,7 +201,7 @@ pl_base64_encode_buffer(PLBase64Encoder *data, const unsigned char *in,
                  */
                 PR_ASSERT(in == end);
                 if (in < end) {
-                    MPR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
+                    PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
                     return PR_FAILURE;
                 }
             }
@@ -343,9 +343,9 @@ pl_base64_create_encoder(PRUint32 line_length, char *output_buffer,
                 output_buflen = 64; /* XXX what is a good size? */
         }
 
-        output_buffer = (char *)MPR_Malloc(output_buflen);
+        output_buffer = (char *)PR_Malloc(output_buflen);
         if (output_buffer == NULL) {
-            MPR_Free(data);
+            PR_Free(data);
             return NULL;
         }
     }
@@ -370,7 +370,7 @@ PL_CreateBase64Encoder(PRInt32 (*output_fn)(void *, const char *, PRInt32),
     PLBase64Encoder *data;
 
     if (output_fn == NULL) {
-        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return NULL;
     }
 
@@ -394,7 +394,7 @@ PL_UpdateBase64Encoder(PLBase64Encoder *data, const unsigned char *buffer,
 {
     /* XXX Should we do argument checking only in debug build? */
     if (data == NULL || buffer == NULL || size == 0) {
-        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return PR_FAILURE;
     }
 
@@ -413,7 +413,7 @@ PL_DestroyBase64Encoder(PLBase64Encoder *data, PRBool abort_p)
 
     /* XXX Should we do argument checking only in debug build? */
     if (data == NULL) {
-        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return PR_FAILURE;
     }
 
@@ -422,8 +422,8 @@ PL_DestroyBase64Encoder(PLBase64Encoder *data, PRBool abort_p)
         status = pl_base64_encode_flush(data);
 
     if (data->output_buffer != NULL)
-        MPR_Free(data->output_buffer);
-    MPR_Free(data);
+        PR_Free(data->output_buffer);
+    PR_Free(data);
 
     return status;
 }
@@ -474,7 +474,7 @@ PL_Base64EncodeBuffer(const unsigned char *src, PRUint32 srclen,
     if (dest != NULL) {
         PR_ASSERT(maxdestlen >= need_length);
         if (maxdestlen < need_length) {
-            MPR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
+            PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
             return NULL;
         }
     } else {
@@ -507,7 +507,7 @@ PL_Base64EncodeBuffer(const unsigned char *src, PRUint32 srclen,
     *output_destlen = data->output_length;
     status = PL_DestroyBase64Encoder(data, PR_FALSE);
     if (status == PR_FAILURE) {
-        MPR_Free(dest);
+        PR_Free(dest);
         return NULL;
     }
 

@@ -51,7 +51,7 @@ testToString(
         goto cleanup;
     }
 
-    if (MPL_strcmp(temp, expAscii) != 0) {
+    if (PL_strcmp(temp, expAscii) != 0) {
         (void)printf("\tOid ToString: %s %s\n", temp, expAscii);
         testError("Output string does not match source");
     }

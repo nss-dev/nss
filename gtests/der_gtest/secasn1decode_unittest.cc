@@ -58,7 +58,7 @@ TEST_F(SECASN1DecodeTest, EndOfContentsInDefiniteLengthContext) {
           reinterpret_cast<const char*>(kEndOfContentsInDefiniteLengthContext),
           sizeof(kEndOfContentsInDefiniteLengthContext)),
       SECFailure);
-  ASSERT_EQ(MPR_GetError(), SEC_ERROR_BAD_DER);
+  ASSERT_EQ(PR_GetError(), SEC_ERROR_BAD_DER);
   ASSERT_EQ(SECSuccess, SEC_ASN1DecoderFinish(ctx));
 }
 
@@ -81,6 +81,6 @@ TEST_F(SECASN1DecodeTest, ContentsTooShort) {
                 ctx, reinterpret_cast<const char*>(kContentsTooShort),
                 sizeof(kContentsTooShort)),
             SECFailure);
-  ASSERT_EQ(MPR_GetError(), SEC_ERROR_BAD_DER);
+  ASSERT_EQ(PR_GetError(), SEC_ERROR_BAD_DER);
   ASSERT_EQ(SECSuccess, SEC_ASN1DecoderFinish(ctx));
 }

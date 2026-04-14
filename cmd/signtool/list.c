@@ -35,11 +35,11 @@ ListCerts(char *key, int list_certs)
     db = CERT_GetDefaultCertDB();
 
     if (list_certs == 2) {
-        MPR_fprintf(outputFD, "\nS Certificates\n");
-        MPR_fprintf(outputFD, "- ------------\n");
+        PR_fprintf(outputFD, "\nS Certificates\n");
+        PR_fprintf(outputFD, "- ------------\n");
     } else {
-        MPR_fprintf(outputFD, "\nObject signing certificates\n");
-        MPR_fprintf(outputFD, "---------------------------------------\n");
+        PR_fprintf(outputFD, "\nObject signing certificates\n");
+        PR_fprintf(outputFD, "---------------------------------------\n");
     }
 
     num_trav_certs = 0;
@@ -49,28 +49,28 @@ ListCerts(char *key, int list_certs)
                                 &pwdata);
 
     if (rv) {
-        MPR_fprintf(outputFD, "**Traverse of ALL slots & tokens failed**\n");
+        PR_fprintf(outputFD, "**Traverse of ALL slots & tokens failed**\n");
         return -1;
     }
 
     if (num_trav_certs == 0) {
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "You don't appear to have any object signing certificates.\n");
     }
 
     if (list_certs == 2) {
-        MPR_fprintf(outputFD, "- ------------\n");
+        PR_fprintf(outputFD, "- ------------\n");
     } else {
-        MPR_fprintf(outputFD, "---------------------------------------\n");
+        PR_fprintf(outputFD, "---------------------------------------\n");
     }
 
     if (list_certs == 1) {
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "For a list including CA's, use \"%s -L\"\n", PROGRAM_NAME);
     }
 
     if (list_certs == 2) {
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "Certificates that can be used to sign objects have *'s to "
                    "their left.\n");
     }
@@ -81,41 +81,41 @@ ListCerts(char *key, int list_certs)
         cert = PK11_FindCertFromNickname(key, &pwdata);
 
         if (cert) {
-            MPR_fprintf(outputFD,
+            PR_fprintf(outputFD,
                        "\nThe certificate with nickname \"%s\" was found:\n",
                        cert->nickname);
-            MPR_fprintf(outputFD, "\tsubject name: %s\n", cert->subjectName);
-            MPR_fprintf(outputFD, "\tissuer name: %s\n", cert->issuerName);
+            PR_fprintf(outputFD, "\tsubject name: %s\n", cert->subjectName);
+            PR_fprintf(outputFD, "\tissuer name: %s\n", cert->issuerName);
 
-            MPR_fprintf(outputFD, "\n");
+            PR_fprintf(outputFD, "\n");
 
             rv = CERT_CertTimesValid(cert);
             if (rv != SECSuccess) {
-                MPR_fprintf(outputFD, "**This certificate is expired**\n");
+                PR_fprintf(outputFD, "**This certificate is expired**\n");
             } else {
-                MPR_fprintf(outputFD, "This certificate is not expired.\n");
+                PR_fprintf(outputFD, "This certificate is not expired.\n");
             }
 
             rv = CERT_VerifyCert(db, cert, PR_TRUE,
-                                 certUsageObjectSigner, MPR_Now(), &pwdata, &errlog);
+                                 certUsageObjectSigner, PR_Now(), &pwdata, &errlog);
 
             if (rv != SECSuccess) {
                 failed = 1;
                 if (errlog.count > 0) {
-                    MPR_fprintf(outputFD,
+                    PR_fprintf(outputFD,
                                "**Certificate validation failed for the "
                                "following reason(s):**\n");
                 } else {
-                    MPR_fprintf(outputFD, "**Certificate validation failed**");
+                    PR_fprintf(outputFD, "**Certificate validation failed**");
                 }
             } else {
-                MPR_fprintf(outputFD, "This certificate is valid.\n");
+                PR_fprintf(outputFD, "This certificate is valid.\n");
             }
             displayVerifyLog(&errlog);
 
         } else {
             failed = 1;
-            MPR_fprintf(outputFD,
+            PR_fprintf(outputFD,
                        "The certificate with nickname \"%s\" was NOT FOUND\n", key);
         }
     }
@@ -159,19 +159,19 @@ cert_trav_callback(CERTCertificate *cert, SECItem *k, void *data)
         num_trav_certs++;
 
         if (LISTING_ALL_CERTS) {
-            MPR_fprintf(outputFD, "%s ", isSigningCert ? "*" : " ");
+            PR_fprintf(outputFD, "%s ", isSigningCert ? "*" : " ");
         }
-        MPR_fprintf(outputFD, "%s\n", name);
+        PR_fprintf(outputFD, "%s\n", name);
 
         if (LISTING_USER_SIGNING_CERTS) {
             int rv = SECFailure;
             if (rv) {
                 CERTCertificate *issuerCert;
-                issuerCert = CERT_FindCertIssuer(cert, MPR_Now(),
+                issuerCert = CERT_FindCertIssuer(cert, PR_Now(),
                                                  certUsageObjectSigner);
                 if (issuerCert) {
                     if (issuerCert->nickname && issuerCert->nickname[0]) {
-                        MPR_fprintf(outputFD, "    Issued by: %s\n",
+                        PR_fprintf(outputFD, "    Issued by: %s\n",
                                    issuerCert->nickname);
                         rv = SECSuccess;
                     }
@@ -179,13 +179,13 @@ cert_trav_callback(CERTCertificate *cert, SECItem *k, void *data)
                 }
             }
             if (rv && cert->issuerName && cert->issuerName[0]) {
-                MPR_fprintf(outputFD, "    Issued by: %s \n", cert->issuerName);
+                PR_fprintf(outputFD, "    Issued by: %s \n", cert->issuerName);
             }
             {
                 char *expires;
                 expires = DER_TimeChoiceDayToAscii(&cert->validity.notAfter);
                 if (expires) {
-                    MPR_fprintf(outputFD, "    Expires: %s\n", expires);
+                    PR_fprintf(outputFD, "    Expires: %s\n", expires);
                     PORT_Free(expires);
                 }
             }
@@ -195,7 +195,7 @@ cert_trav_callback(CERTCertificate *cert, SECItem *k, void *data)
 
             if (rv != SECSuccess) {
                 rv = PORT_GetError();
-                MPR_fprintf(outputFD,
+                PR_fprintf(outputFD,
                            "    ++ Error ++ THIS CERTIFICATE IS NOT VALID (%s)\n",
                            secErrorString(rv));
             }

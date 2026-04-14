@@ -44,7 +44,7 @@ TEST_F(PK11SDRTest, RejectUnsupportedAlgorithmDecrypt) {
                   (unsigned int)kUnsupportedAlgorithmDER.size()};
   SECItem result = {siBuffer, nullptr, 0};
   EXPECT_EQ(PK11SDR_Decrypt(&data, &result, nullptr), SECFailure);
-  EXPECT_EQ(MPR_GetError(), SEC_ERROR_INVALID_ARGS);
+  EXPECT_EQ(PR_GetError(), SEC_ERROR_INVALID_ARGS);
 }
 
 TEST_F(PK11SDRTest, RejectUnsupportedAlgorithmEncrypt) {
@@ -57,7 +57,7 @@ TEST_F(PK11SDRTest, RejectUnsupportedAlgorithmEncrypt) {
   SECStatus rv = PK11SDR_EncryptWithMechanism(slot.get(), &keyid, CKM_AES_GCM,
                                               &plaintext, &ciphertext, nullptr);
   EXPECT_EQ(rv, SECFailure);
-  EXPECT_EQ(MPR_GetError(), SEC_ERROR_INVALID_ARGS);
+  EXPECT_EQ(PR_GetError(), SEC_ERROR_INVALID_ARGS);
 }
 
 }  // namespace nss_test

@@ -13,7 +13,7 @@
  * If 'link' is a symbolic link, this function follows the symbolic links
  * and returns the pathname of the ultimate source of the symbolic links.
  * If 'link' is not a symbolic link, this function returns NULL.
- * The caller should call MPR_Free to free the string returned by this
+ * The caller should call PR_Free to free the string returned by this
  * function.
  */
 static char*
@@ -24,18 +24,18 @@ loader_GetOriginalPathname(const char* link)
     PRUint32 iterations = 0;
     PRInt32 len = 0, retlen = 0;
     if (!link) {
-        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return NULL;
     }
     len = PR_MAX(1024, strlen(link) + 1);
-    resolved = MPR_Malloc(len);
-    input = MPR_Malloc(len);
+    resolved = PR_Malloc(len);
+    input = PR_Malloc(len);
     if (!resolved || !input) {
         if (resolved) {
-            MPR_Free(resolved);
+            PR_Free(resolved);
         }
         if (input) {
-            MPR_Free(input);
+            PR_Free(input);
         }
         return NULL;
     }
@@ -47,9 +47,9 @@ loader_GetOriginalPathname(const char* link)
         input = resolved;
         resolved = tmp;
     }
-    MPR_Free(resolved);
+    PR_Free(resolved);
     if (iterations == 1 && retlen < 0) {
-        MPR_Free(input);
+        PR_Free(input);
         input = NULL;
     }
     return input;
@@ -69,7 +69,7 @@ loader_LoadLibInReferenceDir(const char* referencePath, const char* name)
     PRLibSpec libSpec;
 
     /* Remove the trailing filename from referencePath and add the new one */
-    c = strrchr(referencePath, MPR_GetDirectorySeparator());
+    c = strrchr(referencePath, PR_GetDirectorySeparator());
     if (c) {
         size_t referencePathSize = 1 + c - referencePath;
         fullName = (char*)PORT_Alloc(strlen(name) + referencePathSize + 1);
@@ -77,12 +77,12 @@ loader_LoadLibInReferenceDir(const char* referencePath, const char* name)
             memcpy(fullName, referencePath, referencePathSize);
             strcpy(fullName + referencePathSize, name);
 #ifdef DEBUG_LOADER
-            MPR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n",
+            PR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n",
                        fullName);
 #endif
             libSpec.type = PR_LibSpec_Pathname;
             libSpec.value.pathname = fullName;
-            dlh = MPR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL
+            dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL
 #ifdef PR_LD_ALT_SEARCH_PATH
                                                        /* allow library's dependencies to be found in the same directory
                                                         * on Windows even if PATH is not set. Requires NSPR 4.8.1 . */
@@ -112,9 +112,9 @@ loader_LoadLibInReferenceDir(const char* referencePath, const char* name)
  * newShLibName:
  *   The simple file name of the new shared library to be loaded.
  *
- * We use MPR_GetLibraryFilePathname to get the pathname of the loaded
+ * We use PR_GetLibraryFilePathname to get the pathname of the loaded
  * shared lib that contains this function, and then do a
- * MPR_LoadLibraryWithFlags with an absolute pathname for the shared
+ * PR_LoadLibraryWithFlags with an absolute pathname for the shared
  * library to be loaded.
  *
  * On Windows, the "alternate search path" strategy is employed, if available.
@@ -137,14 +137,14 @@ PORT_LoadLibraryFromOrigin(const char* existingShLibName,
     PRLibSpec libSpec;
 
     /* Get the pathname for existingShLibName, e.g. /usr/lib/libnss3.so
-     * MPR_GetLibraryFilePathname works with either the base library name or a
+     * PR_GetLibraryFilePathname works with either the base library name or a
      * function pointer, depending on the platform.
      * We require the address of a function in the "reference library",
      * provided by the caller. To avoid getting the address of the stub/thunk
      * of an exported function by accident, use the address of a static
      * function rather than an exported function.
      */
-    fullPath = MPR_GetLibraryFilePathname(existingShLibName,
+    fullPath = PR_GetLibraryFilePathname(existingShLibName,
                                          staticShLibFunc);
 
     if (fullPath) {
@@ -157,25 +157,25 @@ PORT_LoadLibraryFromOrigin(const char* existingShLibName,
              */
             char* originalfullPath = loader_GetOriginalPathname(fullPath);
             if (originalfullPath) {
-                MPR_Free(fullPath);
+                PR_Free(fullPath);
                 fullPath = originalfullPath;
                 lib = loader_LoadLibInReferenceDir(fullPath, newShLibName);
             }
         }
 #endif
-        MPR_Free(fullPath);
+        PR_Free(fullPath);
     }
     if (!lib) {
 #ifdef DEBUG_LOADER
-        MPR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", newShLibName);
+        PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", newShLibName);
 #endif
         libSpec.type = PR_LibSpec_Pathname;
         libSpec.value.pathname = newShLibName;
-        lib = MPR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+        lib = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
     }
     if (NULL == lib) {
 #ifdef DEBUG_LOADER
-        MPR_fprintf(PR_STDOUT, "\nLoading failed : %s.\n", newShLibName);
+        PR_fprintf(PR_STDOUT, "\nLoading failed : %s.\n", newShLibName);
 #endif
     }
     return lib;

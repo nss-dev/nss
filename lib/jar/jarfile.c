@@ -886,7 +886,7 @@ dosdate(char *date, const char *s)
 {
     PRUint32 num = x86ShortToUint32(s);
 
-    MPR_snprintf(date, 9, "%02d-%02d-%02d", ((num >> 5) & 0x0F), (num & 0x1F),
+    PR_snprintf(date, 9, "%02d-%02d-%02d", ((num >> 5) & 0x0F), (num & 0x1F),
                 ((num >> 9) + 80));
     return 0;
 }
@@ -903,7 +903,7 @@ dostime(char *time, const char *s)
 {
     PRUint32 num = x86ShortToUint32(s);
 
-    MPR_snprintf(time, 6, "%02d:%02d", ((num >> 11) & 0x1F),
+    PR_snprintf(time, 6, "%02d:%02d", ((num >> 11) & 0x1F),
                 ((num >> 5) & 0x3F));
     return 0;
 }
@@ -970,7 +970,7 @@ jar_guess_jar(const char *filename, JAR_FILE fp)
     PRInt32 len = PORT_Strlen(filename);
     const char *ext = filename + len - 4; /* 4 for ".tar" */
 
-    if (len >= 4 && !MPL_strcasecmp(ext, ".tar"))
+    if (len >= 4 && !PL_strcasecmp(ext, ".tar"))
         return jarArchTar;
     return jarArchZip;
 }

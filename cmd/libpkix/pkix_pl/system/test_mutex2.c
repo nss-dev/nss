@@ -28,7 +28,7 @@ consumer(/* ARGSUSED */ void *arg)
                 (box2 == 0) ||
                 (box3 == 0)) &&
                (status == PR_SUCCESS))
-            status = MPR_WaitCondVar(cv, PR_INTERVAL_NO_TIMEOUT);
+            status = PR_WaitCondVar(cv, PR_INTERVAL_NO_TIMEOUT);
 
         (void)printf("\tConsumer got Box1 = %d ", box1);
         box1 = 0;
@@ -37,7 +37,7 @@ consumer(/* ARGSUSED */ void *arg)
         (void)printf("Box3 = %d\n", box3);
         box3 = 0;
 
-        status = MPR_NotifyAllCondVar(cv);
+        status = PR_NotifyAllCondVar(cv);
         if (status == PR_FAILURE)
             (void)printf("Consumer error while notifying condvar\n");
         errorResult = PKIX_PL_Mutex_Unlock(mutex, plContext);
@@ -65,12 +65,12 @@ producer(void *arg)
     for (i = 0; i < 5; i++) {
         (void)PKIX_PL_Mutex_Lock(mutex, plContext);
         while ((*box != 0) && (status == PR_SUCCESS))
-            status = MPR_WaitCondVar(cv, PR_INTERVAL_NO_TIMEOUT);
+            status = PR_WaitCondVar(cv, PR_INTERVAL_NO_TIMEOUT);
 
         *box = i + 1;
         (void)printf("\tProducer %d put value: %d\n", value, *box);
 
-        status = MPR_NotifyAllCondVar(cv);
+        status = PR_NotifyAllCondVar(cv);
         if (status == PR_FAILURE)
             (void)printf("Producer %d error while notifying condvar\n",
                          value);
@@ -100,10 +100,10 @@ test_mutex2(int argc, char *argv[])
     subTest("Mutex Creation");
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Mutex_Create(&mutex, plContext));
 
-    cv = MPR_NewCondVar(*(PRLock **)mutex);
+    cv = PR_NewCondVar(*(PRLock **)mutex);
 
     subTest("Starting consumer thread");
-    consThread = MPR_CreateThread(PR_USER_THREAD,
+    consThread = PR_CreateThread(PR_USER_THREAD,
                                  consumer,
                                  NULL,
                                  PR_PRIORITY_NORMAL,
@@ -112,7 +112,7 @@ test_mutex2(int argc, char *argv[])
                                  0);
 
     subTest("Starting producer thread 1");
-    prodThread = MPR_CreateThread(PR_USER_THREAD,
+    prodThread = PR_CreateThread(PR_USER_THREAD,
                                  producer,
                                  &x,
                                  PR_PRIORITY_NORMAL,
@@ -121,7 +121,7 @@ test_mutex2(int argc, char *argv[])
                                  0);
 
     subTest("Starting producer thread 2");
-    prodThread2 = MPR_CreateThread(PR_USER_THREAD,
+    prodThread2 = PR_CreateThread(PR_USER_THREAD,
                                   producer,
                                   &y,
                                   PR_PRIORITY_NORMAL,
@@ -130,7 +130,7 @@ test_mutex2(int argc, char *argv[])
                                   0);
 
     subTest("Starting producer thread 3");
-    prodThread3 = MPR_CreateThread(PR_USER_THREAD,
+    prodThread3 = PR_CreateThread(PR_USER_THREAD,
                                   producer,
                                   &z,
                                   PR_PRIORITY_NORMAL,
@@ -138,9 +138,9 @@ test_mutex2(int argc, char *argv[])
                                   PR_JOINABLE_THREAD,
                                   0);
 
-    MPR_JoinThread(consThread);
+    PR_JoinThread(consThread);
 
-    (void)MPR_DestroyCondVar(cv);
+    (void)PR_DestroyCondVar(cv);
     PKIX_TEST_DECREF_BC(mutex);
 
     /*
@@ -150,9 +150,9 @@ test_mutex2(int argc, char *argv[])
      * leakage.
      */
 
-    MPR_Free(prodThread);
-    MPR_Free(prodThread2);
-    MPR_Free(prodThread3);
+    PR_Free(prodThread);
+    PR_Free(prodThread2);
+    PR_Free(prodThread3);
 
 cleanup:
 

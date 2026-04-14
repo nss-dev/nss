@@ -39,7 +39,7 @@ testIssuer(PKIX_ComCRLSelParams *goodObject)
 
     subTest("PKIX_ComCRLSelParams Create Issuers");
 
-    length = MPL_strlen(name1);
+    length = PL_strlen(name1);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_UTF8,
                                                     name1,
@@ -51,7 +51,7 @@ testIssuer(PKIX_ComCRLSelParams *goodObject)
                                                       &issuerName1,
                                                       plContext));
 
-    length = MPL_strlen(name2);
+    length = PL_strlen(name2);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_UTF8,
                                                     name2,
@@ -63,7 +63,7 @@ testIssuer(PKIX_ComCRLSelParams *goodObject)
                                                       &issuerName2,
                                                       plContext));
 
-    length = MPL_strlen(name3);
+    length = PL_strlen(name3);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_UTF8,
                                                     name3,
@@ -248,7 +248,7 @@ testMaxMinCRLNumbers(PKIX_ComCRLSelParams *goodObject)
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     asciiCrlNumber1,
-                                                    MPL_strlen(asciiCrlNumber1),
+                                                    PL_strlen(asciiCrlNumber1),
                                                     &crlNumber1String,
                                                     NULL));
 
@@ -272,7 +272,7 @@ testMaxMinCRLNumbers(PKIX_ComCRLSelParams *goodObject)
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     asciiCrlNumber99999,
-                                                    MPL_strlen(asciiCrlNumber99999),
+                                                    PL_strlen(asciiCrlNumber99999),
                                                     &crlNumber99999String,
                                                     NULL));
 

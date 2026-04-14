@@ -376,8 +376,8 @@ PrintCipherUsage()
 void
 milliPause(PRUint32 milli)
 {
-    PRIntervalTime ticks = MPR_MillisecondsToInterval(milli);
-    MPR_Sleep(ticks);
+    PRIntervalTime ticks = PR_MillisecondsToInterval(milli);
+    PR_Sleep(ticks);
 }
 
 void
@@ -392,7 +392,7 @@ disableAllSSLCiphers()
         PRUint16 suite = cipherSuites[i];
         rv = SSL_CipherPrefSetDefault(suite, PR_FALSE);
         if (rv != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             fprintf(stderr,
                     "SSL_CipherPrefSet didn't like value 0x%04x (i = %d): %s\n",
                     suite, i, SECU_Strerror(err));
@@ -423,7 +423,7 @@ typedef struct
 static SECStatus
 ownBadCertHandler(void *arg, PRFileDesc *socket)
 {
-    PRErrorCode err = MPR_GetError();
+    PRErrorCode err = PR_GetError();
     /* can log invalid cert here */
     fprintf(stderr, "Bad server certificate: %d, %s\n", err,
             SECU_Strerror(err));
@@ -709,9 +709,9 @@ ownAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
             for (i = 0; i < csa->len; ++i) {
                 PORT_SetError(0);
                 if (CERT_CacheOCSPResponseFromSideChannel(
-                        serverCertAuth->dbHandle, cert, MPR_Now(),
+                        serverCertAuth->dbHandle, cert, PR_Now(),
                         &csa->items[i], arg) != SECSuccess) {
-                    PORT_Assert(MPR_GetError() != 0);
+                    PORT_Assert(PR_GetError() != 0);
                 }
             }
         }
@@ -851,9 +851,9 @@ thread_main(void *arg)
     char buf[256];
 
     if (requestFile) {
-        std_in = MPR_Open(requestFile, PR_RDONLY, 0);
+        std_in = PR_Open(requestFile, PR_RDONLY, 0);
     } else {
-        std_in = MPR_GetSpecialFD(PR_StandardInput);
+        std_in = PR_GetSpecialFD(PR_StandardInput);
     }
 
 #ifdef WIN32
@@ -872,14 +872,14 @@ thread_main(void *arg)
 #endif
 
     do {
-        rc = MPR_Read(std_in, buf, sizeof buf);
+        rc = PR_Read(std_in, buf, sizeof buf);
         if (rc <= 0)
             break;
-        wc = MPR_Send(ps, buf, rc, 0, maxInterval);
+        wc = PR_Send(ps, buf, rc, 0, maxInterval);
     } while (wc == rc);
-    MPR_Close(ps);
+    PR_Close(ps);
     if (requestFile) {
-        MPR_Close(std_in);
+        PR_Close(std_in);
     }
 }
 
@@ -890,10 +890,10 @@ printHostNameAndAddr(const char *host, const PRNetAddr *addr)
 {
     PRUint16 port = PR_NetAddrInetPort(addr);
     char addrBuf[80];
-    PRStatus st = MPR_NetAddrToString(addr, addrBuf, sizeof addrBuf);
+    PRStatus st = PR_NetAddrToString(addr, addrBuf, sizeof addrBuf);
 
     if (st == PR_SUCCESS) {
-        port = MPR_ntohs(port);
+        port = PR_ntohs(port);
         FPRINTF(stderr, "%s: connecting to %s:%hu (address=%s)\n",
                 progName, host, port, addrBuf);
     }
@@ -930,9 +930,9 @@ separateReqHeader(const PRFileDesc *outFd, const char *buf, const int nb,
             /* move the pointer to the beginning of the fragment */
             int strSize = *ptrnMatched;
             char *tmpPtrn = ptrnStr + (3 - strSize);
-            if (MPL_strncmp(buf, tmpPtrn, strSize) == 0) {
+            if (PL_strncmp(buf, tmpPtrn, strSize) == 0) {
                 /* print the rest of the buffer(without the fragment) */
-                MPR_Write((void *)outFd, buf + strSize, nb - strSize);
+                PR_Write((void *)outFd, buf + strSize, nb - strSize);
                 *wrStarted = PR_TRUE;
                 return;
             }
@@ -946,13 +946,13 @@ separateReqHeader(const PRFileDesc *outFd, const char *buf, const int nb,
             return;
         }
     }
-    resPtr = MPL_strnstr(buf, ptrnStr, nb);
+    resPtr = PL_strnstr(buf, ptrnStr, nb);
     if (resPtr != NULL) {
         /* if "\n\r\n" was found in the buffer, calculate offset
          * and print the rest of the buffer */
         int newBn = nb - (resPtr - buf + 3); /* 3 is the length of "\n\r\n" */
 
-        MPR_Write((void *)outFd, resPtr + 3, newBn);
+        PR_Write((void *)outFd, resPtr + 3, newBn);
         *wrStarted = PR_TRUE;
         return;
     } else {
@@ -969,7 +969,7 @@ separateReqHeader(const PRFileDesc *outFd, const char *buf, const int nb,
             }
             bufPrt = (char *)(buf + nb - strSize);
 
-            if (MPL_strncmp(bufPrt, ptrnStr, strSize) == 0) {
+            if (PL_strncmp(bufPrt, ptrnStr, strSize) == 0) {
                 *ptrnMatched = i;
                 return;
             }
@@ -1008,7 +1008,7 @@ restartHandshakeAfterServerCertIfNeeded(PRFileDesc *fd,
     serverCertAuth->isPaused = PR_FALSE;
     rv = SSL_AuthCertificate(serverCertAuth->dbHandle, fd, PR_TRUE, PR_FALSE);
     if (rv != SECSuccess) {
-        error = MPR_GetError();
+        error = PR_GetError();
         if (error == 0) {
             PR_NOT_REACHED("SSL_AuthCertificate return SECFailure without "
                            "setting error code.");
@@ -1093,9 +1093,9 @@ writeBytesToServer(PRFileDesc *s, const PRUint8 *buf, int nb)
     FPRINTF(stderr, "%s: Writing %d bytes to server\n",
             progName, nb);
     do {
-        PRInt32 cc = MPR_Send(s, bufp, nb, 0, maxInterval);
+        PRInt32 cc = PR_Send(s, bufp, nb, 0, maxInterval);
         if (cc < 0) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             if (err != PR_WOULD_BLOCK_ERROR) {
                 SECU_PrintError(progName, "write to SSL socket failed");
                 return 254;
@@ -1131,15 +1131,15 @@ writeBytesToServer(PRFileDesc *s, const PRUint8 *buf, int nb)
         pollDesc.in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
         pollDesc.out_flags = 0;
         FPRINTF(stderr,
-                "%s: about to call MPR_Poll on writable socket !\n",
+                "%s: about to call PR_Poll on writable socket !\n",
                 progName);
-        cc = MPR_Poll(&pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
+        cc = PR_Poll(&pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
         if (cc < 0) {
-            SECU_PrintError(progName, "MPR_Poll failed");
+            SECU_PrintError(progName, "PR_Poll failed");
             return -1;
         }
         FPRINTF(stderr,
-                "%s: MPR_Poll returned with writable socket !\n",
+                "%s: PR_Poll returned with writable socket !\n",
                 progName);
     } while (1);
 
@@ -1184,7 +1184,7 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
 
         rv = exportKeyingMaterials(fd, enabledExporters, enabledExporterCount);
         if (rv != SECSuccess) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             FPRINTF(stderr,
                     "couldn't export keying material: %s\n",
                     SECU_Strerror(err));
@@ -1225,7 +1225,7 @@ static SECStatus
 bindToClient(PRFileDesc *s)
 {
     PRStatus status;
-    status = MPR_Bind(s, &addr);
+    status = PR_Bind(s, &addr);
     if (status != PR_SUCCESS) {
         return SECFailure;
     }
@@ -1239,12 +1239,12 @@ bindToClient(PRFileDesc *s)
         PRNetAddr remote;
         int nb;
 
-        nb = MPR_RecvFrom(s, &tmp, 1, PR_MSG_PEEK,
+        nb = PR_RecvFrom(s, &tmp, 1, PR_MSG_PEEK,
                          &remote, PR_INTERVAL_NO_TIMEOUT);
         if (nb != 1)
             continue;
 
-        status = MPR_Connect(s, &remote, PR_INTERVAL_NO_TIMEOUT);
+        status = PR_Connect(s, &remote, PR_INTERVAL_NO_TIMEOUT);
         if (status != PR_SUCCESS) {
             SECU_PrintError(progName, "server bind to remote end failed");
             return SECFailure;
@@ -1261,9 +1261,9 @@ connectToServer(PRFileDesc *s, PRPollDesc *pollset)
     PRStatus status;
     PRInt32 filesReady;
 
-    status = MPR_Connect(s, &addr, PR_INTERVAL_NO_TIMEOUT);
+    status = PR_Connect(s, &addr, PR_INTERVAL_NO_TIMEOUT);
     if (status != PR_SUCCESS) {
-        if (MPR_GetError() == PR_IN_PROGRESS_ERROR) {
+        if (PR_GetError() == PR_IN_PROGRESS_ERROR) {
             if (verbose)
                 SECU_PrintError(progName, "connect");
             milliPause(50 * multiplier);
@@ -1272,25 +1272,25 @@ connectToServer(PRFileDesc *s, PRPollDesc *pollset)
             pollset[SSOCK_FD].fd = s;
             while (1) {
                 FPRINTF(stderr,
-                        "%s: about to call MPR_Poll for connect completion!\n",
+                        "%s: about to call PR_Poll for connect completion!\n",
                         progName);
-                filesReady = MPR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
+                filesReady = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
                 if (filesReady < 0) {
                     SECU_PrintError(progName, "unable to connect (poll)");
                     return SECFailure;
                 }
                 FPRINTF(stderr,
-                        "%s: MPR_Poll returned 0x%02x for socket out_flags.\n",
+                        "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
                         progName, pollset[SSOCK_FD].out_flags);
                 if (filesReady == 0) { /* shouldn't happen! */
-                    SECU_PrintError(progName, "%s: MPR_Poll returned zero!\n");
+                    SECU_PrintError(progName, "%s: PR_Poll returned zero!\n");
                     return SECFailure;
                 }
-                status = MPR_GetConnectStatus(pollset);
+                status = PR_GetConnectStatus(pollset);
                 if (status == PR_SUCCESS) {
                     break;
                 }
-                if (MPR_GetError() != PR_IN_PROGRESS_ERROR) {
+                if (PR_GetError() != PR_IN_PROGRESS_ERROR) {
                     SECU_PrintError(progName, "unable to connect (poll)");
                     return SECFailure;
                 }
@@ -1364,7 +1364,7 @@ static SECStatus
 zlibCertificateEncode(const SECItem *input, SECItem *output)
 {
     if (!input || !input->data || input->len == 0 || !output) {
-        MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
         return SECFailure;
     }
 
@@ -1375,7 +1375,7 @@ zlibCertificateEncode(const SECItem *input, SECItem *output)
     int ret = compress(output->data, &outputLenUL, input->data, input->len);
     output->len = outputLenUL;
     if (ret != Z_OK) {
-        MPR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+        PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
         return SECFailure;
     }
 
@@ -1388,7 +1388,7 @@ zlibCertificateDecode(const SECItem *input,
                       size_t *usedLen)
 {
     if (!input || !input->data || input->len == 0 || !output || outputLen == 0) {
-        MPR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
         return SECFailure;
     }
 
@@ -1396,7 +1396,7 @@ zlibCertificateDecode(const SECItem *input,
     int ret = uncompress(output, &outputLenUL, input->data, input->len);
     *usedLen = outputLenUL;
     if (ret != Z_OK) {
-        MPR_SetError(SEC_ERROR_BAD_DATA, 0);
+        PR_SetError(SEC_ERROR_BAD_DATA, 0);
         return SECFailure;
     }
 
@@ -1421,9 +1421,9 @@ run()
 
     /* Create socket */
     if (useDTLS) {
-        s = MPR_OpenUDPSocket(addr.raw.family);
+        s = PR_OpenUDPSocket(addr.raw.family);
     } else {
-        s = MPR_OpenTCPSocket(addr.raw.family);
+        s = PR_OpenTCPSocket(addr.raw.family);
     }
 
     if (s == NULL) {
@@ -1442,7 +1442,7 @@ run()
     if (serverCertAuth.testFreshStatusFromSideChannel) {
         opt.value.non_blocking = PR_FALSE;
     }
-    status = MPR_SetSocketOption(s, &opt);
+    status = PR_SetSocketOption(s, &opt);
     if (status != PR_SUCCESS) {
         SECU_PrintError(progName, "error setting socket options");
         error = 1;
@@ -1781,7 +1781,7 @@ run()
     else
         pollset[SSOCK_FD].in_flags |= PR_POLL_READ;
     if (requestFile) {
-        pollset[STDIN_FD].fd = MPR_Open(requestFile, PR_RDONLY, 0);
+        pollset[STDIN_FD].fd = PR_Open(requestFile, PR_RDONLY, 0);
         if (!pollset[STDIN_FD].fd) {
             fprintf(stderr, "%s: unable to open input file: %s\n",
                     progName, requestFile);
@@ -1789,14 +1789,14 @@ run()
             goto done;
         }
     } else {
-        pollset[STDIN_FD].fd = MPR_GetSpecialFD(PR_StandardInput);
+        pollset[STDIN_FD].fd = PR_GetSpecialFD(PR_StandardInput);
     }
     pollset[STDIN_FD].in_flags = PR_POLL_READ;
-    std_out = MPR_GetSpecialFD(PR_StandardOutput);
+    std_out = PR_GetSpecialFD(PR_StandardOutput);
 
 #if defined(WIN32)
-    /* MPR_Poll cannot be used with stdin on Windows or OS/2.  (sigh).
-    ** But use of MPR_Poll and non-blocking sockets is a major feature
+    /* PR_Poll cannot be used with stdin on Windows or OS/2.  (sigh).
+    ** But use of PR_Poll and non-blocking sockets is a major feature
     ** of this program.  So, we simulate a pollable stdin with a
     ** TCP socket pair and a  thread that reads stdin and writes to
     ** that socket pair.
@@ -1805,19 +1805,19 @@ run()
         PRFileDesc *fds[2];
         PRThread *thread;
 
-        int nspr_rv = MPR_NewTCPSocketPair(fds);
+        int nspr_rv = PR_NewTCPSocketPair(fds);
         if (nspr_rv != PR_SUCCESS) {
-            SECU_PrintError(progName, "MPR_NewTCPSocketPair failed");
+            SECU_PrintError(progName, "PR_NewTCPSocketPair failed");
             error = 1;
             goto done;
         }
         pollset[STDIN_FD].fd = fds[1];
 
-        thread = MPR_CreateThread(PR_USER_THREAD, thread_main, fds[0],
+        thread = PR_CreateThread(PR_USER_THREAD, thread_main, fds[0],
                                  PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
                                  PR_UNJOINABLE_THREAD, 0);
         if (!thread) {
-            SECU_PrintError(progName, "MPR_CreateThread failed");
+            SECU_PrintError(progName, "PR_CreateThread failed");
             error = 1;
             goto done;
         }
@@ -1857,8 +1857,8 @@ run()
         pollset[SSOCK_FD].out_flags = 0;
         pollset[STDIN_FD].out_flags = 0;
 
-        FPRINTF(stderr, "%s: about to call MPR_Poll !\n", progName);
-        filesReady = MPR_Poll(pollset, PR_ARRAY_SIZE(pollset),
+        FPRINTF(stderr, "%s: about to call PR_Poll !\n", progName);
+        filesReady = PR_Poll(pollset, PR_ARRAY_SIZE(pollset),
                              PR_INTERVAL_NO_TIMEOUT);
         if (filesReady < 0) {
             SECU_PrintError(progName, "select failed");
@@ -1866,27 +1866,27 @@ run()
             goto done;
         }
         if (filesReady == 0) { /* shouldn't happen! */
-            FPRINTF(stderr, "%s: MPR_Poll returned zero!\n", progName);
+            FPRINTF(stderr, "%s: PR_Poll returned zero!\n", progName);
             error = 1;
             goto done;
         }
-        FPRINTF(stderr, "%s: MPR_Poll returned!\n", progName);
+        FPRINTF(stderr, "%s: PR_Poll returned!\n", progName);
         if (pollset[STDIN_FD].in_flags) {
             FPRINTF(stderr,
-                    "%s: MPR_Poll returned 0x%02x for stdin out_flags.\n",
+                    "%s: PR_Poll returned 0x%02x for stdin out_flags.\n",
                     progName, pollset[STDIN_FD].out_flags);
         }
         if (pollset[SSOCK_FD].in_flags) {
             FPRINTF(stderr,
-                    "%s: MPR_Poll returned 0x%02x for socket out_flags.\n",
+                    "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
                     progName, pollset[SSOCK_FD].out_flags);
         }
         if (pollset[STDIN_FD].out_flags & PR_POLL_READ) {
             /* Read from stdin and write to socket */
-            nb = MPR_Read(pollset[STDIN_FD].fd, buf, sizeof(buf));
+            nb = PR_Read(pollset[STDIN_FD].fd, buf, sizeof(buf));
             FPRINTF(stderr, "%s: stdin read %d bytes\n", progName, nb);
             if (nb < 0) {
-                if (MPR_GetError() != PR_WOULD_BLOCK_ERROR) {
+                if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
                     SECU_PrintError(progName, "read from stdin failed");
                     error = 1;
                     break;
@@ -1910,7 +1910,7 @@ run()
 
         if (pollset[SSOCK_FD].in_flags) {
             FPRINTF(stderr,
-                    "%s: MPR_Poll returned 0x%02x for socket out_flags.\n",
+                    "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
                     progName, pollset[SSOCK_FD].out_flags);
         }
 #ifdef PR_POLL_HUP
@@ -1920,10 +1920,10 @@ run()
 #endif
         if (pollset[SSOCK_FD].out_flags & POLL_RECV_FLAGS) {
             /* Read from socket and write to stdout */
-            nb = MPR_Recv(pollset[SSOCK_FD].fd, buf, sizeof buf, 0, maxInterval);
+            nb = PR_Recv(pollset[SSOCK_FD].fd, buf, sizeof buf, 0, maxInterval);
             FPRINTF(stderr, "%s: Read from server %d bytes\n", progName, nb);
             if (nb < 0) {
-                if (MPR_GetError() != PR_WOULD_BLOCK_ERROR) {
+                if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
                     SECU_PrintError(progName, "read from socket failed");
                     error = 1;
                     goto done;
@@ -1933,7 +1933,7 @@ run()
                 pollset[SSOCK_FD].in_flags = 0;
             } else {
                 if (skipProtoHeader != PR_TRUE || wrStarted == PR_TRUE) {
-                    MPR_Write(std_out, buf, nb);
+                    PR_Write(std_out, buf, nb);
                 } else {
                     separateReqHeader(std_out, (char *)buf, nb, &wrStarted,
                                       &headerSeparatorPtrnId);
@@ -1947,10 +1947,10 @@ run()
 
 done:
     if (s) {
-        MPR_Close(s);
+        PR_Close(s);
     }
     if (requestFile && pollset[STDIN_FD].fd) {
-        MPR_Close(pollset[STDIN_FD].fd);
+        PR_Close(pollset[STDIN_FD].fd);
     }
     return error;
 }
@@ -1994,16 +1994,16 @@ main(int argc, char **argv)
         progName = strrchr(argv[0], '\\');
     progName = progName ? progName + 1 : argv[0];
 
-    tmp = MPR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
+    tmp = PR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
     if (tmp && tmp[0]) {
         int sec = PORT_Atoi(tmp);
         if (sec > 0) {
-            maxInterval = MPR_SecondsToInterval(sec);
+            maxInterval = PR_SecondsToInterval(sec);
         }
     }
 
-    optstate = MPL_CreateLongOptState(argc, argv, cmdLineOptions, cmdLineLongOpts);
-    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateLongOptState(argc, argv, cmdLineOptions, cmdLineLongOpts);
+    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->longOption) {
             case '?':
             default:
@@ -2261,7 +2261,7 @@ main(int argc, char **argv)
             case 'I':
                 rv = parseGroupList(optstate->value, &enabledGroups, &enabledGroupsCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad group specified.\n");
                     Usage();
                 }
@@ -2270,7 +2270,7 @@ main(int argc, char **argv)
             case 'J':
                 rv = parseSigSchemeList(optstate->value, &enabledSigSchemes, &enabledSigSchemeCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad signature scheme specified.\n");
                     Usage();
                 }
@@ -2281,7 +2281,7 @@ main(int argc, char **argv)
                                     &enabledExporters,
                                     &enabledExporterCount);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad exporter specified.\n");
                     Usage();
                 }
@@ -2290,14 +2290,14 @@ main(int argc, char **argv)
             case 'z':
                 rv = readPSK(optstate->value, &psk, &pskLabel);
                 if (rv != SECSuccess) {
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad PSK specified.\n");
                     Usage();
                 }
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     SSL_VersionRangeGetSupported(useDTLS ? ssl_variant_datagram : ssl_variant_stream, &enabledVersions);
 
@@ -2341,32 +2341,32 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
     memset(&addr, 0, sizeof(addr));
-    status = MPR_StringToNetAddr(host, &addr);
+    status = PR_StringToNetAddr(host, &addr);
     if (status == PR_SUCCESS) {
-        addr.inet.port = MPR_htons(portno);
+        addr.inet.port = PR_htons(portno);
     } else {
         PRBool gotLoopbackIP = PR_FALSE;
         if (!strcmp(host, "localhost") || !strcmp(host, "localhost.localdomain")) {
             if (allowIPv4 && allowIPv6) {
-                /* Both families allowed: use MPR_GetPrefLoopbackAddrInfo to
+                /* Both families allowed: use PR_GetPrefLoopbackAddrInfo to
                  * choose the preferred loopback address without a DNS lookup. */
-                status = MPR_GetPrefLoopbackAddrInfo(&addr, portno);
+                status = PR_GetPrefLoopbackAddrInfo(&addr, portno);
                 if (status != PR_FAILURE) {
                     gotLoopbackIP = PR_TRUE;
                 }
             }
             if (!gotLoopbackIP && (allowIPv4 || allowIPv6)) {
                 /* Only one address family is requested, or
-                 * MPR_GetPrefLoopbackAddrInfo failed.  Set the loopback
+                 * PR_GetPrefLoopbackAddrInfo failed.  Set the loopback
                  * address directly without a DNS lookup. */
-                status = MPR_StringToNetAddr(allowIPv6 ? "::1" : "127.0.0.1",
+                status = PR_StringToNetAddr(allowIPv6 ? "::1" : "127.0.0.1",
                                             &addr);
                 if (status == PR_SUCCESS) {
-                    addr.inet.port = MPR_htons(portno);
+                    addr.inet.port = PR_htons(portno);
                     gotLoopbackIP = PR_TRUE;
                 }
             }
@@ -2377,7 +2377,7 @@ main(int argc, char **argv)
             PRAddrInfo *addrInfo;
             void *enumPtr = NULL;
 
-            addrInfo = MPR_GetAddrInfoByName(host, PR_AF_UNSPEC,
+            addrInfo = PR_GetAddrInfoByName(host, PR_AF_UNSPEC,
                                             PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
             if (!addrInfo) {
                 fprintf(stderr, "HOSTNAME=%s\n", host);
@@ -2386,7 +2386,7 @@ main(int argc, char **argv)
                 goto done;
             }
             for (;;) {
-                enumPtr = MPR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
+                enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
                 if (enumPtr == NULL)
                     break;
                 if (addr.raw.family == PR_AF_INET && allowIPv4)
@@ -2394,7 +2394,7 @@ main(int argc, char **argv)
                 if (addr.raw.family == PR_AF_INET6 && allowIPv6)
                     break;
             }
-            MPR_FreeAddrInfo(addrInfo);
+            PR_FreeAddrInfo(addrInfo);
             if (enumPtr == NULL) {
                 SECU_PrintError(progName, "error looking up host address");
                 error = 1;
@@ -2425,7 +2425,7 @@ main(int argc, char **argv)
         }
         do {
             PRIntervalTime timeoutInterval = PR_INTERVAL_NO_TIMEOUT;
-            s = MPR_OpenTCPSocket(addr.raw.family);
+            s = PR_OpenTCPSocket(addr.raw.family);
             if (s == NULL) {
                 SECU_PrintError(progName, "Failed to create a TCP socket");
                 error = 1;
@@ -2433,7 +2433,7 @@ main(int argc, char **argv)
             }
             opt.option = PR_SockOpt_Nonblocking;
             opt.value.non_blocking = PR_FALSE;
-            prStatus = MPR_SetSocketOption(s, &opt);
+            prStatus = PR_SetSocketOption(s, &opt);
             if (prStatus != PR_SUCCESS) {
                 SECU_PrintError(progName,
                                 "Failed to set blocking socket option");
@@ -2441,23 +2441,23 @@ main(int argc, char **argv)
                 goto done;
             }
             if (pingTimeoutSeconds >= 0) {
-                timeoutInterval = MPR_SecondsToInterval(pingTimeoutSeconds);
+                timeoutInterval = PR_SecondsToInterval(pingTimeoutSeconds);
             }
-            prStatus = MPR_Connect(s, &addr, timeoutInterval);
+            prStatus = PR_Connect(s, &addr, timeoutInterval);
             if (prStatus == PR_SUCCESS) {
-                MPR_Shutdown(s, PR_SHUTDOWN_BOTH);
+                PR_Shutdown(s, PR_SHUTDOWN_BOTH);
                 goto done;
             }
-            err = MPR_GetError();
+            err = PR_GetError();
             if ((err != PR_CONNECT_REFUSED_ERROR) &&
                 (err != PR_CONNECT_RESET_ERROR)) {
                 SECU_PrintError(progName, "TCP Connection failed");
                 error = 1;
                 goto done;
             }
-            MPR_Close(s);
+            PR_Close(s);
             s = NULL;
-            MPR_Sleep(MPR_MillisecondsToInterval(WAIT_INTERVAL));
+            PR_Sleep(PR_MillisecondsToInterval(WAIT_INTERVAL));
         } while (++iter < max_attempts);
         SECU_PrintError(progName,
                         "Client timed out while waiting for connection to server");
@@ -2504,7 +2504,7 @@ main(int argc, char **argv)
 
 done:
     if (s) {
-        MPR_Close(s);
+        PR_Close(s);
     }
 
     PORT_Free((void *)requestFile);
@@ -2535,6 +2535,6 @@ done:
     }
 
     FPRINTF(stderr, "tstclnt: exiting with return code %d\n", error);
-    MPR_Cleanup();
+    PR_Cleanup();
     return error;
 }

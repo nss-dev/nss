@@ -456,9 +456,9 @@ bool TlsAgent::GetPeerChainLength(size_t* count) {
 void TlsAgent::CheckPeerChainFunctionConsistency() {
   SECItemArray* derChain = nullptr;
   SECStatus rv = SSL_PeerCertificateChainDER(ssl_fd(), &derChain);
-  PRErrorCode err1 = MPR_GetError();
+  PRErrorCode err1 = PR_GetError();
   CERTCertList* chain = SSL_PeerCertificateChain(ssl_fd());
-  PRErrorCode err2 = MPR_GetError();
+  PRErrorCode err2 = PR_GetError();
   if (rv != SECSuccess) {
     ASSERT_EQ(nullptr, chain);
     ASSERT_EQ(nullptr, derChain);
@@ -1169,7 +1169,7 @@ void TlsAgent::Handshake() {
     return;
   }
 
-  int32_t err = MPR_GetError();
+  int32_t err = PR_GetError();
   if (err == PR_WOULD_BLOCK_ERROR) {
     LOGV("Would have blocked");
     if (variant_ == ssl_variant_datagram) {
@@ -1254,11 +1254,11 @@ void TlsAgent::SendData(size_t bytes, size_t blocksize) {
 
 void TlsAgent::SendBuffer(const DataBuffer& buf) {
   LOGV("Writing " << buf.len() << " bytes");
-  int32_t rv = MPR_Write(ssl_fd(), buf.data(), buf.len());
+  int32_t rv = PR_Write(ssl_fd(), buf.data(), buf.len());
   if (expect_readwrite_error_) {
     EXPECT_GT(0, rv);
     EXPECT_NE(PR_WOULD_BLOCK_ERROR, error_code_);
-    error_code_ = MPR_GetError();
+    error_code_ = PR_GetError();
     expect_readwrite_error_ = false;
   } else {
     ASSERT_EQ(buf.len(), static_cast<size_t>(rv));
@@ -1299,7 +1299,7 @@ void TlsAgent::ReadBytes(size_t amount) {
 
   size_t remaining = amount;
   while (remaining > 0) {
-    int32_t rv = MPR_Read(ssl_fd(), block, (std::min)(amount, sizeof(block)));
+    int32_t rv = PR_Read(ssl_fd(), block, (std::min)(amount, sizeof(block)));
     LOGV("ReadBytes " << rv);
 
     if (rv > 0) {
@@ -1312,7 +1312,7 @@ void TlsAgent::ReadBytes(size_t amount) {
     } else {
       PRErrorCode err = 0;
       if (rv < 0) {
-        err = MPR_GetError();
+        err = PR_GetError();
         if (err != 0) {
           LOG("Read error " << PORT_ErrorToName(err) << ": "
                             << PORT_ErrorToString(err));

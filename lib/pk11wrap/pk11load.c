@@ -34,7 +34,7 @@ static char *modToDBG = NULL;
 CK_RV PR_CALLBACK
 secmodCreateMutext(CK_VOID_PTR_PTR pmutex)
 {
-    *pmutex = (CK_VOID_PTR)MPR_NewLock();
+    *pmutex = (CK_VOID_PTR)PR_NewLock();
     if (*pmutex)
         return CKR_OK;
     return CKR_HOST_MEMORY;
@@ -43,21 +43,21 @@ secmodCreateMutext(CK_VOID_PTR_PTR pmutex)
 CK_RV PR_CALLBACK
 secmodDestroyMutext(CK_VOID_PTR mutext)
 {
-    MPR_DestroyLock((PRLock *)mutext);
+    PR_DestroyLock((PRLock *)mutext);
     return CKR_OK;
 }
 
 CK_RV PR_CALLBACK
 secmodLockMutext(CK_VOID_PTR mutext)
 {
-    MPR_Lock((PRLock *)mutext);
+    PR_Lock((PRLock *)mutext);
     return CKR_OK;
 }
 
 CK_RV PR_CALLBACK
 secmodUnlockMutext(CK_VOID_PTR mutext)
 {
-    MPR_Unlock((PRLock *)mutext);
+    PR_Unlock((PRLock *)mutext);
     return CKR_OK;
 }
 
@@ -409,7 +409,7 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
          * even though the rest of NSS assumes this as the "internal" module.
          */
         if (!softokenLib &&
-            PR_SUCCESS != MPR_CallOnce(&loadSoftokenOnce, &softoken_LoadDSO))
+            PR_SUCCESS != PR_CallOnce(&loadSoftokenOnce, &softoken_LoadDSO))
             return SECFailure;
 
         PR_ATOMIC_INCREMENT(&softokenLoadCount);
@@ -423,10 +423,10 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
         }
 
         ientry = (CK_C_GetInterface)
-            MPR_FindSymbol(softokenLib, nss_interface);
+            PR_FindSymbol(softokenLib, nss_interface);
         if (!ientry) {
             fentry = (CK_C_GetFunctionList)
-                MPR_FindSymbol(softokenLib, nss_function);
+                PR_FindSymbol(softokenLib, nss_function);
             if (!fentry) {
                 return SECFailure;
             }
@@ -438,7 +438,7 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
 #ifdef NSS_STATIC_SOFTOKEN
                 NSC_ModuleDBFunc;
 #else
-                MPR_FindSymbol(softokenLib, "NSC_ModuleDBFunc");
+                PR_FindSymbol(softokenLib, "NSC_ModuleDBFunc");
 #endif
         }
 
@@ -462,16 +462,16 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
                 PRLibSpec libSpec;
                 libSpec.type = PR_LibSpec_PathnameU;
                 libSpec.value.pathname_u = dllNameWide;
-                library = MPR_LoadLibraryWithFlags(libSpec, 0);
+                library = PR_LoadLibraryWithFlags(libSpec, 0);
                 PORT_Free(dllNameWide);
             }
         }
         if (library == NULL) {
             // fallback to system code page
-            library = MPR_LoadLibrary(mod->dllName);
+            library = PR_LoadLibrary(mod->dllName);
         }
 #else
-        library = MPR_LoadLibrary(mod->dllName);
+        library = PR_LoadLibrary(mod->dllName);
 #endif // defined(_WIN32)
         mod->library = (void *)library;
 
@@ -484,15 +484,15 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
          */
         if (!mod->moduleDBOnly) {
             ientry = (CK_C_GetInterface)
-                MPR_FindSymbol(library, "C_GetInterface");
+                PR_FindSymbol(library, "C_GetInterface");
             if (!ientry) {
                 fentry = (CK_C_GetFunctionList)
-                    MPR_FindSymbol(library, "C_GetFunctionList");
+                    PR_FindSymbol(library, "C_GetFunctionList");
             }
         }
         if (mod->isModuleDB) {
             mod->moduleDBFunc = (void *)
-                MPR_FindSymbol(library, "NSS_ReturnModuleSpecData");
+                PR_FindSymbol(library, "NSS_ReturnModuleSpecData");
         }
         if (mod->moduleDBFunc == NULL)
             mod->isModuleDB = PR_FALSE;
@@ -502,7 +502,7 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
                 mod->moduleDBOnly = PR_TRUE;
                 return SECSuccess;
             }
-            MPR_UnloadLibrary(library);
+            PR_UnloadLibrary(library);
             return SECFailure;
         }
     }
@@ -533,7 +533,7 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
     }
 
 #ifdef DEBUG_MODULE
-    modToDBG = MPR_GetEnvSecure("NSS_DEBUG_PKCS11_MODULE");
+    modToDBG = PR_GetEnvSecure("NSS_DEBUG_PKCS11_MODULE");
     if (modToDBG && strcmp(mod->commonName, modToDBG) == 0) {
         mod->functionList = (void *)nss_InsertDeviceLog(
             (CK_FUNCTION_LIST_3_0_PTR)mod->functionList);
@@ -544,9 +544,9 @@ secmod_DetermineModuleFunctionList(SECMODModule *mod)
 
 fail:
     mod->functionList = NULL;
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (library && !disableUnload) {
-        MPR_UnloadLibrary(library);
+        PR_UnloadLibrary(library);
     }
     return SECFailure;
 }
@@ -562,7 +562,7 @@ secmod_InitializeModuleAndGetSlotInfo(SECMODModule *mod, SECMODModule **oldModul
     /* This test operation makes sure our locking system is
      * consistent even if we are using non-thread safe tokens by
      * simulating unsafe tokens with safe ones. */
-    mod->isThreadSafe = !MPR_GetEnvSecure("NSS_FORCE_TOKEN_LOCK");
+    mod->isThreadSafe = !PR_GetEnvSecure("NSS_FORCE_TOKEN_LOCK");
 
     /* Now we initialize the module */
     rv = secmod_ModuleInit(mod, oldModule, &alreadyLoaded);
@@ -747,13 +747,13 @@ SECMOD_UnloadModule(SECMODModule *mod)
 #ifndef NSS_STATIC_SOFTOKEN
         if (0 == PR_ATOMIC_DECREMENT(&softokenLoadCount)) {
             if (softokenLib) {
-                disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+                disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
                 if (!disableUnload) {
 #ifdef DEBUG
-                    PRStatus status = MPR_UnloadLibrary(softokenLib);
+                    PRStatus status = PR_UnloadLibrary(softokenLib);
                     PORT_Assert(PR_SUCCESS == status);
 #else
-                    MPR_UnloadLibrary(softokenLib);
+                    PR_UnloadLibrary(softokenLib);
 #endif
                 }
                 softokenLib = NULL;
@@ -770,9 +770,9 @@ SECMOD_UnloadModule(SECMODModule *mod)
         return SECSuccess;
     }
 
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (!disableUnload) {
-        MPR_UnloadLibrary(library);
+        PR_UnloadLibrary(library);
     }
     return SECSuccess;
 }

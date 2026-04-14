@@ -37,11 +37,11 @@ struct nssListIteratorStr {
 
 #define NSSLIST_LOCK_IF(list) \
     if ((list)->lock)         \
-    MPR_Lock((list)->lock)
+    PR_Lock((list)->lock)
 
 #define NSSLIST_UNLOCK_IF(list) \
     if ((list)->lock)           \
-    MPR_Unlock((list)->lock)
+    PR_Unlock((list)->lock)
 
 static PRBool
 pointer_compare(void *a, void *b)
@@ -95,7 +95,7 @@ nssList_Create(NSSArena *arenaOpt, PRBool threadSafe)
         return (nssList *)NULL;
     }
     if (threadSafe) {
-        list->lock = MPR_NewLock();
+        list->lock = PR_NewLock();
         if (!list->lock) {
             if (arenaOpt) {
                 nss_ZFreeIf(list);
@@ -121,7 +121,7 @@ nssList_Destroy(nssList *list)
         nssList_Clear(list, NULL);
     }
     if (list->lock) {
-        (void)MPR_DestroyLock(list->lock);
+        (void)PR_DestroyLock(list->lock);
     }
     if (list->i_alloced_arena) {
         NSSArena_Destroy(list->arena);
@@ -342,7 +342,7 @@ nssList_CreateIterator(nssList *list)
     }
     rvIterator->current = rvIterator->list->head;
     if (list->lock) {
-        rvIterator->lock = MPR_NewLock();
+        rvIterator->lock = PR_NewLock();
         if (!rvIterator->lock) {
             nssList_Destroy(rvIterator->list);
             nss_ZFreeIf(rvIterator);
@@ -356,7 +356,7 @@ NSS_IMPLEMENT void
 nssListIterator_Destroy(nssListIterator *iter)
 {
     if (iter->lock) {
-        (void)MPR_DestroyLock(iter->lock);
+        (void)PR_DestroyLock(iter->lock);
     }
     if (iter->list) {
         nssList_Destroy(iter->list);
@@ -401,5 +401,5 @@ NSS_IMPLEMENT PRStatus
 nssListIterator_Finish(nssListIterator *iter)
 {
     iter->current = iter->list->head;
-    return (iter->lock) ? MPR_Unlock(iter->lock) : PR_SUCCESS;
+    return (iter->lock) ? PR_Unlock(iter->lock) : PR_SUCCESS;
 }

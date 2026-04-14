@@ -441,7 +441,7 @@ static PRFileDesc *src;
 
 #define YY_INPUT(buf, result, max_size)                      \
     if (parserStatus != SECFailure) {                        \
-        if (((result = MPR_Read(src, buf, max_size)) == 0) && \
+        if (((result = PR_Read(src, buf, max_size)) == 0) && \
             ferror(yyin))                                    \
             return SECFailure;                               \
     } else {                                                 \
@@ -1746,13 +1746,13 @@ static PRLock *parserInvocationLock;
 void
 CRLGEN_InitCrlGenParserLock()
 {
-    parserInvocationLock = MPR_NewLock();
+    parserInvocationLock = PR_NewLock();
 }
 
 void
 CRLGEN_DestroyCrlGenParserLock()
 {
-    MPR_DestroyLock(parserInvocationLock);
+    PR_DestroyLock(parserInvocationLock);
 }
 
 SECStatus
@@ -1760,7 +1760,7 @@ CRLGEN_StartCrlGen(CRLGENGeneratorData *parserCtlData)
 {
     SECStatus rv;
 
-    MPR_Lock(parserInvocationLock);
+    PR_Lock(parserInvocationLock);
 
     parserStatus = SECSuccess;
     parserData = parserCtlData;
@@ -1768,7 +1768,7 @@ CRLGEN_StartCrlGen(CRLGENGeneratorData *parserCtlData)
 
     rv = yylex();
 
-    MPR_Unlock(parserInvocationLock);
+    PR_Unlock(parserInvocationLock);
 
     return rv;
 }

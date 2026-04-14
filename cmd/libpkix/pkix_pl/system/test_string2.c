@@ -51,21 +51,21 @@ createString(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         vivaEspana,
-        MPL_strlen(vivaEspana),
+        PL_strlen(vivaEspana),
         vivaEspanaString,
         plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         strauss,
-        MPL_strlen(strauss),
+        PL_strlen(strauss),
         straussString,
         plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_UTF8,
         gorbachev,
-        MPL_strlen(gorbachev),
+        PL_strlen(gorbachev),
         gorbachevString,
         plContext));
 
@@ -86,7 +86,7 @@ createString(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_UTF8,
         jeanReno,
-        MPL_strlen(jeanReno),
+        PL_strlen(jeanReno),
         jeanRenoString,
         plContext));
 

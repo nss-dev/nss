@@ -27,8 +27,8 @@ pkix_pl_MonitorLock_Destroy(
 
         monitorLock = (PKIX_PL_MonitorLock*) object;
 
-        PKIX_MONITORLOCK_DEBUG("Calling MPR_DestroyMonitor)\n");
-        MPR_DestroyMonitor(monitorLock->lock);
+        PKIX_MONITORLOCK_DEBUG("Calling PR_DestroyMonitor)\n");
+        PR_DestroyMonitor(monitorLock->lock);
         monitorLock->lock = NULL;
 
 cleanup:
@@ -92,8 +92,8 @@ PKIX_PL_MonitorLock_Create(
                     plContext),
                     PKIX_ERRORALLOCATINGMONITORLOCK);
 
-        PKIX_MONITORLOCK_DEBUG("\tCalling MPR_NewMonitor)\n");
-        monitorLock->lock = MPR_NewMonitor();
+        PKIX_MONITORLOCK_DEBUG("\tCalling PR_NewMonitor)\n");
+        monitorLock->lock = PR_NewMonitor();
 
         if (monitorLock->lock == NULL) {
                 PKIX_DECREF(monitorLock);
@@ -115,8 +115,8 @@ PKIX_PL_MonitorLock_Enter(
         PKIX_ENTER_NO_LOGGER(MONITORLOCK, "PKIX_PL_MonitorLock_Enter");
         PKIX_NULLCHECK_ONE(monitorLock);
 
-        PKIX_MONITORLOCK_DEBUG("\tCalling MPR_EnterMonitor)\n");
-        (void) MPR_EnterMonitor(monitorLock->lock);
+        PKIX_MONITORLOCK_DEBUG("\tCalling PR_EnterMonitor)\n");
+        (void) PR_EnterMonitor(monitorLock->lock);
 
         PKIX_RETURN_NO_LOGGER(MONITORLOCK);
 }
@@ -129,8 +129,8 @@ PKIX_PL_MonitorLock_Exit(
         PKIX_ENTER_NO_LOGGER(MONITORLOCK, "PKIX_PL_MonitorLock_Exit");
         PKIX_NULLCHECK_ONE(monitorLock);
 
-        PKIX_MONITORLOCK_DEBUG("\tCalling MPR_ExitMonitor)\n");
-        MPR_ExitMonitor(monitorLock->lock);
+        PKIX_MONITORLOCK_DEBUG("\tCalling PR_ExitMonitor)\n");
+        PR_ExitMonitor(monitorLock->lock);
 
         PKIX_RETURN_NO_LOGGER(MONITORLOCK);
 }

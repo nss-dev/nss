@@ -139,7 +139,7 @@ treeToStringHelper(PKIX_PolicyNode *parent, char *expected)
         goto cleanup;
     }
 
-    if (MPL_strcmp(actual, expected) != 0) {
+    if (PL_strcmp(actual, expected) != 0) {
         testError("unexpected mismatch");
         (void)printf("Actual value:\t%s\n", actual);
         (void)printf("Expected value:\t%s\n", expected);

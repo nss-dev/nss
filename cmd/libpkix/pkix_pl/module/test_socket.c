@@ -101,7 +101,7 @@ printUsage(char *testname)
 static void
 do_other_work(void)
 { /* while waiting for nonblocking I/O to complete */
-    (void)MPR_Sleep(2 * 60);
+    (void)PR_Sleep(2 * 60);
 }
 
 static PKIX_Boolean
@@ -133,7 +133,7 @@ server()
 
             if (bytesRead > 0) {
                 /* confirm that rcvBuf1 = sendBuf1 */
-                if ((bytesRead != (PRInt32)MPL_strlen(sendBuf1) + 1) ||
+                if ((bytesRead != (PRInt32)PL_strlen(sendBuf1) + 1) ||
                     (strncmp(sendBuf1, rcvBuf1, bytesRead) != 0)) {
                     testError("Receive buffer mismatch\n");
                 }
@@ -150,7 +150,7 @@ server()
 
             if (bytesRead > 0) {
                 /* confirm that rcvBuf1 = sendBuf1 */
-                if ((bytesRead != (PRInt32)MPL_strlen(sendBuf1) + 1) ||
+                if ((bytesRead != (PRInt32)PL_strlen(sendBuf1) + 1) ||
                     (strncmp(sendBuf1, rcvBuf1, bytesRead) != 0)) {
                     testError("Receive buffer mismatch\n");
                 }
@@ -308,7 +308,7 @@ client()
 
             if (bytesRead > 0) {
                 /* confirm that rcvBuf2 = sendBuf2 */
-                if ((bytesRead != (PRInt32)MPL_strlen(sendBuf2) + 1) ||
+                if ((bytesRead != (PRInt32)PL_strlen(sendBuf2) + 1) ||
                     (strncmp(sendBuf2, rcvBuf2, bytesRead) != 0)) {
                     testError("Receive buffer mismatch\n");
                 }
@@ -324,7 +324,7 @@ client()
             PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->pollCallback(cSock, NULL, &bytesRead, plContext));
             if (bytesRead > 0) {
                 /* confirm that rcvBuf2 = sendBuf2 */
-                if ((bytesRead != (PRInt32)MPL_strlen(sendBuf2) + 1) ||
+                if ((bytesRead != (PRInt32)PL_strlen(sendBuf2) + 1) ||
                     (strncmp(sendBuf2, rcvBuf2, bytesRead) != 0)) {
                     testError("Receive buffer mismatch\n");
                 }
@@ -498,23 +498,23 @@ test_socket(int argc, char *argv[])
     if (sepPtr) {
         *sepPtr++ = '\0';
     }
-    prstatus = MPR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
+    prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
 
     if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
         printUsage(argv[0]);
         pkixTestErrorMsg =
-            "MPR_GetHostByName rejects command line argument.";
+            "PR_GetHostByName rejects command line argument.";
         goto cleanup;
     }
 
     serverNetAddr.inet.family = PR_AF_INET;
-    serverNetAddr.inet.port = MPR_htons(portNum);
-    serverNetAddr.inet.ip = MPR_htonl(PR_INADDR_ANY);
+    serverNetAddr.inet.port = PR_htons(portNum);
+    serverNetAddr.inet.ip = PR_htonl(PR_INADDR_ANY);
 
-    hostenum = MPR_EnumerateHostEnt(0, &hostent, portNum, &clientNetAddr);
+    hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &clientNetAddr);
     if (hostenum == -1) {
         pkixTestErrorMsg =
-            "MPR_EnumerateHostEnt failed.";
+            "PR_EnumerateHostEnt failed.";
         goto cleanup;
     }
 
@@ -526,10 +526,10 @@ test_socket(int argc, char *argv[])
 
     bindError = pkix_pl_Socket_Create(PKIX_TRUE, timeout, &serverNetAddr, &cStat, &sSock, plContext);
 
-    /* If MPR_Bind can't handle INADDR_ANY, try it with the real name */
+    /* If PR_Bind can't handle INADDR_ANY, try it with the real name */
     if (bindError) {
         PKIX_TEST_DECREF_BC(bindError);
-        serverNetAddr.inet.ip = MPR_htonl(*(PRUint32 *)ipaddr);
+        serverNetAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr);
 
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create(PKIX_TRUE,
                                                         timeout,

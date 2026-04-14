@@ -199,7 +199,7 @@ testAddIssuerName(PKIX_ComCRLSelParams *comCrlSelParams, char *issuerName)
 
     subTest("PKIX_ComCRLSelParams_AddIssuerName");
 
-    length = MPL_strlen(issuerName);
+    length = PL_strlen(issuerName);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_UTF8,
                                                     issuerName,

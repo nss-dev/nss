@@ -224,12 +224,12 @@ static const PRCallOnceType pkix_pristine;
 static PRStatus PR_CALLBACK pkix_getDecodeFunction(void)
 {
     pkix_decodeFunc.smimeLib = 
-		MPR_LoadLibrary(SHLIB_PREFIX"smime3."SHLIB_SUFFIX);
+		PR_LoadLibrary(SHLIB_PREFIX"smime3."SHLIB_SUFFIX);
     if (pkix_decodeFunc.smimeLib == NULL) {
 	return PR_FAILURE;
     }
 
-    pkix_decodeFunc.func = (pkix_DecodeCertsFunc) MPR_FindFunctionSymbol(
+    pkix_decodeFunc.func = (pkix_DecodeCertsFunc) PR_FindFunctionSymbol(
 		pkix_decodeFunc.smimeLib, "CERT_DecodeCertPackage");
     if (!pkix_decodeFunc.func) {
 	return PR_FAILURE;
@@ -245,7 +245,7 @@ void
 pkix_pl_HttpCertStore_Shutdown(void *plContext)
 {
     if (pkix_decodeFunc.smimeLib) {
-	MPR_UnloadLibrary(pkix_decodeFunc.smimeLib);
+	PR_UnloadLibrary(pkix_decodeFunc.smimeLib);
 	pkix_decodeFunc.smimeLib = NULL;
     }
     /* the function pointer just need to be cleared, not freed */
@@ -274,7 +274,7 @@ pkix_pl_HttpCertStore_DecodeCertPackage
                 "pkix_pl_HttpCertStore_DecodeCertPackage");
         PKIX_NULLCHECK_TWO(certbuf, f);
 
-        status = MPR_CallOnce(&pkix_decodeFunc.once, pkix_getDecodeFunction);
+        status = PR_CallOnce(&pkix_decodeFunc.once, pkix_getDecodeFunction);
 
         if (status != PR_SUCCESS) {
                PKIX_ERROR(PKIX_CANTLOADLIBSMIME);
@@ -542,7 +542,7 @@ pkix_pl_HttpCertStore_CreateRequestSession(
         
         rv = (*hcv1->createFcn)(context->serverSession, "http",
                          context->path, "GET",
-                         MPR_SecondsToInterval(
+                         PR_SecondsToInterval(
                              ((PKIX_PL_NssContext*)plContext)->timeoutSeconds),
                          &(context->requestSession));
         

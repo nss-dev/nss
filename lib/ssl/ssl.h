@@ -217,8 +217,8 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  *
  * When this option is set, the server's session tickets will contain
  * a flag indicating that it accepts 0-RTT. When resuming such a
- * session, MPR_Write() on the client will be allowed immediately after
- * starting the handshake and MPR_Read() on the server will be allowed
+ * session, PR_Write() on the client will be allowed immediately after
+ * starting the handshake and PR_Read() on the server will be allowed
  * on the server to read that data. Calls to
  * SSL_GetPreliminaryChannelInfo() and SSL_GetNextProto()
  * can be made used during this period to learn about the channel
@@ -230,7 +230,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * prior to reading all 0-RTT data using SSL_ForceHandshake().  To
  * ensure that all early data is read before the handshake callback, any
  * time that SSL_ForceHandshake() returns a PR_WOULD_BLOCK_ERROR, use
- * MPR_Read() to read all available data.  If MPR_Read() is called
+ * PR_Read() to read all available data.  If PR_Read() is called
  * multiple times, this will result in the handshake completing, but the
  * handshake callback will occur after early data has all been read.
  *
@@ -1516,7 +1516,7 @@ extern const char *NSSSSL_GetVersion(void);
  * mapping may change in future versions of libssl.
  *
  * This function will not complete the entire handshake. The application must
- * call SSL_ForceHandshake, MPR_Recv, MPR_Send, etc. after calling this function
+ * call SSL_ForceHandshake, PR_Recv, PR_Send, etc. after calling this function
  * to force the handshake to complete.
  *
  * On the first handshake of a connection, libssl will wait for the peer's
@@ -1541,7 +1541,7 @@ extern const char *NSSSSL_GetVersion(void);
  *
  * Be careful about converting an application from synchronous cert validation
  * to asynchronous certificate validation. A naive conversion is likely to
- * result in deadlocks; e.g. the application will wait in MPR_Poll for network
+ * result in deadlocks; e.g. the application will wait in PR_Poll for network
  * I/O on the connection while all network I/O on the connection is blocked
  * waiting for this function to be called.
  *
@@ -1586,12 +1586,12 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
  * certificate selection, or to call this function more than once.
 
  * This function will not complete the entire handshake. The application must
- * call SSL_ForceHandshake, MPR_Recv, MPR_Send, etc. after calling this function
+ * call SSL_ForceHandshake, PR_Recv, PR_Send, etc. after calling this function
  * to force the handshake to complete.
  *
  * Be careful about converting an application from synchronous cert selection
  * to asynchronous certificate selection. A naive conversion is likely to
- * result in deadlocks; e.g. the application will wait in MPR_Poll for network
+ * result in deadlocks; e.g. the application will wait in PR_Poll for network
  * I/O on the connection while all network I/O on the connection is blocked
  * waiting for this function to be called.
  *

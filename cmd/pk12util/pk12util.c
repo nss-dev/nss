@@ -31,7 +31,7 @@ PRIntn pk12uErrno = 0;
 static void
 Usage()
 {
-#define FPS MPR_fprintf(PR_STDERR,
+#define FPS PR_fprintf(PR_STDERR,
     FPS "Usage:	 %s -i importfile [-I] [-d certdir] [-P dbprefix] [-h tokenname]\n",
 				 progName);
     FPS "\t\t [-k slotpwfile | -K slotpw] [-w p12filepwfile | -W p12filepw]\n");
@@ -60,10 +60,10 @@ p12u_OpenFile(p12uContext *p12cxt, PRBool fileRead)
     }
 
     if (fileRead) {
-        p12cxt->file = MPR_Open(p12cxt->filename,
+        p12cxt->file = PR_Open(p12cxt->filename,
                                PR_RDONLY, 0400);
     } else {
-        p12cxt->file = MPR_Open(p12cxt->filename,
+        p12cxt->file = PR_Open(p12cxt->filename,
                                PR_CREATE_FILE | PR_RDWR | PR_TRUNCATE,
                                0600);
     }
@@ -84,18 +84,18 @@ p12u_DestroyContext(p12uContext **ppCtx, PRBool removeFile)
     }
 
     if ((*ppCtx)->file != NULL) {
-        MPR_Close((*ppCtx)->file);
+        PR_Close((*ppCtx)->file);
     }
 
     if ((*ppCtx)->filename != NULL) {
         if (removeFile) {
-            MPR_Delete((*ppCtx)->filename);
+            PR_Delete((*ppCtx)->filename);
         }
-        MPL_strfree((*ppCtx)->filename);
+        PL_strfree((*ppCtx)->filename);
         (*ppCtx)->filename = NULL;
     }
 
-    MPR_Free(*ppCtx);
+    PR_Free(*ppCtx);
     *ppCtx = NULL;
 }
 
@@ -111,7 +111,7 @@ p12u_InitContext(PRBool fileImport, char *filename)
 
     p12cxt->error = PR_FALSE;
     p12cxt->errorValue = 0;
-    p12cxt->filename = MPL_strdup(filename);
+    p12cxt->filename = PL_strdup(filename);
 
     if (!p12u_OpenFile(p12cxt, fileImport)) {
         p12u_DestroyContext(&p12cxt, PR_FALSE);
@@ -289,15 +289,15 @@ P12U_GetP12FilePassword(PRBool confirmPw, secuPWData *p12FilePw)
                 break;
             p1 = SECU_GetPasswordString(NULL, "Re-enter password: ");
             if (p1 == NULL) {
-                PORT_ZFree(p0, MPL_strlen(p0));
+                PORT_ZFree(p0, PL_strlen(p0));
                 p0 = NULL;
                 break;
             }
-            rc = MPL_strcmp(p0, p1);
-            PORT_ZFree(p1, MPL_strlen(p1));
+            rc = PL_strcmp(p0, p1);
+            PORT_ZFree(p1, PL_strlen(p1));
             if (rc == 0)
                 break;
-            PORT_ZFree(p0, MPL_strlen(p0));
+            PORT_ZFree(p0, PL_strlen(p0));
         }
     } else if (p12FilePw->source == PW_FROMFILE) {
         p0 = SECU_FilePasswd(NULL, PR_FALSE, p12FilePw->data);
@@ -308,10 +308,10 @@ P12U_GetP12FilePassword(PRBool confirmPw, secuPWData *p12FilePw)
     if (p0 == NULL) {
         return NULL;
     }
-    pwItem = SECITEM_AllocItem(NULL, NULL, MPL_strlen(p0) + 1);
+    pwItem = SECITEM_AllocItem(NULL, NULL, PL_strlen(p0) + 1);
     memcpy(pwItem->data, p0, pwItem->len);
 
-    PORT_ZFree(p0, MPL_strlen(p0));
+    PORT_ZFree(p0, PL_strlen(p0));
 
     return pwItem;
 }
@@ -410,9 +410,9 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
         rv = SEC_PKCS12DecoderUpdate(p12dcx, p12file.data, p12file.len);
 
         if (rv != SECSuccess) {
-            error = MPR_GetError();
+            error = PR_GetError();
             if (error == SEC_ERROR_DECRYPTION_DISALLOWED) {
-                MPR_SetError(error, 0);
+                PR_SetError(error, 0);
                 break;
             }
             SECU_PrintError(progName, "PKCS12 decoding failed");
@@ -472,7 +472,7 @@ done:
             uniPwp->data = NULL;
         }
     }
-    MPR_Close(p12cxt->file);
+    PR_Close(p12cxt->file);
     p12cxt->file = NULL;
     /* PK11_FreeSlot(slot); */
     p12u_DestroyContext(&p12cxt, PR_FALSE);
@@ -545,7 +545,7 @@ P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
         }
         rv = SEC_PKCS12DecoderImportBags(p12dcx);
         if (rv != SECSuccess) {
-            if (MPR_GetError() == SEC_ERROR_PKCS12_UNABLE_TO_IMPORT_KEY &&
+            if (PR_GetError() == SEC_ERROR_PKCS12_UNABLE_TO_IMPORT_KEY &&
                 forceUnicode == pk12uForceUnicode) {
                 /* try again with a different password encoding */
                 forceUnicode = !pk12uForceUnicode;
@@ -618,11 +618,11 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
         return;
     }
 
-    writeLen = MPR_Write(p12cxt->file, (unsigned char *)buf, (PRInt32)len);
+    writeLen = PR_Write(p12cxt->file, (unsigned char *)buf, (PRInt32)len);
 
     if (writeLen != (int)len) {
-        MPR_Close(p12cxt->file);
-        MPL_strfree(p12cxt->filename);
+        PR_Close(p12cxt->file);
+        PL_strfree(p12cxt->filename);
         p12cxt->filename = NULL;
         p12cxt->file = NULL;
         p12cxt->errorValue = SEC_ERROR_PKCS12_UNABLE_TO_WRITE;
@@ -659,7 +659,7 @@ P12U_ExportPKCS12Object(char *nn, char *outfile, PK11SlotInfo *inSlot,
 
     if ((SECSuccess != CERT_FilterCertListForUserCerts(certlist)) ||
         CERT_LIST_EMPTY(certlist)) {
-        MPR_fprintf(PR_STDERR, "%s: no user certs from given nickname\n",
+        PR_fprintf(PR_STDERR, "%s: no user certs from given nickname\n",
                    progName);
         pk12uErrno = PK12UERR_FINDCERTBYNN;
         goto loser;
@@ -814,15 +814,15 @@ P12U_ListPKCS12File(char *in_file, PK11SlotInfo *slot,
                         PRFileDesc *fd;
                         char fileName[20];
                         snprintf(fileName, sizeof(fileName), "file%04d.der", ++fileCounter);
-                        fd = MPR_Open(fileName,
+                        fd = PR_Open(fileName,
                                      PR_CREATE_FILE | PR_RDWR | PR_TRUNCATE,
                                      0600);
                         if (!fd) {
                             SECU_PrintError(progName,
                                             "Cannot create output file");
                         } else {
-                            MPR_Write(fd, dip->der->data, dip->der->len);
-                            MPR_Close(fd);
+                            PR_Write(fd, dip->der->data, dip->der->len);
+                            PR_Close(fd);
                         }
                     } else if (SECU_PrintSignedData(stdout, dip->der,
                                                     (dip->hasKey) ? "(has private key)"
@@ -951,7 +951,7 @@ P12U_Init(char *dir, char *dbprefix, PRBool listonly)
     SECStatus rv;
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     if (listonly && NSS_NoDB_Init("") == SECSuccess) {
         rv = SECSuccess;
     } else {
@@ -1122,7 +1122,7 @@ main(int argc, char **argv)
     P12U_Init(SECU_ConfigDirectory(NULL), dbprefix,
               pk12util.options[opt_List].activated);
 
-    if (!slotname || MPL_strcmp(slotname, "internal") == 0)
+    if (!slotname || PL_strcmp(slotname, "internal") == 0)
         slot = PK11_GetInternalKeySlot();
     else
         slot = PK11_FindSlotByName(slotname);
@@ -1201,19 +1201,19 @@ main(int argc, char **argv)
 
 done:
     if (import_file != NULL)
-        PORT_ZFree(import_file, MPL_strlen(import_file));
+        PORT_ZFree(import_file, PL_strlen(import_file));
     if (export_file != NULL)
-        PORT_ZFree(export_file, MPL_strlen(export_file));
+        PORT_ZFree(export_file, PL_strlen(export_file));
     if (slotPw.data != NULL)
-        PORT_ZFree(slotPw.data, MPL_strlen(slotPw.data));
+        PORT_ZFree(slotPw.data, PL_strlen(slotPw.data));
     if (p12FilePw.data != NULL)
-        PORT_ZFree(p12FilePw.data, MPL_strlen(p12FilePw.data));
+        PORT_ZFree(p12FilePw.data, PL_strlen(p12FilePw.data));
     if (slot)
         PK11_FreeSlot(slot);
     if (NSS_Shutdown() != SECSuccess) {
         pk12uErrno = 1;
     }
-    MPL_ArenaFinish();
-    MPR_Cleanup();
+    PL_ArenaFinish();
+    PR_Cleanup();
     return pk12uErrno;
 }

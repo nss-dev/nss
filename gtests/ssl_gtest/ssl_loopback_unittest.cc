@@ -342,7 +342,7 @@ TEST_P(TlsConnectTls13, WriteBeforeClientFinishedClientAuth) {
   server_->Handshake();  // ServerHello
 
   static const uint8_t data[] = {1, 2, 3};
-  EXPECT_GT(0, MPR_Write(server_->ssl_fd(), data, sizeof(data)));
+  EXPECT_GT(0, PR_Write(server_->ssl_fd(), data, sizeof(data)));
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
   Handshake();
@@ -359,7 +359,7 @@ TEST_P(TlsConnectTls13, WriteBeforeClientFinishedClientAuthRequired) {
   server_->Handshake();  // ServerHello
 
   static const uint8_t data[] = {1, 2, 3};
-  EXPECT_GT(0, MPR_Write(server_->ssl_fd(), data, sizeof(data)));
+  EXPECT_GT(0, PR_Write(server_->ssl_fd(), data, sizeof(data)));
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
   Handshake();
@@ -562,7 +562,7 @@ TEST_P(TlsConnectDatagram, BlockedWrite) {
   // Mark the socket as blocked.
   client_->adapter()->SetWriteError(PR_WOULD_BLOCK_ERROR);
   static const uint8_t data[] = {1, 2, 3};
-  int32_t rv = MPR_Write(client_->ssl_fd(), data, sizeof(data));
+  int32_t rv = PR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_GT(0, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
@@ -675,11 +675,11 @@ TEST_P(TlsConnectGeneric, ShutdownOneSide) {
   EXPECT_EQ(SECSuccess,
             SSL_AlertReceivedCallback(server_->ssl_fd(), CheckCloseNotify,
                                       &server_received));
-  EXPECT_EQ(PR_SUCCESS, MPR_Shutdown(client_->ssl_fd(), PR_SHUTDOWN_SEND));
+  EXPECT_EQ(PR_SUCCESS, PR_Shutdown(client_->ssl_fd(), PR_SHUTDOWN_SEND));
 
   // Make sure that the server reads out the close_notify.
   uint8_t buf[10];
-  EXPECT_EQ(0, MPR_Read(server_->ssl_fd(), buf, sizeof(buf)));
+  EXPECT_EQ(0, PR_Read(server_->ssl_fd(), buf, sizeof(buf)));
 
   // Reading and writing should still work in the one open direction.
   EXPECT_TRUE(client_sent);
@@ -695,9 +695,9 @@ TEST_P(TlsConnectGeneric, ShutdownOneSide) {
   EXPECT_EQ(SECSuccess,
             SSL_AlertReceivedCallback(client_->ssl_fd(), CheckCloseNotify,
                                       &client_received));
-  EXPECT_EQ(PR_SUCCESS, MPR_Shutdown(server_->ssl_fd(), PR_SHUTDOWN_SEND));
+  EXPECT_EQ(PR_SUCCESS, PR_Shutdown(server_->ssl_fd(), PR_SHUTDOWN_SEND));
 
-  EXPECT_EQ(0, MPR_Read(client_->ssl_fd(), buf, sizeof(buf)));
+  EXPECT_EQ(0, PR_Read(client_->ssl_fd(), buf, sizeof(buf)));
   EXPECT_TRUE(server_sent);
   EXPECT_TRUE(client_received);
 }
@@ -712,20 +712,20 @@ TEST_P(TlsConnectGeneric, ShutdownOneSideThenCloseTcp) {
   EXPECT_EQ(SECSuccess,
             SSL_AlertReceivedCallback(server_->ssl_fd(), CheckCloseNotify,
                                       &server_received));
-  EXPECT_EQ(PR_SUCCESS, MPR_Shutdown(client_->ssl_fd(), PR_SHUTDOWN_SEND));
+  EXPECT_EQ(PR_SUCCESS, PR_Shutdown(client_->ssl_fd(), PR_SHUTDOWN_SEND));
 
   // Make sure that the server reads out the close_notify.
   uint8_t buf[10];
-  EXPECT_EQ(0, MPR_Read(server_->ssl_fd(), buf, sizeof(buf)));
+  EXPECT_EQ(0, PR_Read(server_->ssl_fd(), buf, sizeof(buf)));
 
   // Now simulate the underlying connection closing.
   client_->adapter()->Reset();
 
   // Now close the other side and see that things don't explode.
-  EXPECT_EQ(PR_SUCCESS, MPR_Shutdown(server_->ssl_fd(), PR_SHUTDOWN_SEND));
+  EXPECT_EQ(PR_SUCCESS, PR_Shutdown(server_->ssl_fd(), PR_SHUTDOWN_SEND));
 
-  EXPECT_GT(0, MPR_Read(client_->ssl_fd(), buf, sizeof(buf)));
-  EXPECT_EQ(PR_NOT_CONNECTED_ERROR, MPR_GetError());
+  EXPECT_GT(0, PR_Read(client_->ssl_fd(), buf, sizeof(buf)));
+  EXPECT_EQ(PR_NOT_CONNECTED_ERROR, PR_GetError());
 }
 
 INSTANTIATE_TEST_SUITE_P(

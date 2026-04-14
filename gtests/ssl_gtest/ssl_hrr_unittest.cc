@@ -97,7 +97,7 @@ TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
   auto capture_early_data =
       MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_early_data_xtn);
   client_->Handshake();
-  EXPECT_EQ(k0RttDataLen, MPR_Write(client_->ssl_fd(), k0RttData,
+  EXPECT_EQ(k0RttDataLen, PR_Write(client_->ssl_fd(), k0RttData,
                                    k0RttDataLen));  // 0-RTT write.
   EXPECT_TRUE(capture_early_data->captured());
 
@@ -109,7 +109,7 @@ TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
 
   // The server can't read
   std::vector<uint8_t> buf(k0RttDataLen);
-  EXPECT_EQ(SECFailure, MPR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen));
+  EXPECT_EQ(SECFailure, PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen));
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
   // Make a new capture for the early data.
@@ -204,7 +204,7 @@ TEST_P(TlsConnectTls13, SecondClientHelloRejectEarlyDataXtn) {
   // Send 0-RTT data.
   const char* k0RttData = "ABCDEF";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
-  PRInt32 rv = MPR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);
+  PRInt32 rv = PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);
   EXPECT_EQ(k0RttDataLen, rv);
 
   ExpectAlert(server_, kTlsAlertUnsupportedExtension);
@@ -1372,8 +1372,8 @@ TEST_F(TlsConnectStreamTls13, ZeroRttHrrThenTls12) {
   client_->ExpectReadWriteError();
   client_->SendData(1);
   uint8_t buf[1];
-  EXPECT_EQ(-1, MPR_Read(server_->ssl_fd(), buf, sizeof(buf)));
-  EXPECT_EQ(SSL_ERROR_HANDSHAKE_FAILED, MPR_GetError());
+  EXPECT_EQ(-1, PR_Read(server_->ssl_fd(), buf, sizeof(buf)));
+  EXPECT_EQ(SSL_ERROR_HANDSHAKE_FAILED, PR_GetError());
 }
 
 TEST_F(TlsConnectStreamTls13, HrrThenTls12SupportedVersions) {

@@ -146,7 +146,7 @@ pk11uri_Escape(PLArenaPool *arena, const unsigned char *value, size_t length,
 
     for (p = value; p < value + length; p++) {
         if (strchr(available, *p) == NULL) {
-            if (MPR_snprintf((char *)buf, sizeof(buf), "%%%02X", *p) == (PRUint32)-1) {
+            if (PR_snprintf((char *)buf, sizeof(buf), "%%%02X", *p) == (PRUint32)-1) {
                 goto fail;
             }
             ret = pk11uri_AppendBuffer(&buffer, buf, 3);

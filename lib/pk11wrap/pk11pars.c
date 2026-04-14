@@ -67,7 +67,7 @@ secmod_NewModule(void)
     newMod->trustOrder = 0;
     newMod->cipherOrder = 0;
     newMod->evControlMask = 0;
-    newMod->refLock = MPR_NewLock();
+    newMod->refLock = PR_NewLock();
     if (newMod->refLock == NULL) {
         PORT_FreeArena(arena, PR_FALSE);
         return NULL;
@@ -643,7 +643,7 @@ secmod_parsePolicyValue(const char *policyFlags, int policyLength,
         }
         if (unknown && printPolicyFeedback &&
             (policyCheckFlags & SECMOD_FLAG_POLICY_CHECK_VALUE)) {
-            MPR_SetEnv("NSS_POLICY_FAIL=1");
+            PR_SetEnv("NSS_POLICY_FAIL=1");
             fprintf(stderr, "NSS-POLICY-FAIL %.*s: unknown value: %.*s\n",
                     policyLength, policyFlags, length, flag);
         }
@@ -979,7 +979,7 @@ secmod_applyCryptoPolicy(const char *policyString, NSSPolicyOperation operation,
                 if (rv != SECSuccess) {
                     if (printPolicyFeedback &&
                         (policyCheckFlags & SECMOD_FLAG_POLICY_CHECK_VALUE)) {
-                        MPR_SetEnv("NSS_POLICY_FAIL=1");
+                        PR_SetEnv("NSS_POLICY_FAIL=1");
                         fprintf(stderr, "NSS-POLICY-FAIL %.*s: unknown value: %.*s\n",
                                 length, cipher, policyValueLength, policyValue);
                     }
@@ -1000,7 +1000,7 @@ secmod_applyCryptoPolicy(const char *policyString, NSSPolicyOperation operation,
 
         if (unknown && printPolicyFeedback &&
             (policyCheckFlags & SECMOD_FLAG_POLICY_CHECK_IDENTIFIER)) {
-            MPR_SetEnv("NSS_POLICY_FAIL=1");
+            PR_SetEnv("NSS_POLICY_FAIL=1");
             fprintf(stderr, "NSS-POLICY-FAIL %s: unknown identifier: %.*s\n",
                     secmod_getOperationString(operation), length, cipher);
         }
@@ -1030,7 +1030,7 @@ secmod_sanityCheckCryptoPolicy(void)
             PRBool anyEnabled = PR_FALSE;
             rv = NSS_GetAlgorithmPolicy(algOpt->oid, &value);
             if (rv != SECSuccess) {
-                MPR_SetEnv("NSS_POLICY_FAIL=1");
+                PR_SetEnv("NSS_POLICY_FAIL=1");
                 fprintf(stderr, "NSS-POLICY-FAIL: internal failure with NSS_GetAlgorithmPolicy at %u\n", i);
                 return;
             }
@@ -1070,7 +1070,7 @@ secmod_sanityCheckCryptoPolicy(void)
         }
     }
     if (haveWarning) {
-        MPR_SetEnv("NSS_POLICY_WARN=1");
+        PR_SetEnv("NSS_POLICY_WARN=1");
     }
 }
 
@@ -1140,7 +1140,7 @@ secmod_parseCryptoPolicy(const char *policyConfig, PRBool printPolicyFeedback,
     if (printPolicyFeedback) {
         /* This helps to distinguish configurations that don't contain any
          * policy config= statement. */
-        MPR_SetEnv("NSS_POLICY_LOADED=1");
+        PR_SetEnv("NSS_POLICY_LOADED=1");
         fprintf(stderr, "NSS-POLICY-INFO: LOADED-SUCCESSFULLY\n");
         secmod_sanityCheckCryptoPolicy();
     }
@@ -1182,7 +1182,7 @@ SECMOD_CreateModuleEx(const char *library, const char *moduleName,
     /* do not load the module if policy parsing fails */
     if (rv != SECSuccess) {
         if (printPolicyFeedback) {
-            MPR_SetEnv("NSS_POLICY_FAIL=1");
+            PR_SetEnv("NSS_POLICY_FAIL=1");
             fprintf(stderr, "NSS-POLICY-FAIL: policy config parsing failed, not loading module %s\n", moduleName);
         }
         return NULL;
@@ -1655,7 +1655,7 @@ secmod_configIsDBM(char *configDir)
         (strncmp(configDir, "extern:", 7) == 0)) {
         return PR_FALSE;
     }
-    env = MPR_GetEnvSecure("NSS_DEFAULT_DB_TYPE");
+    env = PR_GetEnvSecure("NSS_DEFAULT_DB_TYPE");
     /* implicit dbm open */
     if ((env == NULL) || (strcmp(env, "dbm") == 0)) {
         return PR_TRUE;
@@ -1902,7 +1902,7 @@ secmod_mkTokenChild(char **next, int *length, char *child, CK_SLOT_ID id)
     int len;
     char *escSpec;
 
-    len = MPR_snprintf(*next, *length, " 0x%x=<", id);
+    len = PR_snprintf(*next, *length, " 0x%x=<", id);
     if (len < 0) {
         return SECFailure;
     }
@@ -2104,7 +2104,7 @@ secmod_mkModuleSpec(SECMODModule *module)
     modSpec = NSSUTIL_MkModuleSpec(module->dllName, module->commonName,
                                    module->libraryParams, nss);
     PORT_Free(slotStrings);
-    MPR_smprintf_free(nss);
+    PR_smprintf_free(nss);
 loser:
     return (modSpec);
 }

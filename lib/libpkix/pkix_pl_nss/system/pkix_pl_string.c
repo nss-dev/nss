@@ -294,8 +294,8 @@ PKIX_PL_String_Create(
 
         switch (fmtIndicator) {
         case PKIX_ESCASCII: case PKIX_ESCASCII_DEBUG:
-                PKIX_STRING_DEBUG("\tCalling MPL_strlen).\n");
-                string->escAsciiLength = MPL_strlen(stringRep);
+                PKIX_STRING_DEBUG("\tCalling PL_strlen).\n");
+                string->escAsciiLength = PL_strlen(stringRep);
 
                 /* XXX Cache for Debugging */
                 PKIX_CHECK(PKIX_PL_Malloc
@@ -417,8 +417,8 @@ PKIX_PL_Sprintf(
                     plContext),
                     PKIX_STRINGGETENCODEDFAILED);
 
-        PKIX_STRING_DEBUG("\tCalling MPR_Malloc).\n");
-        convertedAsciiFormat = MPR_Malloc(length + 1);
+        PKIX_STRING_DEBUG("\tCalling PR_Malloc).\n");
+        convertedAsciiFormat = PR_Malloc(length + 1);
         if (convertedAsciiFormat == NULL)
                 PKIX_ERROR_ALLOC_ERROR();
 
@@ -459,11 +459,11 @@ PKIX_PL_Sprintf(
                                         pArg = NULL;
                                 }
                                 if (asciiText != NULL) {
-                                    asciiText = MPR_sprintf_append(asciiText,
+                                    asciiText = PR_sprintf_append(asciiText,
                                           (const char *)convertedAsciiFormat,
                                           pArg);
                                 } else {
-                                    asciiText = MPR_smprintf
+                                    asciiText = PR_smprintf
                                         ((const char *)convertedAsciiFormat,
                                         pArg);
                                 }
@@ -486,11 +486,11 @@ PKIX_PL_Sprintf(
 
                                 tempUInt = va_arg(args, PKIX_UInt32);
                                 if (asciiText != NULL) {
-                                    asciiText = MPR_sprintf_append(asciiText,
+                                    asciiText = PR_sprintf_append(asciiText,
                                           (const char *)convertedAsciiFormat,
                                           tempUInt);
                                 } else {
-                                    asciiText = MPR_smprintf
+                                    asciiText = PR_smprintf
                                         ((const char *)convertedAsciiFormat,
                                         tempUInt);
                                 }     
@@ -511,10 +511,10 @@ PKIX_PL_Sprintf(
         if (j > 0) {
                 convertedAsciiFormat[j] = '\0';
                 if (asciiText != NULL) {
-                    asciiText = MPR_sprintf_append(asciiText,
+                    asciiText = PR_sprintf_append(asciiText,
                                     (const char *)convertedAsciiFormat);
                 } else {
-                    asciiText = MPR_smprintf((const char *)convertedAsciiFormat);
+                    asciiText = PR_smprintf((const char *)convertedAsciiFormat);
                 }
         }
 
@@ -530,12 +530,12 @@ cleanup:
         PKIX_FREE(asciiFormat);
 
         if (convertedAsciiFormatBase){
-                MPR_Free(convertedAsciiFormatBase);
+                PR_Free(convertedAsciiFormatBase);
         }
 
         if (asciiText){
-                PKIX_STRING_DEBUG("\tCalling MPR_smprintf_free).\n");
-                MPR_smprintf_free(asciiText);
+                PKIX_STRING_DEBUG("\tCalling PR_smprintf_free).\n");
+                PR_smprintf_free(asciiText);
         }
 
         PKIX_RETURN(STRING);

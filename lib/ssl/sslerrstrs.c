@@ -22,7 +22,7 @@ static const struct PRErrorTable ssl_et = {
 static PRStatus
 ssl_InitializePRErrorTableOnce(void)
 {
-    return MPR_ErrorInstallTable(&ssl_et);
+    return PR_ErrorInstallTable(&ssl_et);
 }
 
 static PRCallOnceType once;
@@ -30,7 +30,7 @@ static PRCallOnceType once;
 SECStatus
 ssl_InitializePRErrorTable(void)
 {
-    return (PR_SUCCESS == MPR_CallOnce(&once, ssl_InitializePRErrorTableOnce))
+    return (PR_SUCCESS == PR_CallOnce(&once, ssl_InitializePRErrorTableOnce))
                ? SECSuccess
                : SECFailure;
 }

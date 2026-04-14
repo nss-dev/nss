@@ -58,13 +58,13 @@ int main(int argc, char **argv) {
   }
 
   int exit_code = 0;
-  MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+  PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   if (!tool->Run(arguments)) {
     exit_code = 1;
   }
 
-  MPR_Cleanup();
+  PR_Cleanup();
 
   return exit_code;
 }

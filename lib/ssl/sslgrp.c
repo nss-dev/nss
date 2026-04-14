@@ -79,7 +79,7 @@ ssl_FilterSupportedGroups(sslSocket *ss)
     PRStatus prv;
     sslSocketAndGroupArg arg = { NULL, ss };
 
-    prv = MPR_CallOnce(&cleanupECDHEKeysOnce, ssl_SetupCleanupECDHEKeysOnce);
+    prv = PR_CallOnce(&cleanupECDHEKeysOnce, ssl_SetupCleanupECDHEKeysOnce);
     PORT_Assert(prv == PR_SUCCESS);
     if (prv != PR_SUCCESS) {
         return;
@@ -117,7 +117,7 @@ ssl_FilterSupportedGroups(sslSocket *ss)
         PORT_Assert(index < SSL_NAMED_GROUP_COUNT);
 
         arg.group = group;
-        prv = MPR_CallOnceWithArg(&gECDHEKeyPairs[index].once,
+        prv = PR_CallOnceWithArg(&gECDHEKeyPairs[index].once,
                                  ssl_CreateStaticECDHEKeyPair,
                                  (void *)&arg);
         PORT_Assert(prv == PR_SUCCESS);
@@ -144,7 +144,7 @@ ssl_CreateStaticECDHEKey(sslSocket *ss, const sslNamedGroupDef *ecGroup)
     PRStatus prv;
     sslSocketAndGroupArg arg = { ecGroup, ss };
 
-    prv = MPR_CallOnceWithArg(&gECDHEKeyPairs[index].once,
+    prv = PR_CallOnceWithArg(&gECDHEKeyPairs[index].once,
                              ssl_CreateStaticECDHEKeyPair,
                              (void *)&arg);
     PORT_Assert(prv == PR_SUCCESS);

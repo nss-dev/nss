@@ -473,7 +473,7 @@ pkix_pl_OcspResponse_Create(
 					PKIX_ERROR(PKIX_OCSPGETREQUESTTOOBIG);
 				}
 				memset(b64ReqBuf, 0, sizeof(b64ReqBuf));
-				MPL_Base64Encode((const char *)encodedRequest->data, encodedRequest->len, b64ReqBuf);
+				PL_Base64Encode((const char *)encodedRequest->data, encodedRequest->len, b64ReqBuf);
 				urlEncodedBufLength = ocsp_UrlEncodeBase64Buf(b64ReqBuf, NULL);
 				getURLLength = pathLength + urlEncodedBufLength + slashLengthIfNeeded;
 				fullGetPath = (char*)PORT_Alloc(getURLLength);
@@ -492,7 +492,7 @@ pkix_pl_OcspResponse_Create(
 
                         rv = (*hcv1->createFcn)(serverSession, "http",
                                                 sessionPath, httpMethod,
-                                                MPR_SecondsToInterval(timeout),
+                                                PR_SecondsToInterval(timeout),
                                                 &sessionRequest);
 			sessionPath = NULL;
 			if (fullGetPath) {
@@ -834,7 +834,7 @@ pkix_pl_OcspResponse_VerifySignature(
         if (nbio == NULL) {
             /* No, this is a new query */
 
-            issuerCert = CERT_FindCertIssuer(cert->nssCert, MPR_Now(),
+            issuerCert = CERT_FindCertIssuer(cert->nssCert, PR_Now(),
                                              certUsageAnyCA);
             
             /*
@@ -1024,7 +1024,7 @@ pkix_pl_OcspResponse_GetStatusForCert(
             PKIX_DECREF(er);
         }
         if (!time) {
-            time = MPR_Now();
+            time = PR_Now();
         }
 
         rv = ocsp_GetVerifiedSingleResponseForCertID(response->handle,

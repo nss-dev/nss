@@ -61,7 +61,7 @@ get_tls_info(SSLProtocolVariant protocolVariant, const char *display)
     fprintf(stderr, "NSS-POLICY-%s: NUMBER-OF-%s-VERSIONS: %u\n",
             num_enabled ? sInfo : sWarn, display, num_enabled);
     if (!num_enabled) {
-        MPR_SetEnv("NSS_POLICY_WARN=1");
+        PR_SetEnv("NSS_POLICY_WARN=1");
     }
 }
 
@@ -110,17 +110,17 @@ main(int argc, char **argv)
         goto loser_no_shutdown;
     }
 
-    /* Use MPL_CreateOptState as SECU_ParseCommandLine ignores
+    /* Use PL_CreateOptState as SECU_ParseCommandLine ignores
      * positional parameters */
-    optstate = MPL_CreateOptState(argc, argv, "f:");
+    optstate = PL_CreateOptState(argc, argv, "f:");
     if (!optstate) {
         result = 2;
         goto loser_no_shutdown;
     }
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 0: /* positional parameter */
-                fullPath = MPL_strdup(optstate->value);
+                fullPath = PL_strdup(optstate->value);
                 if (!fullPath) {
                     result = 2;
                     goto loser_no_shutdown;
@@ -153,7 +153,7 @@ breakout:
 
     fullPathLen = strlen(fullPath);
 
-    if (!fullPathLen || MPR_Access(fullPath, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+    if (!fullPathLen || PR_Access(fullPath, PR_ACCESS_READ_OK) != PR_SUCCESS) {
         fprintf(stderr, "Error: cannot read file %s\n", fullPath);
         result = 2;
         goto loser_no_shutdown;
@@ -178,17 +178,17 @@ breakout:
         PORT_Strncat(path, fullPath, (filename - fullPath));
     }
 
-    MPR_SetEnv("NSS_IGNORE_SYSTEM_POLICY=1");
+    PR_SetEnv("NSS_IGNORE_SYSTEM_POLICY=1");
     rv = NSS_NoDB_Init(NULL);
     if (rv != SECSuccess) {
-        fprintf(stderr, "NSS_Init failed: %s\n", PORT_ErrorToString(MPR_GetError()));
+        fprintf(stderr, "NSS_Init failed: %s\n", PORT_ErrorToString(PR_GetError()));
         result = 2;
         goto loser_no_shutdown;
     }
 
-    MPR_SetEnv("NSS_POLICY_LOADED=0");
-    MPR_SetEnv("NSS_POLICY_FAIL=0");
-    MPR_SetEnv("NSS_POLICY_WARN=0");
+    PR_SetEnv("NSS_POLICY_LOADED=0");
+    PR_SetEnv("NSS_POLICY_FAIL=0");
+    PR_SetEnv("NSS_POLICY_WARN=0");
 
     flags = PORT_Strdup("internal,moduleDB,skipFirst,moduleDBOnly,critical,printPolicyFeedback");
     if (!flags) {
@@ -229,7 +229,7 @@ breakout:
              path, filename, flags);
 
     module = SECMOD_LoadModule(moduleSpec, NULL, PR_TRUE);
-    if (!module || !module->loaded || atoi(MPR_GetEnvSecure("NSS_POLICY_LOADED")) != 1) {
+    if (!module || !module->loaded || atoi(PR_GetEnvSecure("NSS_POLICY_LOADED")) != 1) {
         fprintf(stderr, "Error: failed to load policy file\n");
         result = 2;
         goto loser;
@@ -237,7 +237,7 @@ breakout:
 
     rv = SSL_OptionSetDefault(SSL_SECURITY, PR_TRUE);
     if (rv != SECSuccess) {
-        fprintf(stderr, "enable SSL_SECURITY failed: %s\n", PORT_ErrorToString(MPR_GetError()));
+        fprintf(stderr, "enable SSL_SECURITY failed: %s\n", PORT_ErrorToString(PR_GetError()));
         result = 2;
         goto loser;
     }
@@ -251,14 +251,14 @@ breakout:
         if (rv != SECSuccess) {
             fprintf(stderr,
                     "SSL_CipherPrefGetDefault didn't like value 0x%04x (i = %d): %s\n",
-                    suite, i, PORT_ErrorToString(MPR_GetError()));
+                    suite, i, PORT_ErrorToString(PR_GetError()));
             continue;
         }
         rv = SSL_GetCipherSuiteInfo(suite, &info, (int)(sizeof info));
         if (rv != SECSuccess) {
             fprintf(stderr,
                     "SSL_GetCipherSuiteInfo didn't like value 0x%04x (i = %d): %s\n",
-                    suite, i, PORT_ErrorToString(MPR_GetError()));
+                    suite, i, PORT_ErrorToString(PR_GetError()));
             continue;
         }
         if (enabled) {
@@ -268,15 +268,15 @@ breakout:
     }
     fprintf(stderr, "NSS-POLICY-%s: NUMBER-OF-CIPHERSUITES: %u\n", num_enabled ? sInfo : sWarn, num_enabled);
     if (!num_enabled) {
-        MPR_SetEnv("NSS_POLICY_WARN=1");
+        PR_SetEnv("NSS_POLICY_WARN=1");
     }
 
     get_tls_info(ssl_variant_stream, "TLS");
     get_tls_info(ssl_variant_datagram, "DTLS");
 
-    if (atoi(MPR_GetEnvSecure("NSS_POLICY_FAIL")) != 0) {
+    if (atoi(PR_GetEnvSecure("NSS_POLICY_FAIL")) != 0) {
         result = 2;
-    } else if (atoi(MPR_GetEnvSecure("NSS_POLICY_WARN")) != 0) {
+    } else if (atoi(PR_GetEnvSecure("NSS_POLICY_WARN")) != 0) {
         result = 1;
     }
 
@@ -286,12 +286,12 @@ loser:
     }
     rv = NSS_Shutdown();
     if (rv != SECSuccess) {
-        fprintf(stderr, "NSS_Shutdown failed: %s\n", PORT_ErrorToString(MPR_GetError()));
+        fprintf(stderr, "NSS_Shutdown failed: %s\n", PORT_ErrorToString(PR_GetError()));
         result = 2;
     }
 loser_no_shutdown:
     if (optstate) {
-        MPL_DestroyOptState(optstate);
+        PL_DestroyOptState(optstate);
     }
     PORT_Free(flags);
     PORT_Free(progName);

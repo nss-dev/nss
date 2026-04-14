@@ -707,7 +707,7 @@ PK11_ImportCRL(PK11SlotInfo *slot, SECItem *derCRL, char *url,
             }
 
             rv = CERT_VerifySignedData(&newCrl->signatureWrap, caCert,
-                                       MPR_Now(), wincx);
+                                       PR_Now(), wincx);
             if (rv != SECSuccess) {
                 if (type == SEC_CRL_TYPE) {
                     PORT_SetError(SEC_ERROR_CRL_BAD_SIGNATURE);

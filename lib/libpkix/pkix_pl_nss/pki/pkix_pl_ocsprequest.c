@@ -335,7 +335,7 @@ pkix_pl_OcspRequest_Create(
 		PKIX_CHECK(pkix_pl_Date_GetPRTime(validity, &time, plContext),
 			PKIX_DATEGETPRTIMEFAILED);
         } else {
-                time = MPR_Now();
+                time = PR_Now();
 	}
 
         certRequest = cert_CreateSingleCertOCSPRequest(

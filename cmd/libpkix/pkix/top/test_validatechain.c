@@ -38,8 +38,8 @@ createFullPathName(
 
     PKIX_TEST_STD_VARS();
 
-    certFileLen = MPL_strlen(certFile);
-    dirNameLen = MPL_strlen(dirName);
+    certFileLen = PL_strlen(certFile);
+    dirNameLen = PL_strlen(dirName);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc(dirNameLen +
                                                  certFileLen +
@@ -47,9 +47,9 @@ createFullPathName(
                                              (void **)&certPathName,
                                              plContext));
 
-    MPL_strcpy(certPathName, dirName);
-    MPL_strcat(certPathName, "/");
-    MPL_strcat(certPathName, certFile);
+    PL_strcpy(certPathName, dirName);
+    PL_strcat(certPathName, "/");
+    PL_strcat(certPathName, certFile);
     printf("certPathName = %s\n", certPathName);
 
 cleanup:
@@ -91,7 +91,7 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled(procParams, PKIX_TRUE, plContext));
 
     /* create current Date */
-    PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime(MPR_Now(), &validity, plContext));
+    PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime(PR_Now(), &validity, plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&revCheckers, plContext));
 

@@ -18,7 +18,7 @@ extern const struct PRIOMethods DummyMethodsForward;
 
 ScopedPRFileDesc DummyIOLayerMethods::CreateFD(PRDescIdentity id,
                                                DummyIOLayerMethods *methods) {
-  ScopedPRFileDesc fd(MPR_CreateIOLayerStub(id, &DummyMethodsForward));
+  ScopedPRFileDesc fd(PR_CreateIOLayerStub(id, &DummyMethodsForward));
   assert(fd);
   if (!fd) {
     return nullptr;

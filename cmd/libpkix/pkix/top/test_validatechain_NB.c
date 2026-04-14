@@ -38,8 +38,8 @@ createFullPathName(
 
     PKIX_TEST_STD_VARS();
 
-    certFileLen = MPL_strlen(certFile);
-    dirNameLen = MPL_strlen(dirName);
+    certFileLen = PL_strlen(certFile);
+    dirNameLen = PL_strlen(dirName);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc(dirNameLen +
                                                  certFileLen +
@@ -47,9 +47,9 @@ createFullPathName(
                                              (void **)&certPathName,
                                              plContext));
 
-    MPL_strcpy(certPathName, dirName);
-    MPL_strcat(certPathName, "/");
-    MPL_strcat(certPathName, certFile);
+    PL_strcpy(certPathName, dirName);
+    PL_strcat(certPathName, "/");
+    PL_strcat(certPathName, certFile);
     printf("certPathName = %s\n", certPathName);
 
 cleanup:
@@ -121,7 +121,7 @@ loggerCallback(
     PKIX_TEST_STD_VARS();
 
     msg = PKIX_String2ASCII(message, plContext);
-    MPR_snprintf(result, resultSize,
+    PR_snprintf(result, resultSize,
                 "Logging %s (%s): %s",
                 levels[logLevel],
                 PKIX_ERRORCLASSNAMES[logComponent],
@@ -242,7 +242,7 @@ test_validatechain_NB(int argc, char *argv[])
                                      chainCerts,
                                      plContext);
 
-    ldapName = MPR_GetEnvSecure("LDAP");
+    ldapName = PR_GetEnvSecure("LDAP");
     /* Is LDAP set in the environment? */
     if ((ldapName == NULL) || (*ldapName == '\0')) {
         testError("LDAP not set in environment");
@@ -250,7 +250,7 @@ test_validatechain_NB(int argc, char *argv[])
     }
 
     pkixTestErrorResult = pkix_pl_Socket_CreateByName(PKIX_FALSE,               /* isServer */
-                                                      MPR_SecondsToInterval(30), /* try 30 secs for connect */
+                                                      PR_SecondsToInterval(30), /* try 30 secs for connect */
                                                       ldapName,
                                                       &errorCode,
                                                       &socket,
@@ -267,7 +267,7 @@ test_validatechain_NB(int argc, char *argv[])
 
     testSetupCertStore(valParams, ldapName);
 
-    logging = MPR_GetEnvSecure("LOGGING");
+    logging = PR_GetEnvSecure("LOGGING");
     /* Is LOGGING set in the environment? */
     if ((logging != NULL) && (*logging != '\0')) {
 
@@ -294,8 +294,8 @@ test_validatechain_NB(int argc, char *argv[])
 
     while (pollDesc != NULL) {
 
-        if (MPR_Poll(pollDesc, 1, 0) < 0) {
-            testError("MPR_Poll failed");
+        if (PR_Poll(pollDesc, 1, 0) < 0) {
+            testError("PR_Poll failed");
         }
 
         pkixTestErrorResult = PKIX_ValidateChain_NB(valParams,

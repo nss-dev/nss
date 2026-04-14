@@ -318,7 +318,7 @@ NSS_CMSSignerInfo_VerifyCertificate(NSSCMSSignerInfo *signerinfo, CERTCertDBHand
      * email profile.
      */
     if (NSS_CMSSignerInfo_GetSigningTime(signerinfo, &stime) != SECSuccess)
-        stime = MPR_Now(); /* not found or conversion failed, so check against now */
+        stime = PR_Now(); /* not found or conversion failed, so check against now */
 
     /*
      * XXX  This uses the signing time, if available.  Additionally, we
@@ -864,7 +864,7 @@ NSS_CMSSignerInfo_AddSMIMEEncKeyPrefs(NSSCMSSignerInfo *signerinfo, CERTCertific
     PLArenaPool *poolp;
 
     /* verify this cert for encryption */
-    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, MPR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
+    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, PR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
         return SECFailure;
     }
 
@@ -909,7 +909,7 @@ NSS_CMSSignerInfo_AddMSSMIMEEncKeyPrefs(NSSCMSSignerInfo *signerinfo, CERTCertif
     PLArenaPool *poolp;
 
     /* verify this cert for encryption */
-    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, MPR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
+    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, PR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
         return SECFailure;
     }
 
@@ -1011,7 +1011,7 @@ NSS_SMIMESignerInfo_SaveSMIMEProfile(NSSCMSSignerInfo *signerinfo)
  * that's OK, we can still save the S/MIME profile. The encryption cert
  * should have already been saved */
 #ifdef notdef
-    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, MPR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
+    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certUsageEmailRecipient, PR_Now(), signerinfo->cmsg->pwfn_arg, NULL) != SECSuccess) {
         if (must_free_cert)
             CERT_DestroyCertificate(cert);
         return SECFailure;

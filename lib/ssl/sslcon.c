@@ -133,9 +133,9 @@ ssl_BeginClientHandshake(sslSocket *ss)
          * non-blocking connect.  I found that if we do a write()
          * and then retry getpeername(), it will work.
          */
-        if (MPR_GetError() == PR_NOT_CONNECTED_ERROR) {
+        if (PR_GetError() == PR_NOT_CONNECTED_ERROR) {
             char dummy;
-            (void)MPR_Write(ss->fd->lower, &dummy, 0);
+            (void)PR_Write(ss->fd->lower, &dummy, 0);
             rv = ssl_GetPeerInfo(ss);
             if (rv < 0) {
                 goto loser;

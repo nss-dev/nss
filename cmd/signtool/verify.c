@@ -41,7 +41,7 @@ VerifyJar(char *filename)
 
     if (status < 0 || jar->valid < 0) {
         failed = 1;
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "\nNOTE -- \"%s\" archive DID NOT PASS crypto verification.\n",
                    filename);
         if (status < 0) {
@@ -53,7 +53,7 @@ VerifyJar(char *filename)
                 errtext = SECU_Strerror(PORT_GetError());
             }
 
-            MPR_fprintf(outputFD, "  (reported reason: %s)\n\n",
+            PR_fprintf(outputFD, "  (reported reason: %s)\n\n",
                        errtext);
 
             /* corrupt files should not have their contents listed */
@@ -61,19 +61,19 @@ VerifyJar(char *filename)
             if (status == JAR_ERR_CORRUPT)
                 return -1;
         }
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "entries shown below will have their digests checked only.\n");
         jar->valid = 0;
     } else
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "archive \"%s\" has passed crypto verification.\n", filename);
 
     if (verify_global(jar))
         failed = 1;
 
-    MPR_fprintf(outputFD, "\n");
-    MPR_fprintf(outputFD, "%16s   %s\n", "status", "path");
-    MPR_fprintf(outputFD, "%16s   %s\n", "------------", "-------------------");
+    PR_fprintf(outputFD, "\n");
+    PR_fprintf(outputFD, "%16s   %s\n", "status", "path");
+    PR_fprintf(outputFD, "%16s   %s\n", "------------", "-------------------");
 
     ctx = JAR_find(jar, NULL, jarTypeMF);
 
@@ -92,11 +92,11 @@ VerifyJar(char *filename)
             else
                 err = "NOT VERIFIED";
 
-            MPR_fprintf(outputFD, "%16s   %s\n",
+            PR_fprintf(outputFD, "%16s   %s\n",
                        ret >= 0 ? "verified" : err, it->pathname);
 
             if (ret != 0 && ret != JAR_ERR_PNF && ret != JAR_ERR_HASH)
-                MPR_fprintf(outputFD, "      (reason: %s)\n",
+                PR_fprintf(outputFD, "      (reason: %s)\n",
                            JAR_get_error(ret));
         }
     }
@@ -105,7 +105,7 @@ VerifyJar(char *filename)
 
     if (status < 0 || jar->valid < 0) {
         failed = 1;
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "\nNOTE -- \"%s\" archive DID NOT PASS crypto verification.\n",
                    filename);
         give_help(status);
@@ -146,17 +146,17 @@ verify_global(JAR *jar)
 
             if (verbosity >= 0) {
                 if (!PORT_Strcasecmp(ext, ".rsa")) {
-                    MPR_fprintf(outputFD, "found a RSA signature file: %s\n",
+                    PR_fprintf(outputFD, "found a RSA signature file: %s\n",
                                it->pathname);
                 }
 
                 if (!PORT_Strcasecmp(ext, ".dsa")) {
-                    MPR_fprintf(outputFD, "found a DSA signature file: %s\n",
+                    PR_fprintf(outputFD, "found a DSA signature file: %s\n",
                                it->pathname);
                 }
 
                 if (!PORT_Strcasecmp(ext, ".mf")) {
-                    MPR_fprintf(outputFD,
+                    PR_fprintf(outputFD,
                                "found a MF master manifest file: %s\n",
                                it->pathname);
                 }
@@ -164,14 +164,14 @@ verify_global(JAR *jar)
 
             if (!PORT_Strcasecmp(ext, ".sf")) {
                 if (verbosity >= 0) {
-                    MPR_fprintf(outputFD,
+                    PR_fprintf(outputFD,
                                "found a SF signature manifest file: %s\n",
                                it->pathname);
                 }
 
                 rm_dash_r(TMP_OUTPUT);
                 if (JAR_extract(jar, it->pathname, TMP_OUTPUT) < 0) {
-                    MPR_fprintf(errorFD, "%s: error extracting %s\n",
+                    PR_fprintf(errorFD, "%s: error extracting %s\n",
                                PROGRAM_NAME, it->pathname);
                     errorCount++;
                     retval = -1;
@@ -209,7 +209,7 @@ verify_global(JAR *jar)
                     globaldig = jar->globalmeta;
 
                     if (globaldig && md5_digest && verbosity >= 0) {
-                        MPR_fprintf(outputFD,
+                        PR_fprintf(outputFD,
                                    "  md5 digest on global metainfo: %s\n",
                                    PORT_Memcmp(md5_digest, globaldig->md5, MD5_LENGTH)
                                        ? "no match"
@@ -217,7 +217,7 @@ verify_global(JAR *jar)
                     }
 
                     if (globaldig && sha1_digest && verbosity >= 0) {
-                        MPR_fprintf(outputFD,
+                        PR_fprintf(outputFD,
                                    "  sha digest on global metainfo: %s\n",
                                    PORT_Memcmp(sha1_digest, globaldig->sha1, SHA1_LENGTH)
                                        ? "no match"
@@ -225,7 +225,7 @@ verify_global(JAR *jar)
                     }
 
                     if (globaldig == NULL && verbosity >= 0) {
-                        MPR_fprintf(outputFD,
+                        PR_fprintf(outputFD,
                                    "global metadigest is not available, strange.\n");
                     }
 
@@ -273,7 +273,7 @@ JarWho(char *filename)
     status = JAR_pass_archive(jar, jarArchGuess, filename, "some-url");
 
     if (status < 0 || jar->valid < 0) {
-        MPR_fprintf(outputFD,
+        PR_fprintf(outputFD,
                    "NOTE -- \"%s\" archive DID NOT PASS crypto verification.\n",
                    filename);
         retval = -1;
@@ -286,11 +286,11 @@ JarWho(char *filename)
                 errtext = SECU_Strerror(PORT_GetError());
             }
 
-            MPR_fprintf(outputFD, "  (reported reason: %s)\n\n", errtext);
+            PR_fprintf(outputFD, "  (reported reason: %s)\n\n", errtext);
         }
     }
 
-    MPR_fprintf(outputFD, "\nSigner information:\n\n");
+    PR_fprintf(outputFD, "\nSigner information:\n\n");
 
     ctx = JAR_find(jar, NULL, jarTypeSign);
 
@@ -303,14 +303,14 @@ JarWho(char *filename)
                 break;
 
             if (cert->nickname)
-                MPR_fprintf(outputFD, "nickname: %s\n", cert->nickname);
+                PR_fprintf(outputFD, "nickname: %s\n", cert->nickname);
             if (cert->subjectName)
-                MPR_fprintf(outputFD, "subject name: %s\n",
+                PR_fprintf(outputFD, "subject name: %s\n",
                            cert->subjectName);
             if (cert->issuerName)
-                MPR_fprintf(outputFD, "issuer name: %s\n", cert->issuerName);
+                PR_fprintf(outputFD, "issuer name: %s\n", cert->issuerName);
         } else {
-            MPR_fprintf(outputFD, "no certificate could be found\n");
+            PR_fprintf(outputFD, "no certificate could be found\n");
             retval = -1;
         }
 
@@ -330,7 +330,7 @@ static int
 jar_cb(int status, JAR *jar, const char *metafile,
        char *pathname, char *errortext)
 {
-    MPR_fprintf(errorFD, "error %d: %s IN FILE %s\n", status, errortext,
+    PR_fprintf(errorFD, "error %d: %s IN FILE %s\n", status, errortext,
                pathname);
     errorCount++;
     return 0;

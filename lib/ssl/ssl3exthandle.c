@@ -28,7 +28,7 @@ ssl_ShouldSendSNIExtension(const sslSocket *ss, const char *url)
         return PR_FALSE;
     }
     /* must not be an IPv4 or IPv6 address */
-    if (PR_SUCCESS == MPR_StringToNetAddr(url, &netAddr)) {
+    if (PR_SUCCESS == PR_StringToNetAddr(url, &netAddr)) {
         /* is an IP address (v4 or v6) */
         return PR_FALSE;
     }
@@ -1077,7 +1077,7 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    parsedTicket->flags = MPR_ntohl(temp);
+    parsedTicket->flags = PR_ntohl(temp);
 
     rv = ssl3_ExtConsumeHandshakeVariable(ss, &parsedTicket->alpnSelection, 1,
                                           &buffer, &len);

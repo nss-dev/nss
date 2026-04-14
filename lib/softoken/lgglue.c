@@ -96,7 +96,7 @@ sftkdb_LoadFromPath(const char *path, const char *libname)
     PRLibrary *lib = NULL;
 
     /* strip of our parent's library name */
-    c = strrchr(path, MPR_GetDirectorySeparator());
+    c = strrchr(path, PR_GetDirectorySeparator());
     if (!c) {
         return NULL; /* invalid path */
     }
@@ -113,7 +113,7 @@ sftkdb_LoadFromPath(const char *path, const char *libname)
 
     libSpec.type = PR_LibSpec_Pathname;
     libSpec.value.pathname = fullPathName;
-    lib = MPR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+    lib = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
     PORT_Free(fullPathName);
     return lib;
 }
@@ -126,7 +126,7 @@ sftkdb_LoadLibrary(const char *libname)
     char *parentLibPath = NULL;
 
     fn_addr = (PRFuncPtr)&sftkdb_LoadLibrary;
-    parentLibPath = MPR_GetLibraryFilePathname(SOFTOKEN_LIB_NAME, fn_addr);
+    parentLibPath = PR_GetLibraryFilePathname(SOFTOKEN_LIB_NAME, fn_addr);
 
     if (!parentLibPath) {
         goto done;
@@ -155,7 +155,7 @@ done:
         PRLibSpec libSpec;
         libSpec.type = PR_LibSpec_Pathname;
         libSpec.value.pathname = libname;
-        lib = MPR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+        lib = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
     }
 
     return lib;
@@ -188,9 +188,9 @@ sftkdb_encrypt_stub(PLArenaPool *arena, SDB *sdb, SECItem *plainText,
         return SECFailure;
     }
 
-    MPR_Lock(handle->passwordLock);
+    PR_Lock(handle->passwordLock);
     if (handle->passwordKey.data == NULL) {
-        MPR_Unlock(handle->passwordLock);
+        PR_Unlock(handle->passwordLock);
         /* PORT_SetError */
         return SECFailure;
     }
@@ -208,7 +208,7 @@ sftkdb_encrypt_stub(PLArenaPool *arena, SDB *sdb, SECItem *plainText,
     rv = sftkdb_EncryptAttribute(arena, handle, sdb, key, iterationCount,
                                  CK_INVALID_HANDLE, CKT_INVALID_TYPE,
                                  plainText, cipherText);
-    MPR_Unlock(handle->passwordLock);
+    PR_Unlock(handle->passwordLock);
 
     return rv;
 }
@@ -239,9 +239,9 @@ sftkdb_decrypt_stub(SDB *sdb, SECItem *cipherText, SECItem **plainText)
         return SECFailure;
     }
 
-    MPR_Lock(handle->passwordLock);
+    PR_Lock(handle->passwordLock);
     if (handle->passwordKey.data == NULL) {
-        MPR_Unlock(handle->passwordLock);
+        PR_Unlock(handle->passwordLock);
         /* PORT_SetError */
         return SECFailure;
     }
@@ -249,7 +249,7 @@ sftkdb_decrypt_stub(SDB *sdb, SECItem *cipherText, SECItem **plainText)
                                  CK_INVALID_HANDLE,
                                  CKT_INVALID_TYPE,
                                  cipherText, plainText);
-    MPR_Unlock(handle->passwordLock);
+    PR_Unlock(handle->passwordLock);
 
     return rv;
 }
@@ -276,24 +276,24 @@ sftkdbLoad_Legacy()
         return SECFailure;
     }
 
-    legacy_glue_open = (LGOpenFunc)MPR_FindFunctionSymbol(lib, "legacy_Open");
+    legacy_glue_open = (LGOpenFunc)PR_FindFunctionSymbol(lib, "legacy_Open");
     legacy_glue_readSecmod =
-        (LGReadSecmodFunc)MPR_FindFunctionSymbol(lib, "legacy_ReadSecmodDB");
+        (LGReadSecmodFunc)PR_FindFunctionSymbol(lib, "legacy_ReadSecmodDB");
     legacy_glue_releaseSecmod =
-        (LGReleaseSecmodFunc)MPR_FindFunctionSymbol(lib, "legacy_ReleaseSecmodDBData");
+        (LGReleaseSecmodFunc)PR_FindFunctionSymbol(lib, "legacy_ReleaseSecmodDBData");
     legacy_glue_deleteSecmod =
-        (LGDeleteSecmodFunc)MPR_FindFunctionSymbol(lib, "legacy_DeleteSecmodDB");
+        (LGDeleteSecmodFunc)PR_FindFunctionSymbol(lib, "legacy_DeleteSecmodDB");
     legacy_glue_addSecmod =
-        (LGAddSecmodFunc)MPR_FindFunctionSymbol(lib, "legacy_AddSecmodDB");
+        (LGAddSecmodFunc)PR_FindFunctionSymbol(lib, "legacy_AddSecmodDB");
     legacy_glue_shutdown =
-        (LGShutdownFunc)MPR_FindFunctionSymbol(lib, "legacy_Shutdown");
+        (LGShutdownFunc)PR_FindFunctionSymbol(lib, "legacy_Shutdown");
     setCryptFunction =
-        (LGSetCryptFunc)MPR_FindFunctionSymbol(lib, "legacy_SetCryptFunctions");
+        (LGSetCryptFunc)PR_FindFunctionSymbol(lib, "legacy_SetCryptFunctions");
 
     if (!legacy_glue_open || !legacy_glue_readSecmod ||
         !legacy_glue_releaseSecmod || !legacy_glue_deleteSecmod ||
         !legacy_glue_addSecmod || !setCryptFunction) {
-        MPR_UnloadLibrary(lib);
+        PR_UnloadLibrary(lib);
         return SECFailure;
     }
 
@@ -408,9 +408,9 @@ sftkdbCall_Shutdown(void)
 #endif
         crv = (*legacy_glue_shutdown)(parentForkedAfterC_Initialize);
     }
-    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (!disableUnload) {
-        MPR_UnloadLibrary(legacy_glue_lib);
+        PR_UnloadLibrary(legacy_glue_lib);
     }
     legacy_glue_lib = NULL;
     legacy_glue_open = NULL;

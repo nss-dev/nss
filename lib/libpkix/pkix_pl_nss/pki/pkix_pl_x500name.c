@@ -68,7 +68,7 @@ pkix_pl_X500Name_ToString(
         if (!string){
                 PKIX_ERROR(PKIX_CERTNAMETOASCIIFAILED);
         }
-        strLength = MPL_strlen(string);
+        strLength = PL_strlen(string);
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII, string, strLength, pString, plContext),

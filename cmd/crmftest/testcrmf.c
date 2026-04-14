@@ -114,13 +114,13 @@ debug_test(SECItem *src, char *filePath)
 {
     PRFileDesc *fileDesc;
 
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not cretae file %s.\n", filePath);
         return;
     }
-    MPR_Write(fileDesc, src->data, src->len);
+    PR_Write(fileDesc, src->data, src->len);
 }
 
 SECStatus
@@ -251,7 +251,7 @@ WriteItOut(void *arg, const char *buf, unsigned long len)
 {
     PRFileDesc *fileDesc = (PRFileDesc *)arg;
 
-    MPR_Write(fileDesc, (void *)buf, len);
+    PR_Write(fileDesc, (void *)buf, len);
 }
 
 CRMFCertExtCreationInfo *
@@ -413,7 +413,7 @@ CreateCertRequest(TESTKeyPair *pair, long inRequestID)
     /* Set Validity Dates */
     validity.notBefore = &notBefore;
     validity.notAfter = NULL;
-    notBefore = MPR_Now();
+    notBefore = PR_Now();
     rv = CRMF_CertRequestSetTemplateField(certReq, crmfValidity, (void *)(&validity));
     if (rv != SECSuccess) {
         printf("Could not add validity to cert template\n");
@@ -487,8 +487,8 @@ Encode(CRMFCertReqMsg *inCertReq1, CRMFCertReqMsg *inCertReq2)
     CRMFCertReqMsg *msgArr[3];
     char filePath[PATH_LEN];
 
-    MPR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, CRMF_FILE);
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, CRMF_FILE);
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
@@ -504,7 +504,7 @@ Encode(CRMFCertReqMsg *inCertReq1, CRMFCertReqMsg *inCertReq2)
         irv = 15;
     }
 finish:
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     return irv;
 }
 
@@ -556,14 +556,14 @@ Decode(void)
     SECItem item = { siBuffer, NULL, 0 };
     char filePath[PATH_LEN];
 
-    MPR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, CRMF_FILE);
-    fileDesc = MPR_Open(filePath, PR_RDONLY, 0644);
+    PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, CRMF_FILE);
+    fileDesc = PR_Open(filePath, PR_RDONLY, 0644);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
         return 214;
     }
     rv = SECU_FileToItem(&item, fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     if (rv != SECSuccess) {
         return 215;
     }
@@ -619,14 +619,14 @@ GetBitsFromFile(const char *filePath, SECItem *item)
     PRFileDesc *fileDesc;
     SECStatus rv;
 
-    fileDesc = MPR_Open(filePath, PR_RDONLY, 0644);
+    fileDesc = PR_Open(filePath, PR_RDONLY, 0644);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
         return 14;
     }
 
     rv = SECU_FileToItem(item, fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
 
     if (rv != SECSuccess) {
         item->data = NULL;
@@ -687,7 +687,7 @@ EncodeCMMFCertReply(const char *filePath,
 
     CMMF_CertRepContentSetCAPubs(certRepContent, list);
 
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
@@ -697,7 +697,7 @@ EncodeCMMFCertReply(const char *filePath,
 
     srv = CMMF_EncodeCertRepContent(certRepContent, WriteItOut,
                                     (void *)fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     if (srv != SECSuccess) {
         printf("CMMF_EncodeCertRepContent failed,\n");
         rv = 401;
@@ -803,7 +803,7 @@ EncodeCMMFRecoveryMessage(const char *filePath,
         rv = 413;
         goto finish;
     }
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
@@ -813,7 +813,7 @@ EncodeCMMFRecoveryMessage(const char *filePath,
 
     srv = CMMF_EncodeKeyRecRepContent(repContent, WriteItOut,
                                       (void *)fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     if (srv != SECSuccess) {
         printf("CMMF_EncodeKeyRecRepContent failed\n");
         rv = 415;
@@ -867,7 +867,7 @@ DoCMMFStuff(void)
 
     /* Do common setup for the following steps.
      */
-    MPR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, "CertRepContent.der");
+    PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, "CertRepContent.der");
 
     cert = CERT_FindCertByNickname(db, personalCert);
     if (cert == NULL) {
@@ -875,7 +875,7 @@ DoCMMFStuff(void)
         rv = 416;
         goto finish;
     }
-    list = CERT_GetCertChainFromCert(cert, MPR_Now(), certUsageEmailSigner);
+    list = CERT_GetCertChainFromCert(cert, PR_Now(), certUsageEmailSigner);
     if (list == NULL) {
         printf("Could not find the certificate chain for %s\n", personalCert);
         rv = 418;
@@ -908,7 +908,7 @@ DoCMMFStuff(void)
     **    given by the -s option.
     **    Store the message in configdir/KeyRecRepContent.der
     */
-    MPR_snprintf(filePath, PATH_LEN, "%s/%s", configdir,
+    PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir,
                 "KeyRecRepContent.der");
 
     rv = EncodeCMMFRecoveryMessage(filePath, cert, list);
@@ -1064,9 +1064,9 @@ DoKeyRecovery(SECKEYPrivateKey *privKey)
         printf("Could not set the Certified Key Pair\n");
         return 505;
     }
-    MPR_snprintf(filePath, PATH_LEN, "%s/%s", configdir,
+    PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir,
                 "KeyRecRepContent.der");
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         PORT_Free(ciphertext);
@@ -1077,7 +1077,7 @@ DoKeyRecovery(SECKEYPrivateKey *privKey)
     }
     rv = CMMF_EncodeKeyRecRepContent(keyRecRep, WriteItOut, fileDesc);
     CMMF_DestroyKeyRecRepContent(keyRecRep);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
 
     if (rv != SECSuccess) {
         PORT_Free(ciphertext);
@@ -1222,9 +1222,9 @@ DoChallengeResponse(SECKEYPrivateKey *privKey,
             return 903;
         }
     }
-    MPR_snprintf(filePath, PATH_LEN, "%s/POPODecKeyChallContent.der",
+    PR_snprintf(filePath, PATH_LEN, "%s/POPODecKeyChallContent.der",
                 configdir);
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
@@ -1232,7 +1232,7 @@ DoChallengeResponse(SECKEYPrivateKey *privKey,
     }
     rv = CMMF_EncodePOPODecKeyChallContent(chalContent, WriteItOut,
                                            (void *)fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     CMMF_DestroyPOPODecKeyChallContent(chalContent);
     if (rv != SECSuccess) {
         printf("Could not encode the POPODecKeyChallContent.\n");
@@ -1294,9 +1294,9 @@ DoChallengeResponse(SECKEYPrivateKey *privKey,
         }
     }
     CMMF_DestroyPOPODecKeyChallContent(chalContent);
-    MPR_snprintf(filePath, PATH_LEN, "%s/POPODecKeyRespContent.der",
+    PR_snprintf(filePath, PATH_LEN, "%s/POPODecKeyRespContent.der",
                 configdir);
-    fileDesc = MPR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+    fileDesc = PR_Open(filePath, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                        0666);
     if (fileDesc == NULL) {
         printf("Could not open file %s\n", filePath);
@@ -1304,7 +1304,7 @@ DoChallengeResponse(SECKEYPrivateKey *privKey,
     }
     rv = CMMF_EncodePOPODecKeyRespContent(randomNums, numChallengesSet,
                                           WriteItOut, fileDesc);
-    MPR_Close(fileDesc);
+    PR_Close(fileDesc);
     if (rv != 0) {
         printf("Could not encode the POPODecKeyRespContent\n");
         return 915;
@@ -1522,8 +1522,8 @@ main(int argc, char **argv)
     memset(&signPair, 0, sizeof signPair);
     memset(&cryptPair, 0, sizeof cryptPair);
     printf("\ncrmftest v1.0\n");
-    optstate = MPL_CreateOptState(argc, argv, "d:p:e:s:P:f:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "d:p:e:s:P:f:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'd':
                 configdir = PORT_Strdup(optstate->value);
@@ -1585,7 +1585,7 @@ main(int argc, char **argv)
                 return 601;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     if (status == PL_OPT_BAD || !nssInit) {
         Usage();
         return 600;

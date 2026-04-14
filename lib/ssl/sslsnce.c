@@ -292,7 +292,7 @@ ssl_InitSessionCache()
 static PRUint32
 ssl_CacheNow()
 {
-    return MPR_Now() / PR_USEC_PER_SEC;
+    return PR_Now() / PR_USEC_PER_SEC;
 }
 
 static PRUint32
@@ -837,7 +837,7 @@ ssl_ServerUncacheSessionID(sslSessionID *sid)
     /* Uncaching a SID should never change the error code.
     ** So save it here and restore it before exiting.
     */
-    err = MPR_GetError();
+    err = PR_GetError();
 
     sessionID = sid->u.ssl3.sessionID;
     sessionIDLength = sid->u.ssl3.sessionIDLength;
@@ -881,14 +881,14 @@ CloseCache(cacheDesc *cache)
             }
         }
         if (cache->shared) {
-            MPR_MemUnmap(cache->cacheMem, cache->cacheMemSize);
+            PR_MemUnmap(cache->cacheMem, cache->cacheMemSize);
         } else {
             PORT_Free(cache->cacheMem);
         }
         cache->cacheMem = NULL;
     }
     if (cache->cacheMemMap) {
-        MPR_CloseFileMap(cache->cacheMemMap);
+        PR_CloseFileMap(cache->cacheMemMap);
         cache->cacheMemMap = NULL;
     }
     memset(cache, 0, sizeof *cache);
@@ -1033,13 +1033,13 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     if (shared) {
 /* Create file names */
 #if defined(XP_UNIX)
-        /* there's some confusion here about whether MPR_OpenAnonFileMap wants
+        /* there's some confusion here about whether PR_OpenAnonFileMap wants
         ** a directory name or a file name for its first argument.
-        cfn = MPR_smprintf("%s/.sslsvrcache.%d", directory, myPid);
+        cfn = PR_smprintf("%s/.sslsvrcache.%d", directory, myPid);
         */
-        cfn = MPR_smprintf("%s", directory);
+        cfn = PR_smprintf("%s", directory);
 #elif defined(XP_WIN32)
-        cfn = MPR_smprintf("%s/svrcache_%d_%x.ssl", directory, myPid,
+        cfn = PR_smprintf("%s/svrcache_%d_%x.ssl", directory, myPid,
                           GetCurrentThreadId());
 #else
 #error "Don't know how to create file name for this platform!"
@@ -1049,15 +1049,15 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
         }
 
         /* Create cache */
-        cacheMemMap = MPR_OpenAnonFileMap(cfn, cache->cacheMemSize,
+        cacheMemMap = PR_OpenAnonFileMap(cfn, cache->cacheMemSize,
                                          PR_PROT_READWRITE);
 
-        MPR_smprintf_free(cfn);
+        PR_smprintf_free(cfn);
         if (!cacheMemMap) {
             goto loser;
         }
 
-        cacheMem = MPR_MemMap(cacheMemMap, 0, cache->cacheMemSize);
+        cacheMem = PR_MemMap(cacheMemMap, 0, cache->cacheMemSize);
     } else {
         cacheMem = PORT_Alloc(cache->cacheMemSize);
     }
@@ -1248,7 +1248,7 @@ ssl_ConfigMPServerSIDCacheWithOpt(PRUint32 ssl3_timeout,
     if (result != SECSuccess)
         return result;
 
-    prStatus = MPR_ExportFileMapAsString(cache->cacheMemMap,
+    prStatus = PR_ExportFileMapAsString(cache->cacheMemMap,
                                         sizeof fmString, fmString);
     if ((prStatus != PR_SUCCESS) || !(fmStrLen = strlen(fmString))) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1263,7 +1263,7 @@ ssl_ConfigMPServerSIDCacheWithOpt(PRUint32 ssl3_timeout,
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    envValue = MPR_smprintf("%s,%s", inhValue, fmString);
+    envValue = PR_smprintf("%s,%s", inhValue, fmString);
     if (!envValue || !strlen(envValue)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -1271,7 +1271,7 @@ ssl_ConfigMPServerSIDCacheWithOpt(PRUint32 ssl3_timeout,
     PORT_Free(inhValue);
 
     putEnvFailed = (SECStatus)NSS_PutEnv(envVarName, envValue);
-    MPR_smprintf_free(envValue);
+    PR_smprintf_free(envValue);
     if (putEnvFailed) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         result = SECFailure;
@@ -1358,7 +1358,7 @@ SSL_InheritMPServerSIDCacheInstance(cacheDesc *cache, const char *envString)
     ssl_sid_lookup = ServerSessionIDLookup;
 
     if (!envString) {
-        envString = MPR_GetEnvSecure(envVarName);
+        envString = PR_GetEnvSecure(envVarName);
         if (!envString) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
@@ -1390,11 +1390,11 @@ SSL_InheritMPServerSIDCacheInstance(cacheDesc *cache, const char *envString)
     cache->cacheMemSize = inherit.cacheMemSize;
 
     /* Create cache */
-    cache->cacheMemMap = MPR_ImportFileMapFromString(fmString);
+    cache->cacheMemMap = PR_ImportFileMapFromString(fmString);
     if (!cache->cacheMemMap) {
         goto loser;
     }
-    cache->cacheMem = MPR_MemMap(cache->cacheMemMap, 0, cache->cacheMemSize);
+    cache->cacheMem = PR_MemMap(cache->cacheMemMap, 0, cache->cacheMemSize);
     if (!cache->cacheMem) {
         goto loser;
     }
@@ -1518,9 +1518,9 @@ LockPoller(void *arg)
     int locks_to_poll = cache->numSIDCacheLocks + 2;
     PRUint32 expiration = cache->mutexTimeout;
 
-    timeout = MPR_SecondsToInterval(expiration);
+    timeout = PR_SecondsToInterval(expiration);
     while (!sharedCache->stopPolling) {
-        MPR_Sleep(timeout);
+        PR_Sleep(timeout);
         if (sharedCache->stopPolling)
             break;
 
@@ -1562,7 +1562,7 @@ LaunchLockPoller(cacheDesc *cache)
     PRThread *pollerThread;
 
     cache->mutexTimeout = SID_LOCK_EXPIRATION_TIMEOUT;
-    timeoutString = MPR_GetEnvSecure("NSS_SSL_SERVER_CACHE_MUTEX_TIMEOUT");
+    timeoutString = PR_GetEnvSecure("NSS_SSL_SERVER_CACHE_MUTEX_TIMEOUT");
     if (timeoutString) {
         long newTime = strtol(timeoutString, 0, 0);
         if (newTime == 0)
@@ -1573,7 +1573,7 @@ LaunchLockPoller(cacheDesc *cache)
     }
 
     pollerThread =
-        MPR_CreateThread(PR_USER_THREAD, LockPoller, cache, PR_PRIORITY_NORMAL,
+        PR_CreateThread(PR_USER_THREAD, LockPoller, cache, PR_PRIORITY_NORMAL,
                         PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
     if (!pollerThread) {
         return SECFailure;
@@ -1590,10 +1590,10 @@ StopLockPoller(cacheDesc *cache)
         return SECSuccess;
     }
     cache->sharedCache->stopPolling = PR_TRUE;
-    if (MPR_Interrupt(cache->poller) != PR_SUCCESS) {
+    if (PR_Interrupt(cache->poller) != PR_SUCCESS) {
         return SECFailure;
     }
-    if (MPR_JoinThread(cache->poller) != PR_SUCCESS) {
+    if (PR_JoinThread(cache->poller) != PR_SUCCESS) {
         return SECFailure;
     }
     cache->poller = NULL;
@@ -1656,7 +1656,7 @@ static SECStatus
 ssl_SelfEncryptShutdown(void *appData, void *nssData)
 {
     ssl_CleanupSelfEncryptKeyPair();
-    MPR_DestroyRWLock(ssl_self_encrypt_key_pair.lock);
+    PR_DestroyRWLock(ssl_self_encrypt_key_pair.lock);
     PORT_Memset(&ssl_self_encrypt_key_pair, 0,
                 sizeof(ssl_self_encrypt_key_pair));
 
@@ -1671,7 +1671,7 @@ ssl_SelfEncryptSetup(void)
     if (rv != SECSuccess) {
         return PR_FAILURE;
     }
-    ssl_self_encrypt_key_pair.lock = MPR_NewRWLock(PR_RWLOCK_RANK_NONE, NULL);
+    ssl_self_encrypt_key_pair.lock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, NULL);
     if (!ssl_self_encrypt_key_pair.lock) {
         return PR_FAILURE;
     }
@@ -1700,13 +1700,13 @@ ssl_SetSelfEncryptKeyPair(SECKEYPublicKey *pubKey,
         return SECFailure;
     }
 
-    MPR_RWLock_Wlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Wlock(ssl_self_encrypt_key_pair.lock);
     oldPubKey = ssl_self_encrypt_key_pair.pubKey;
     oldPrivKey = ssl_self_encrypt_key_pair.privKey;
     ssl_self_encrypt_key_pair.pubKey = pubKeyCopy;
     ssl_self_encrypt_key_pair.privKey = privKeyCopy;
     ssl_self_encrypt_key_pair.configured = explicitConfig;
-    MPR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
 
     if (oldPubKey) {
         PORT_Assert(oldPrivKey);
@@ -1729,7 +1729,7 @@ SSL_SetSessionTicketKeyPair(SECKEYPublicKey *pubKey,
         return SECFailure;
     }
 
-    if (PR_SUCCESS != MPR_CallOnce(&ssl_self_encrypt_key_pair.setup,
+    if (PR_SUCCESS != PR_CallOnce(&ssl_self_encrypt_key_pair.setup,
                                   &ssl_SelfEncryptSetup)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -1746,15 +1746,15 @@ ssl_MaybeSetSelfEncryptKeyPair(const sslKeyPair *keyPair)
 {
     PRBool configured;
 
-    if (PR_SUCCESS != MPR_CallOnce(&ssl_self_encrypt_key_pair.setup,
+    if (PR_SUCCESS != PR_CallOnce(&ssl_self_encrypt_key_pair.setup,
                                   &ssl_SelfEncryptSetup)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
 
-    MPR_RWLock_Rlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Rlock(ssl_self_encrypt_key_pair.lock);
     configured = ssl_self_encrypt_key_pair.configured;
-    MPR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
     if (configured) {
         return SECSuccess;
     }
@@ -1766,7 +1766,7 @@ static SECStatus
 ssl_GetSelfEncryptKeyPair(SECKEYPublicKey **pubKey,
                           SECKEYPrivateKey **privKey)
 {
-    if (PR_SUCCESS != MPR_CallOnce(&ssl_self_encrypt_key_pair.setup,
+    if (PR_SUCCESS != PR_CallOnce(&ssl_self_encrypt_key_pair.setup,
                                   &ssl_SelfEncryptSetup)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -1776,14 +1776,14 @@ ssl_GetSelfEncryptKeyPair(SECKEYPublicKey **pubKey,
     SECKEYPrivateKey *privKeyCopy = NULL;
     PRBool noKey = PR_FALSE;
 
-    MPR_RWLock_Rlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Rlock(ssl_self_encrypt_key_pair.lock);
     if (ssl_self_encrypt_key_pair.pubKey && ssl_self_encrypt_key_pair.privKey) {
         pubKeyCopy = SECKEY_CopyPublicKey(ssl_self_encrypt_key_pair.pubKey);
         privKeyCopy = SECKEY_CopyPrivateKey(ssl_self_encrypt_key_pair.privKey);
     } else {
         noKey = PR_TRUE;
     }
-    MPR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
+    PR_RWLock_Unlock(ssl_self_encrypt_key_pair.lock);
 
     if (noKey) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1831,7 +1831,7 @@ SECStatus
 ssl_GetSelfEncryptKeys(sslSocket *ss, PRUint8 *keyName,
                        PK11SymKey **encKey, PK11SymKey **macKey)
 {
-    if (PR_SUCCESS != MPR_CallOnceWithArg(&ssl_self_encrypt_keys.setup,
+    if (PR_SUCCESS != PR_CallOnceWithArg(&ssl_self_encrypt_keys.setup,
                                          &ssl_GenerateSelfEncryptKeysOnce,
                                          ss->pkcs11PinArg)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);

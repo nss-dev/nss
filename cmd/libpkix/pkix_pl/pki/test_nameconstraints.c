@@ -22,17 +22,17 @@ catDirName(char *platform, char *dir, void *plContext)
 
     PKIX_TEST_STD_VARS();
 
-    dirLen = MPL_strlen(dir);
-    platformLen = MPL_strlen(platform);
+    dirLen = PL_strlen(dir);
+    platformLen = PL_strlen(platform);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc(platformLen +
                                                  dirLen +
                                                  2,
                                              (void **)&pathName, plContext));
 
-    MPL_strcpy(pathName, platform);
-    MPL_strcat(pathName, "/");
-    MPL_strcat(pathName, dir);
+    PL_strcpy(pathName, platform);
+    PL_strcat(pathName, "/");
+    PL_strcat(pathName, dir);
 
 cleanup:
 

@@ -14,7 +14,7 @@
     if (err == from) {      \
         PORT_SetError(to);  \
     }
-#define DEFINE_ERROR PRErrorCode err = MPR_GetError();
+#define DEFINE_ERROR PRErrorCode err = PR_GetError();
 #else
 #define MAP_ERROR(from, to)
 #define DEFINE_ERROR
@@ -105,7 +105,7 @@ ssl_DefSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
         int rv = lower->methods->send(lower, (const void *)(buf + sent),
                                       len - sent, flags, ss->wTimeout);
         if (rv < 0) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             if (err == PR_WOULD_BLOCK_ERROR) {
                 ss->lastWriteBlocked = 1;
                 return sent ? sent : SECFailure;
@@ -150,7 +150,7 @@ ssl_DefWrite(sslSocket *ss, const unsigned char *buf, int len)
         int rv = lower->methods->write(lower, (const void *)(buf + sent),
                                        len - sent);
         if (rv < 0) {
-            PRErrorCode err = MPR_GetError();
+            PRErrorCode err = PR_GetError();
             if (err == PR_WOULD_BLOCK_ERROR) {
                 ss->lastWriteBlocked = 1;
                 return sent ? sent : SECFailure;
@@ -206,11 +206,11 @@ ssl_DefClose(sslSocket *ss)
     }
     ss->fd = NULL;
 
-    /* MPR_PopIOLayer will swap the contents of the top two PRFileDescs on
+    /* PR_PopIOLayer will swap the contents of the top two PRFileDescs on
     ** the stack, and then remove the second one.  This way, the address
     ** of the PRFileDesc on the top of the stack doesn't change.
     */
-    popped = MPR_PopIOLayer(fd, PR_TOP_IO_LAYER);
+    popped = PR_PopIOLayer(fd, PR_TOP_IO_LAYER);
     popped->dtor(popped);
 
     /* fd is now the PRFileDesc for the next layer down.

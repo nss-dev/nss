@@ -54,7 +54,7 @@ Pk11Install_UserVerifyJar(JAR *jar, PRFileDesc *out, PRBool query)
 
     CERTCertificate *cert, *prev = NULL;
 
-    MPR_fprintf(out, "\nThis installation JAR file was signed by:\n");
+    PR_fprintf(out, "\nThis installation JAR file was signed by:\n");
 
     ctx = JAR_find(jar, NULL, jarTypeSign);
 
@@ -66,21 +66,21 @@ Pk11Install_UserVerifyJar(JAR *jar, PRFileDesc *out, PRBool query)
         }
 
         count++;
-        MPR_fprintf(out, "----------------------------------------------\n");
+        PR_fprintf(out, "----------------------------------------------\n");
         if (cert) {
             if (cert->nickname) {
-                MPR_fprintf(out, "**NICKNAME**\n%s\n", cert->nickname);
+                PR_fprintf(out, "**NICKNAME**\n%s\n", cert->nickname);
             }
             if (cert->subjectName) {
-                MPR_fprintf(out, "**SUBJECT NAME**\n%s\n", cert->subjectName);
+                PR_fprintf(out, "**SUBJECT NAME**\n%s\n", cert->subjectName);
             }
             if (cert->issuerName) {
-                MPR_fprintf(out, "**ISSUER NAME**\n%s\n", cert->issuerName);
+                PR_fprintf(out, "**ISSUER NAME**\n%s\n", cert->issuerName);
             }
         } else {
-            MPR_fprintf(out, "No matching certificate could be found.\n");
+            PR_fprintf(out, "No matching certificate could be found.\n");
         }
-        MPR_fprintf(out, "----------------------------------------------\n\n");
+        PR_fprintf(out, "----------------------------------------------\n\n");
 
         prev = cert;
     }
@@ -88,19 +88,19 @@ Pk11Install_UserVerifyJar(JAR *jar, PRFileDesc *out, PRBool query)
     JAR_find_end(ctx);
 
     if (count == 0) {
-        MPR_fprintf(out, "No signatures found: JAR FILE IS UNSIGNED.\n");
+        PR_fprintf(out, "No signatures found: JAR FILE IS UNSIGNED.\n");
     }
 
     if (query) {
-        MPR_fprintf(out,
+        PR_fprintf(out,
                    "Do you wish to continue this installation? (y/n) ");
 
         if (PR_fgets(stdinbuf, 80, PR_STDIN) != NULL) {
             char *response;
 
             if ((response = strtok(stdinbuf, " \t\n\r"))) {
-                if (!MPL_strcasecmp(response, "y") ||
-                    !MPL_strcasecmp(response, "yes")) {
+                if (!PL_strcasecmp(response, "y") ||
+                    !PL_strcasecmp(response, "yes")) {
                     return 0;
                 }
             }
@@ -125,7 +125,7 @@ PR_fgets(char *buf, int size, PRFileDesc *file)
 
     i = 0;
     while (i < size - 1) {
-        status = MPR_Read(file, (void *)&c, 1);
+        status = PR_Read(file, (void *)&c, 1);
         if (status == -1) {
             return NULL;
         } else if (status == 0) {

@@ -276,8 +276,8 @@ test_buildchain(int argc, char *argv[])
 
     while (pollDesc != NULL) {
 
-        if (MPR_Poll(pollDesc, 1, 0) < 0) {
-            testError("MPR_Poll failed");
+        if (PR_Poll(pollDesc, 1, 0) < 0) {
+            testError("PR_Poll failed");
         }
 
         pkixTestErrorResult = PKIX_BuildChain(procParams,

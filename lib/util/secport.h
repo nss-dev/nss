@@ -172,23 +172,23 @@ SEC_END_PROTOS
  *
  * This string must not be modified by the application.
  */
-#define PORT_ErrorToString(err) MPR_ErrorToString((err), PR_LANGUAGE_I_DEFAULT)
+#define PORT_ErrorToString(err) PR_ErrorToString((err), PR_LANGUAGE_I_DEFAULT)
 
-#define PORT_ErrorToName MPR_ErrorToName
+#define PORT_ErrorToName PR_ErrorToName
 
 #define PORT_Memcmp memcmp
 #define PORT_Memcpy memcpy
 #define PORT_Memmove memmove
 #define PORT_Memset memset
 
-#define PORT_Strcasecmp MPL_strcasecmp
+#define PORT_Strcasecmp PL_strcasecmp
 #define PORT_Strcat strcat
 #define PORT_Strchr strchr
 #define PORT_Strrchr strrchr
 #define PORT_Strcmp strcmp
 #define PORT_Strcpy strcpy
 #define PORT_Strlen(s) strlen(s)
-#define PORT_Strncasecmp MPL_strncasecmp
+#define PORT_Strncasecmp PL_strncasecmp
 #define PORT_Strncat strncat
 #define PORT_Strncmp strncmp
 #define PORT_Strncpy strncpy
@@ -281,9 +281,9 @@ extern PRBool NSS_GetSystemFIPSEnabled(void);
  * newShLibName:
  *   The simple file name of the new shared library to be loaded.
  *
- * We use MPR_GetLibraryFilePathname to get the pathname of the loaded
+ * We use PR_GetLibraryFilePathname to get the pathname of the loaded
  * shared lib that contains this function, and then do a
- * MPR_LoadLibraryWithFlags with an absolute pathname for the shared
+ * PR_LoadLibraryWithFlags with an absolute pathname for the shared
  * library to be loaded.
  *
  * On Windows, the "alternate search path" strategy is employed, if available.

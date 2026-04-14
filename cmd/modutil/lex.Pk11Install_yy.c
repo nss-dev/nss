@@ -377,9 +377,9 @@ static char *putComplexString(char *); /* strip out quotes, deal with */
 void Pk11Install_yyerror(char *);
 
 /* Overrides to use NSPR */
-#define malloc MPR_Malloc
-#define realloc MPR_Realloc
-#define free MPR_Free
+#define malloc PR_Malloc
+#define realloc PR_Realloc
+#define free PR_Free
 
 int Pk11Install_yylinenum = 1;
 static char *err;
@@ -393,7 +393,7 @@ static char *err;
         char c;                                                       \
         int n;                                                        \
         for (n = 0; n < max_size &&                                   \
-                    MPR_Read(Pk11Install_FD, &c, 1) == 1 && c != '\n'; \
+                    PR_Read(Pk11Install_FD, &c, 1) == 1 && c != '\n'; \
              ++n) {                                                   \
             buf[n] = c;                                               \
         }                                                             \
@@ -402,7 +402,7 @@ static char *err;
         }                                                             \
         result = n;                                                   \
     } else {                                                          \
-        result = MPR_Read(Pk11Install_FD, buf, max_size);              \
+        result = PR_Read(Pk11Install_FD, buf, max_size);              \
     }
 
 /*** Regular expression definitions ***/
@@ -680,9 +680,9 @@ YY_DECL
 #line 75 "installparse.l"
                 {
                     err =
-                        MPR_smprintf("Invalid lexeme: %s", Pk11Install_yytext);
+                        PR_smprintf("Invalid lexeme: %s", Pk11Install_yytext);
                     Pk11Install_yyerror(err);
-                    MPR_smprintf_free(err);
+                    PR_smprintf_free(err);
                     return 1;
                 }
                 YY_BREAK
@@ -1568,7 +1568,7 @@ Pk11Install_yywrap(void)
 static char *
 putSimpleString(char *str)
 {
-    char *tmp = (char *)MPR_Malloc(strlen(str) + 1);
+    char *tmp = (char *)PR_Malloc(strlen(str) + 1);
     strcpy(tmp, str);
     return tmp;
 }
@@ -1590,7 +1590,7 @@ putComplexString(char *str)
 
     /* Allocate the new space.  This string will actually be too big,
     since quotes and backslashes will be stripped out.  But that's ok. */
-    tmp = (char *)MPR_Malloc(size + 1);
+    tmp = (char *)PR_Malloc(size + 1);
 
     /* Copy it over */
     for (i = 0, j = 0; i < size; i++) {

@@ -845,7 +845,7 @@ lg_mkSecretKeyRep(const CK_ATTRIBUTE *templ,
     /* on 64 bit platforms, we still want to store 32 bits of keyType (This is
      * safe since the PKCS #11 defines for all types are 32 bits or less). */
     keyTypeStorage = (PRUint32)keyType;
-    keyTypeStorage = MPR_htonl(keyTypeStorage);
+    keyTypeStorage = PR_htonl(keyTypeStorage);
     keyTypeItem.data = (unsigned char *)&keyTypeStorage;
     keyTypeItem.len = sizeof(keyTypeStorage);
     rv = SECITEM_CopyItem(arena, &privKey->u.rsa.coefficient, &keyTypeItem);

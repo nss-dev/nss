@@ -63,7 +63,7 @@ sslBloom_AddOrCheck(sslBloomFilter *filter, const PRUint8 *hashes, PRBool add)
         PORT_Memcpy(((PRUint8 *)&tmp) + (sizeof(tmp) - bytes),
                     hashes, bytes);
         hashes += bytes;
-        bitIndex = MPR_ntohl(tmp) >> shift;
+        bitIndex = PR_ntohl(tmp) >> shift;
 
         mask = 1 << (bitIndex % 8);
         found = found && filter->filter[bitIndex / 8] & mask;

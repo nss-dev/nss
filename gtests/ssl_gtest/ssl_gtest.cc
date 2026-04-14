@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   g_working_dir_path = ".";
   g_ssl_gtest_verbose = false;
 
-  char* workdir = MPR_GetEnvSecure("NSS_GTEST_WORKDIR");
+  char* workdir = PR_GetEnvSecure("NSS_GTEST_WORKDIR");
   if (workdir) g_working_dir_path = workdir;
 
   for (int i = 0; i < argc; i++) {

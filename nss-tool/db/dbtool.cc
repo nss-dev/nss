@@ -102,7 +102,7 @@ bool DBTool::Run(const std::vector<std::string> &arguments) {
   if (parser.Has("--path")) {
     initDir = parser.Get("--path");
   }
-  if (MPR_Access(initDir.c_str(), how) != PR_SUCCESS) {
+  if (PR_Access(initDir.c_str(), how) != PR_SUCCESS) {
     std::cerr << "Directory '" << initDir
               << "' does not exist or you don't have permissions!" << std::endl;
     return false;
@@ -170,7 +170,7 @@ bool DBTool::PathHasDBFiles(std::string path) {
   std::regex certDBPattern("cert.*\\.db");
   std::regex keyDBPattern("key.*\\.db");
 
-  PRDir *dir = MPR_OpenDir(path.c_str());
+  PRDir *dir = PR_OpenDir(path.c_str());
   if (!dir) {
     std::cerr << "Directory " << path << " could not be accessed!" << std::endl;
     return false;
@@ -178,7 +178,7 @@ bool DBTool::PathHasDBFiles(std::string path) {
 
   PRDirEntry *ent;
   bool dbFileExists = false;
-  while ((ent = MPR_ReadDir(dir, PR_SKIP_BOTH))) {
+  while ((ent = PR_ReadDir(dir, PR_SKIP_BOTH))) {
     if (std::regex_match(ent->name, certDBPattern) ||
         std::regex_match(ent->name, keyDBPattern) ||
         "secmod.db" == std::string(ent->name)) {
@@ -187,7 +187,7 @@ bool DBTool::PathHasDBFiles(std::string path) {
     }
   }
 
-  (void)MPR_CloseDir(dir);
+  (void)PR_CloseDir(dir);
   return dbFileExists;
 }
 
@@ -306,7 +306,7 @@ bool DBTool::ListKeys() {
   ScopedSECKEYPrivateKeyList list(PK11_ListPrivateKeysInSlot(slot.get()));
   if (list.get() == nullptr) {
     std::cerr << "Listing private keys failed with error "
-              << MPR_ErrorToName(MPR_GetError()) << std::endl;
+              << PR_ErrorToName(PR_GetError()) << std::endl;
     return false;
   }
 
@@ -399,7 +399,7 @@ bool DBTool::ImportKey(const ArgParser &parser) {
       true /*isPerm*/, false /*isPrivate*/, KU_ALL, nullptr);
   if (rv != SECSuccess) {
     std::cerr << "Importing a private key in DER format failed with error "
-              << MPR_ErrorToName(MPR_GetError()) << std::endl;
+              << PR_ErrorToName(PR_GetError()) << std::endl;
     return false;
   }
 
@@ -457,7 +457,7 @@ bool DBTool::DeleteKey(const ArgParser &parser) {
       slot.get(), const_cast<char *>(keyName.c_str()), nullptr));
   if (list.get() == nullptr) {
     std::cerr << "Fetching private keys with nickname " << keyName
-              << " failed with error " << MPR_ErrorToName(MPR_GetError())
+              << " failed with error " << PR_ErrorToName(PR_GetError())
               << std::endl;
     return false;
   }

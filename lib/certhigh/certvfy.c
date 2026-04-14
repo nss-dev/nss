@@ -33,7 +33,7 @@
 SECStatus
 CERT_CertTimesValid(CERTCertificate *c)
 {
-    SECCertTimeValidity valid = CERT_CheckCertValidTimes(c, MPR_Now(), PR_TRUE);
+    SECCertTimeValidity valid = CERT_CheckCertValidTimes(c, PR_Now(), PR_TRUE);
     return (valid == secCertTimeValid) ? SECSuccess : SECFailure;
 }
 
@@ -1716,7 +1716,7 @@ CERT_VerifyCertificateNow(CERTCertDBHandle *handle, CERTCertificate *cert,
                           void *wincx, SECCertificateUsage *returnedUsages)
 {
     return (CERT_VerifyCertificate(handle, cert, checkSig,
-                                   requiredUsages, MPR_Now(), wincx, NULL, returnedUsages));
+                                   requiredUsages, PR_Now(), wincx, NULL, returnedUsages));
 }
 
 /* obsolete, do not use for new code */
@@ -1725,7 +1725,7 @@ CERT_VerifyCertNow(CERTCertDBHandle *handle, CERTCertificate *cert,
                    PRBool checkSig, SECCertUsage certUsage, void *wincx)
 {
     return (CERT_VerifyCert(handle, cert, checkSig,
-                            certUsage, MPR_Now(), wincx, NULL));
+                            certUsage, PR_Now(), wincx, NULL));
 }
 
 /* [ FROM pcertdb.c ] */
@@ -1866,7 +1866,7 @@ CERT_FilterCertListByCANames(CERTCertList *certList, int nCANames,
         return (SECSuccess);
     }
 
-    time = MPR_Now();
+    time = PR_Now();
 
     node = CERT_LIST_HEAD(certList);
 
@@ -1945,7 +1945,7 @@ CERT_GetCertNicknameWithValidity(PLArenaPool *arena, CERTCertificate *cert,
         srcNickname = "{???}";
     }
 
-    validity = CERT_CheckCertValidTimes(cert, MPR_Now(), PR_FALSE);
+    validity = CERT_CheckCertValidTimes(cert, PR_Now(), PR_FALSE);
 
     /* if the cert is good, then just use the nickname directly */
     if (validity == secCertTimeValid) {
@@ -1964,15 +1964,15 @@ CERT_GetCertNicknameWithValidity(PLArenaPool *arena, CERTCertificate *cert,
          * end
          */
         if (validity == secCertTimeExpired) {
-            tmpstr = MPR_smprintf("%s%s", srcNickname,
+            tmpstr = PR_smprintf("%s%s", srcNickname,
                                  expiredString);
         } else if (validity == secCertTimeNotValidYet) {
             /* not yet valid */
-            tmpstr = MPR_smprintf("%s%s", srcNickname,
+            tmpstr = PR_smprintf("%s%s", srcNickname,
                                  notYetGoodString);
         } else {
             /* undetermined */
-            tmpstr = MPR_smprintf("%s",
+            tmpstr = PR_smprintf("%s",
                                  "(NULL) (Validity Unknown)");
         }
 

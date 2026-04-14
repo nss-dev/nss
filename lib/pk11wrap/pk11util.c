@@ -84,7 +84,7 @@ SECMOD_Shutdown()
     nss_DumpModuleLog();
 
 #ifdef DEBUG
-    if (MPR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
+    if (PR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
         PORT_Assert(secmod_PrivateModuleCount == 0);
     }
 #endif
@@ -634,7 +634,7 @@ PK11_GetModuleURI(SECMODModule *mod)
         nattrs++;
     }
 
-    MPR_snprintf(libraryVersion, sizeof(libraryVersion), "%d.%d",
+    PR_snprintf(libraryVersion, sizeof(libraryVersion), "%d.%d",
                 info.libraryVersion.major, info.libraryVersion.minor);
     attrs[nattrs].name = PK11URI_PATTR_LIBRARY_VERSION;
     attrs[nattrs].value = libraryVersion;
@@ -686,7 +686,7 @@ SECMOD_AddNewModuleEx(const char *moduleName, const char *dllPath,
     int s, i;
     PK11SlotInfo *slot;
 
-    MPR_SetErrorText(0, NULL);
+    PR_SetErrorText(0, NULL);
     if (!moduleLock) {
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return result;
@@ -852,11 +852,11 @@ SECMOD_NewModuleListElement(void)
 SECMODModule *
 SECMOD_ReferenceModule(SECMODModule *module)
 {
-    MPR_Lock(module->refLock);
+    PR_Lock(module->refLock);
     PORT_Assert(module->refCount > 0);
 
     module->refCount++;
-    MPR_Unlock(module->refLock);
+    PR_Unlock(module->refLock);
     return module;
 }
 
@@ -868,12 +868,12 @@ SECMOD_DestroyModule(SECMODModule *module)
     int slotCount;
     int i;
 
-    MPR_Lock(module->refLock);
+    PR_Lock(module->refLock);
     if (module->refCount-- == 1) {
         willfree = PR_TRUE;
     }
     PORT_Assert(willfree || (module->refCount > 0));
-    MPR_Unlock(module->refLock);
+    PR_Unlock(module->refLock);
 
     if (!willfree) {
         return;
@@ -914,12 +914,12 @@ SECMOD_SlotDestroyModule(SECMODModule *module, PRBool fromSlot)
     PRBool willfree = PR_FALSE;
     if (fromSlot) {
         PORT_Assert(module->refCount == 0);
-        MPR_Lock(module->refLock);
+        PR_Lock(module->refLock);
         if (module->slotCount-- == 1) {
             willfree = PR_TRUE;
         }
         PORT_Assert(willfree || (module->slotCount > 0));
-        MPR_Unlock(module->refLock);
+        PR_Unlock(module->refLock);
         if (!willfree)
             return;
     }
@@ -931,7 +931,7 @@ SECMOD_SlotDestroyModule(SECMODModule *module, PRBool fromSlot)
     if (module->loaded) {
         SECMOD_UnloadModule(module);
     }
-    MPR_DestroyLock(module->refLock);
+    PR_DestroyLock(module->refLock);
     PORT_FreeArena(module->arena, PR_FALSE);
     secmod_PrivateModuleCount--;
 }
@@ -1004,7 +1004,7 @@ SECMOD_UpdateSlotList(SECMODModule *mod)
 
     /* C_GetSlotList is not a session function, make sure
      * calls are serialized */
-    MPR_Lock(mod->refLock);
+    PR_Lock(mod->refLock);
     freeRef = PR_TRUE;
     /* see if the number of slots have changed */
     crv = PK11_GETTAB(mod)->C_GetSlotList(PR_FALSE, NULL, &count);
@@ -1015,7 +1015,7 @@ SECMOD_UpdateSlotList(SECMODModule *mod)
     /* nothing new, blow out early, we want this function to be quick
      * and cheap in the normal case  */
     if (count == mod->slotCount) {
-        MPR_Unlock(mod->refLock);
+        PR_Unlock(mod->refLock);
         return SECSuccess;
     }
     if (count < (CK_ULONG)mod->slotCount) {
@@ -1036,7 +1036,7 @@ SECMOD_UpdateSlotList(SECMODModule *mod)
         goto loser;
     }
     freeRef = PR_FALSE;
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     mark = PORT_ArenaMark(mod->arena);
     if (mark == NULL) {
         goto loser;
@@ -1086,7 +1086,7 @@ SECMOD_UpdateSlotList(SECMODModule *mod)
 
 loser:
     if (freeRef) {
-        MPR_Unlock(mod->refLock);
+        PR_Unlock(mod->refLock);
     }
     if (slotIDs) {
         PORT_Free(slotIDs);
@@ -1127,16 +1127,16 @@ secmod_HandleWaitForSlotEvent(SECMODModule *mod, unsigned long flags,
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return NULL;
     }
-    MPR_Lock(mod->refLock);
+    PR_Lock(mod->refLock);
     if (mod->evControlMask & SECMOD_END_WAIT) {
         mod->evControlMask &= ~SECMOD_END_WAIT;
-        MPR_Unlock(mod->refLock);
+        PR_Unlock(mod->refLock);
         PORT_SetError(SEC_ERROR_NO_EVENT);
         return NULL;
     }
     mod->evControlMask |= SECMOD_WAIT_SIMULATED_EVENT;
     while (mod->evControlMask & SECMOD_WAIT_SIMULATED_EVENT) {
-        MPR_Unlock(mod->refLock);
+        PR_Unlock(mod->refLock);
         /* now is a good time to see if new slots have been added */
         SECMOD_UpdateSlotList(mod);
 
@@ -1160,9 +1160,9 @@ secmod_HandleWaitForSlotEvent(SECMODModule *mod, unsigned long flags,
                 slot->flagState = present;
                 slot->flagSeries = series;
                 SECMOD_ReleaseReadLock(moduleLock);
-                MPR_Lock(mod->refLock);
+                PR_Lock(mod->refLock);
                 mod->evControlMask &= ~SECMOD_END_WAIT;
-                MPR_Unlock(mod->refLock);
+                PR_Unlock(mod->refLock);
                 return PK11_ReferenceSlot(slot);
             }
         }
@@ -1170,18 +1170,18 @@ secmod_HandleWaitForSlotEvent(SECMODModule *mod, unsigned long flags,
         /* if everything was perm modules, don't lock up forever */
         if ((mod->slotCount != 0) && !removableSlotsFound) {
             error = SEC_ERROR_NO_SLOT_SELECTED;
-            MPR_Lock(mod->refLock);
+            PR_Lock(mod->refLock);
             break;
         }
         if (flags & CKF_DONT_BLOCK) {
-            MPR_Lock(mod->refLock);
+            PR_Lock(mod->refLock);
             break;
         }
-        MPR_Sleep(latency);
-        MPR_Lock(mod->refLock);
+        PR_Sleep(latency);
+        PR_Lock(mod->refLock);
     }
     mod->evControlMask &= ~SECMOD_END_WAIT;
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     PORT_SetError(error);
     return NULL;
 }
@@ -1210,21 +1210,21 @@ SECMOD_WaitForAnyTokenEvent(SECMODModule *mod, unsigned long flags,
         return secmod_HandleWaitForSlotEvent(mod, flags, latency);
     }
     /* first the the PKCS #11 call */
-    MPR_Lock(mod->refLock);
+    PR_Lock(mod->refLock);
     if (mod->evControlMask & SECMOD_END_WAIT) {
         goto end_wait;
     }
     mod->evControlMask |= SECMOD_WAIT_PKCS11_EVENT;
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     crv = PK11_GETTAB(mod)->C_WaitForSlotEvent(flags, &id, NULL);
-    MPR_Lock(mod->refLock);
+    PR_Lock(mod->refLock);
     mod->evControlMask &= ~SECMOD_WAIT_PKCS11_EVENT;
     /* if we are in end wait, short circuit now, don't even risk
      * going into secmod_HandleWaitForSlotEvent */
     if (mod->evControlMask & SECMOD_END_WAIT) {
         goto end_wait;
     }
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     if (crv == CKR_FUNCTION_NOT_SUPPORTED) {
         /* module doesn't support that call, simulate it */
         return secmod_HandleWaitForSlotEvent(mod, flags, latency);
@@ -1263,7 +1263,7 @@ SECMOD_WaitForAnyTokenEvent(SECMODModule *mod, unsigned long flags,
 /* must be called with the lock on. */
 end_wait:
     mod->evControlMask &= ~SECMOD_END_WAIT;
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     PORT_SetError(SEC_ERROR_NO_EVENT);
     return NULL;
 }
@@ -1281,7 +1281,7 @@ SECMOD_CancelWait(SECMODModule *mod)
     SECStatus rv = SECSuccess;
     CK_RV crv;
 
-    MPR_Lock(mod->refLock);
+    PR_Lock(mod->refLock);
     mod->evControlMask |= SECMOD_END_WAIT;
     controlMask = mod->evControlMask;
     if (controlMask & SECMOD_WAIT_PKCS11_EVENT) {
@@ -1315,7 +1315,7 @@ SECMOD_CancelWait(SECMODModule *mod)
          * and wake up in the loop */
     }
 loser:
-    MPR_Unlock(mod->refLock);
+    PR_Unlock(mod->refLock);
     return rv;
 }
 
@@ -1478,17 +1478,17 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
         PK11_FreeSlot(slot);
         return NULL;
     }
-    sendSpec = MPR_smprintf("tokens=[0x%x=<%s>]", slotID, escSpec);
+    sendSpec = PR_smprintf("tokens=[0x%x=<%s>]", slotID, escSpec);
     PORT_Free(escSpec);
 
     if (sendSpec == NULL) {
-        /* MPR_smprintf does not set SEC_ERROR_NO_MEMORY on failure. */
+        /* PR_smprintf does not set SEC_ERROR_NO_MEMORY on failure. */
         PK11_FreeSlot(slot);
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return NULL;
     }
     rv = secmod_UserDBOp(slot, CKO_NSS_NEWSLOT, sendSpec);
-    MPR_smprintf_free(sendSpec);
+    PR_smprintf_free(sendSpec);
     PK11_FreeSlot(slot);
     if (rv != SECSuccess) {
         return NULL;
@@ -1623,14 +1623,14 @@ SECMOD_CloseUserDB(PK11SlotInfo *slot)
     SECStatus rv;
     char *sendSpec;
 
-    sendSpec = MPR_smprintf("tokens=[0x%x=<>]", slot->slotID);
+    sendSpec = PR_smprintf("tokens=[0x%x=<>]", slot->slotID);
     if (sendSpec == NULL) {
-        /* MPR_smprintf does not set no memory error */
+        /* PR_smprintf does not set no memory error */
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
     }
     rv = secmod_UserDBOp(slot, CKO_NSS_DELSLOT, sendSpec);
-    MPR_smprintf_free(sendSpec);
+    PR_smprintf_free(sendSpec);
     /* if we are in the delay period for the "isPresent" call, reset
      * the delay since we know things have probably changed... */
     NSSToken *nssToken = PK11Slot_GetNSSToken(slot);

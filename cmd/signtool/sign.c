@@ -67,7 +67,7 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
     if (keyName) {
         status = create_pk7(tree, keyName, &keyType);
         if (status < 0) {
-            MPR_fprintf(errorFD, "the tree \"%s\" was NOT SUCCESSFULLY SIGNED\n",
+            PR_fprintf(errorFD, "the tree \"%s\" was NOT SUCCESSFULLY SIGNED\n",
                        tree);
             errorCount++;
             exit(ERRX);
@@ -78,20 +78,20 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
      * for a XPInstall compatible archive */
     if (xpi_arc) {
         if (verbosity >= 0) {
-            MPR_fprintf(outputFD, "%s \n", XPI_TEXT);
+            PR_fprintf(outputFD, "%s \n", XPI_TEXT);
         }
 
         /* rsa/dsa to zip */
         count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base,
                          SECKEY_GetKeyTypeString(keyType));
         if (count >= sizeof(tempfn)) {
-            MPR_fprintf(errorFD, "unable to write key metadata\n");
+            PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
             exit(ERRX);
         }
         count = snprintf(fullfn, sizeof(fullfn), "%s/%s", tree, tempfn);
         if (count >= sizeof(fullfn)) {
-            MPR_fprintf(errorFD, "unable to write key metadata\n");
+            PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
             exit(ERRX);
         }
@@ -106,7 +106,7 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
     strcpy(tempfn, "META-INF/manifest.mf");
     count = snprintf(fullfn, sizeof(fullfn), "%s/%s", tree, tempfn);
     if (count >= sizeof(fullfn)) {
-        MPR_fprintf(errorFD, "unable to write manifest\n");
+        PR_fprintf(errorFD, "unable to write manifest\n");
         errorCount++;
         exit(ERRX);
     }
@@ -115,13 +115,13 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
     /* sf to zip */
     count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.sf", base);
     if (count >= sizeof(tempfn)) {
-        MPR_fprintf(errorFD, "unable to write sf metadata\n");
+        PR_fprintf(errorFD, "unable to write sf metadata\n");
         errorCount++;
         exit(ERRX);
     }
     count = snprintf(fullfn, sizeof(fullfn), "%s/%s", tree, tempfn);
     if (count >= sizeof(fullfn)) {
-        MPR_fprintf(errorFD, "unable to write sf metadata\n");
+        PR_fprintf(errorFD, "unable to write sf metadata\n");
         errorCount++;
         exit(ERRX);
     }
@@ -133,13 +133,13 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
         count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base,
                          SECKEY_GetKeyTypeString(keyType));
         if (count >= sizeof(tempfn)) {
-            MPR_fprintf(errorFD, "unable to write key metadata\n");
+            PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
             exit(ERRX);
         }
         count = snprintf(fullfn, sizeof(fullfn), "%s/%s", tree, tempfn);
         if (count >= sizeof(fullfn)) {
-            MPR_fprintf(errorFD, "unable to write key metadata\n");
+            PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
             exit(ERRX);
         }
@@ -150,10 +150,10 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
 
     if (verbosity >= 0) {
         if (javascript) {
-            MPR_fprintf(outputFD, "jarfile \"%s\" signed successfully\n",
+            PR_fprintf(outputFD, "jarfile \"%s\" signed successfully\n",
                        zip_file);
         } else {
-            MPR_fprintf(outputFD, "tree \"%s\" signed successfully\n",
+            PR_fprintf(outputFD, "tree \"%s\" signed successfully\n",
                        tree);
         }
     }
@@ -203,31 +203,31 @@ sign_all_arc_fn(char *relpath, char *basedir, char *reldir, char *filename,
 
     /* Make sure there is one and only one ".arc" in the relative path,
      * and that it is at the end of the path (don't sign .arcs within .arcs) */
-    if ((MPL_strcaserstr(relpath, ".arc") == relpath + strlen(relpath) - 4) &&
-        (MPL_strcasestr(relpath, ".arc") == relpath + strlen(relpath) - 4)) {
+    if ((PL_strcaserstr(relpath, ".arc") == relpath + strlen(relpath) - 4) &&
+        (PL_strcasestr(relpath, ".arc") == relpath + strlen(relpath) - 4)) {
 
         if (!infop) {
-            MPR_fprintf(errorFD, "%s: Internal failure\n", PROGRAM_NAME);
+            PR_fprintf(errorFD, "%s: Internal failure\n", PROGRAM_NAME);
             errorCount++;
             retval = -1;
             goto finish;
         }
-        archive = MPR_smprintf("%s/%s", basedir, relpath);
+        archive = PR_smprintf("%s/%s", basedir, relpath);
 
-        zipfilename = MPL_strdup(archive);
+        zipfilename = PL_strdup(archive);
         arc = PORT_Strrchr(zipfilename, '.');
 
         if (arc == NULL) {
-            MPR_fprintf(errorFD, "%s: Internal failure\n", PROGRAM_NAME);
+            PR_fprintf(errorFD, "%s: Internal failure\n", PROGRAM_NAME);
             errorCount++;
             retval = -1;
             goto finish;
         }
 
-        MPL_strcpy(arc, ".jar");
+        PL_strcpy(arc, ".jar");
 
         if (verbosity >= 0) {
-            MPR_fprintf(outputFD, "\nsigning: %s\n", zipfilename);
+            PR_fprintf(outputFD, "\nsigning: %s\n", zipfilename);
         }
         retval = SignArchive(archive, infop->keyName, zipfilename,
                              infop->javascript, infop->metafile, infop->install_script,
@@ -235,9 +235,9 @@ sign_all_arc_fn(char *relpath, char *basedir, char *reldir, char *filename,
     }
 finish:
     if (archive)
-        MPR_Free(archive);
+        PR_Free(archive);
     if (zipfilename)
-        MPR_Free(zipfilename);
+        PR_Free(zipfilename);
 
     return retval;
 }
@@ -285,14 +285,14 @@ create_pk7(char *dir, char *keyName, KeyType *keyType)
     snprintf(pk7_file, sizeof(pk7_file), "%s/META-INF/%s.%s", dir, base, file_ext);
 
     if ((in = fopen(sf_file, "rb")) == NULL) {
-        MPR_fprintf(errorFD, "%s: Can't open %s for reading\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: Can't open %s for reading\n", PROGRAM_NAME,
                    sf_file);
         errorCount++;
         exit(ERRX);
     }
 
     if ((out = fopen(pk7_file, "wb")) == NULL) {
-        MPR_fprintf(errorFD, "%s: Can't open %s for writing\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: Can't open %s for writing\n", PROGRAM_NAME,
                    sf_file);
         errorCount++;
         exit(ERRX);
@@ -305,7 +305,7 @@ create_pk7(char *dir, char *keyName, KeyType *keyType)
     fclose(out);
 
     if (status) {
-        MPR_fprintf(errorFD, "%s: PROBLEM signing data (%s)\n",
+        PR_fprintf(errorFD, "%s: PROBLEM signing data (%s)\n",
                    PROGRAM_NAME, SECU_Strerror(PORT_GetError()));
         errorCount++;
         return -1;
@@ -330,7 +330,7 @@ jar_find_key_type(CERTCertificate *cert)
     /* determine its type */
     privk = PK11_FindKeyByAnyCert(cert, &pwdata);
     if (privk == NULL) {
-        MPR_fprintf(errorFD, "warning - can't find private key for this cert\n");
+        PR_fprintf(errorFD, "warning - can't find private key for this cert\n");
         warningCount++;
         return 0;
     }
@@ -354,16 +354,16 @@ manifesto(char *dirname, char *install_script, PRBool recurse)
 
     /* Create the META-INF directory to hold signing info */
 
-    if (MPR_Access(dirname, PR_ACCESS_READ_OK)) {
-        MPR_fprintf(errorFD, "%s: unable to read your directory: %s\n",
+    if (PR_Access(dirname, PR_ACCESS_READ_OK)) {
+        PR_fprintf(errorFD, "%s: unable to read your directory: %s\n",
                    PROGRAM_NAME, dirname);
         errorCount++;
         perror(dirname);
         exit(ERRX);
     }
 
-    if (MPR_Access(dirname, PR_ACCESS_WRITE_OK)) {
-        MPR_fprintf(errorFD, "%s: unable to write to your directory: %s\n",
+    if (PR_Access(dirname, PR_ACCESS_WRITE_OK)) {
+        PR_fprintf(errorFD, "%s: unable to write to your directory: %s\n",
                    PROGRAM_NAME, dirname);
         errorCount++;
         perror(dirname);
@@ -374,24 +374,24 @@ manifesto(char *dirname, char *install_script, PRBool recurse)
 
     strcpy(sfname, metadir);
 
-    MPR_MkDir(metadir, 0777);
+    PR_MkDir(metadir, 0777);
 
     strcat(metadir, "/");
     strcat(metadir, MANIFEST);
 
     if ((mf = fopen(metadir, "wb")) == NULL) {
         perror(MANIFEST);
-        MPR_fprintf(errorFD, "%s: Probably, the directory you are trying to"
+        PR_fprintf(errorFD, "%s: Probably, the directory you are trying to"
                             " sign has\n",
                    PROGRAM_NAME);
-        MPR_fprintf(errorFD, "%s: permissions problems or may not exist.\n",
+        PR_fprintf(errorFD, "%s: permissions problems or may not exist.\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "Generating %s file..\n", metadir);
+        PR_fprintf(outputFD, "Generating %s file..\n", metadir);
     }
 
     fprintf(mf, "Manifest-Version: 1.0\n");
@@ -425,7 +425,7 @@ manifesto(char *dirname, char *install_script, PRBool recurse)
     strcat(sfname, ".sf");
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "Generating %s.sf file..\n", base);
+        PR_fprintf(outputFD, "Generating %s.sf file..\n", base);
     }
     generate_SF_file(metadir, sfname);
 
@@ -447,15 +447,15 @@ manifesto_xpi_fn(char *relpath, char *basedir, char *reldir, char *filename, voi
     int count;
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "--> %s\n", relpath);
+        PR_fprintf(outputFD, "--> %s\n", relpath);
     }
 
     /* extension matching */
     if (extensionsGiven) {
-        char *ext = MPL_strrchr(relpath, '.');
+        char *ext = PL_strrchr(relpath, '.');
         if (!ext)
             return 0;
-        if (!MPL_HashTableLookup(extensions, ext))
+        if (!PL_HashTableLookup(extensions, ext))
             return 0;
     }
     count = snprintf(fullname, sizeof(fullname), "%s/%s", basedir, relpath);
@@ -484,15 +484,15 @@ manifesto_fn(char *relpath, char *basedir, char *reldir, char *filename, void *a
     char fullname[FNSIZE];
 
     if (verbosity >= 0) {
-        MPR_fprintf(outputFD, "--> %s\n", relpath);
+        PR_fprintf(outputFD, "--> %s\n", relpath);
     }
 
     /* extension matching */
     if (extensionsGiven) {
-        char *ext = MPL_strrchr(relpath, '.');
+        char *ext = PL_strrchr(relpath, '.');
         if (!ext)
             return 0;
-        if (!MPL_HashTableLookup(extensions, ext))
+        if (!PL_HashTableLookup(extensions, ext))
             return 0;
     }
 
@@ -507,8 +507,8 @@ manifesto_fn(char *relpath, char *basedir, char *reldir, char *filename, void *a
 
     /* sign non-.js files inside .arc directories using the javascript magic */
 
-    if ((MPL_strcaserstr(filename, ".js") != filename + strlen(filename) - 3) &&
-        (MPL_strcaserstr(reldir, ".arc") == reldir + strlen(filename) - 4))
+    if ((PL_strcaserstr(filename, ".js") != filename + strlen(filename) - 3) &&
+        (PL_strcaserstr(reldir, ".arc") == reldir + strlen(filename) - 4))
         use_js++;
 
     if (use_js) {
@@ -602,14 +602,14 @@ add_meta(FILE *fp, char *name)
             if (place) {
                 num++;
                 if (verbosity >= 0) {
-                    MPR_fprintf(outputFD, "[%s] %s\n", name, meta);
+                    PR_fprintf(outputFD, "[%s] %s\n", name, meta);
                 }
                 fprintf(fp, "%s\n", meta);
             }
         }
         fclose(met);
     } else {
-        MPR_fprintf(errorFD, "%s: can't open metafile: %s\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: can't open metafile: %s\n", PROGRAM_NAME,
                    metafile);
         errorCount++;
         exit(ERRX);
@@ -743,13 +743,13 @@ generate_SF_file(char *manifile, char *who)
     fprintf(sfFile, "Comments: %s\n", BREAKAGE);
 
     if (fgets(buf, BUFSIZ, mfFile) == NULL) {
-        MPR_fprintf(errorFD, "%s: empty manifest file!\n", PROGRAM_NAME);
+        PR_fprintf(errorFD, "%s: empty manifest file!\n", PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
 
     if (strncmp(buf, "Manifest-Version:", 17)) {
-        MPR_fprintf(errorFD, "%s: not a manifest file!\n", PROGRAM_NAME);
+        PR_fprintf(errorFD, "%s: not a manifest file!\n", PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
@@ -768,10 +768,10 @@ generate_SF_file(char *manifile, char *who)
         line++;
 
         if (r1 != 0 && strncmp(name, "Name:", 5)) {
-            MPR_fprintf(errorFD,
+            PR_fprintf(errorFD,
                        "warning: unexpected input in manifest file \"%s\" at line %d:\n",
                        manifile, line);
-            MPR_fprintf(errorFD, "%s\n", name);
+            PR_fprintf(errorFD, "%s\n", name);
             warningCount++;
         }
 
@@ -845,7 +845,7 @@ calculate_MD5_range(FILE *fp, long r1, long r2, JAR_Digest *dig)
         out_of_memory();
 
     if ((num = fread(buf, 1, range, fp)) != range) {
-        MPR_fprintf(errorFD, "%s: expected %d bytes, got %d\n", PROGRAM_NAME,
+        PR_fprintf(errorFD, "%s: expected %d bytes, got %d\n", PROGRAM_NAME,
                    range, num);
         errorCount++;
         exit(ERRX);
@@ -856,7 +856,7 @@ calculate_MD5_range(FILE *fp, long r1, long r2, JAR_Digest *dig)
         rv = PK11_HashBuf(SEC_OID_SHA1, dig->sha1, buf, range);
     }
     if (rv != SECSuccess) {
-        MPR_fprintf(errorFD, "%s: can't generate digest context\n",
+        PR_fprintf(errorFD, "%s: can't generate digest context\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);

@@ -36,7 +36,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   ScopedSECKEYPublicKey pubk(CERT_ExtractPublicKey(cert.get()));
   ScopedCERTCertList chain(
-      CERT_GetCertChainFromCert(cert.get(), MPR_Now(), certUsageEmailSigner));
+      CERT_GetCertChainFromCert(cert.get(), PR_Now(), certUsageEmailSigner));
 
   CERTCertNicknames *patterns = CERT_GetValidDNSPatternsFromCert(cert.get());
   PORT_FreeArena(patterns ? patterns->arena : nullptr, PR_FALSE);

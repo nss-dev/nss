@@ -69,8 +69,8 @@ SECU_PrintError(const char *progName, const char *msg, ...)
 {
     va_list args;
     PRErrorCode err = PORT_GetError();
-    const char *errName = MPR_ErrorToName(err);
-    const char *errString = MPR_ErrorToString(err, 0);
+    const char *errName = PR_ErrorToName(err);
+    const char *errString = PR_ErrorToString(err, 0);
 
     va_start(args, msg);
 
@@ -112,7 +112,7 @@ secu_StdinToItem(SECItem *dst)
     dst->data = NULL;
 
     while (notDone) {
-        numBytes = MPR_Read(PR_STDIN, buf, sizeof(buf));
+        numBytes = PR_Read(PR_STDIN, buf, sizeof(buf));
 
         if (numBytes < 0) {
             return SECFailure;
@@ -150,7 +150,7 @@ SECU_FileToItem(SECItem *dst, PRFileDesc *src)
     if (src == PR_STDIN)
         return secu_StdinToItem(dst);
 
-    prStatus = MPR_GetOpenFileInfo(src, &info);
+    prStatus = PR_GetOpenFileInfo(src, &info);
 
     if (prStatus != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_IO);
@@ -162,7 +162,7 @@ SECU_FileToItem(SECItem *dst, PRFileDesc *src)
     if (!SECITEM_AllocItem(NULL, dst, info.size))
         goto loser;
 
-    numBytes = MPR_Read(src, dst->data, info.size);
+    numBytes = PR_Read(src, dst->data, info.size);
     if (numBytes != info.size) {
         PORT_SetError(SEC_ERROR_IO);
         goto loser;
@@ -186,7 +186,7 @@ SECU_TextFileToItem(SECItem *dst, PRFileDesc *src)
     if (src == PR_STDIN)
         return secu_StdinToItem(dst);
 
-    prStatus = MPR_GetOpenFileInfo(src, &info);
+    prStatus = PR_GetOpenFileInfo(src, &info);
 
     if (prStatus != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_IO);
@@ -197,7 +197,7 @@ SECU_TextFileToItem(SECItem *dst, PRFileDesc *src)
     if (!buf)
         return SECFailure;
 
-    numBytes = MPR_Read(src, buf, info.size);
+    numBytes = PR_Read(src, buf, info.size);
     if (numBytes != info.size) {
         PORT_SetError(SEC_ERROR_IO);
         goto loser;
@@ -546,14 +546,14 @@ SECU_ParseCommandLine(int argc, char **argv, char *progName,
         longopts[j].longOptName = NULL;
     }
 
-    optstate = MPL_CreateLongOptState(argc, argv, optstring, longopts);
+    optstate = PL_CreateLongOptState(argc, argv, optstring, longopts);
     if (!optstate) {
         PORT_Free(optstring);
         PORT_Free(longopts);
         return SECFailure;
     }
     /* Parse command line arguments */
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         const char *optstatelong;
         char option = optstate->option;
 
@@ -609,7 +609,7 @@ SECU_ParseCommandLine(int argc, char **argv, char *progName,
     }
 
 loser:
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     PORT_Free(optstring);
     if (longopts)
         PORT_Free(longopts);
@@ -624,7 +624,7 @@ SECU_GetOptionArg(const secuCommand *cmd, int optionNum)
     if (optionNum < 0 || optionNum >= cmd->numOptions)
         return NULL;
     if (cmd->options[optionNum].activated)
-        return MPL_strdup(cmd->options[optionNum].arg);
+        return PL_strdup(cmd->options[optionNum].arg);
     else
         return NULL;
 }
@@ -633,14 +633,14 @@ void
 SECU_PrintPRandOSError(const char *progName)
 {
     char buffer[513];
-    PRInt32 errLenInt = MPR_GetErrorTextLength();
+    PRInt32 errLenInt = PR_GetErrorTextLength();
     size_t errLen = errLenInt < 0 ? 0 : (size_t)errLenInt;
     if (errLen > 0 && errLen < sizeof buffer) {
-        MPR_GetErrorText(buffer);
+        PR_GetErrorText(buffer);
     }
     SECU_PrintError(progName, "function failed");
     if (errLen > 0 && errLen < sizeof buffer) {
-        MPR_fprintf(PR_STDERR, "\t%s\n", buffer);
+        PR_fprintf(PR_STDERR, "\t%s\n", buffer);
     }
 }
 
@@ -650,21 +650,21 @@ SECU_StringToSignatureAlgTag(const char *alg)
     SECOidTag hashAlgTag = SEC_OID_UNKNOWN;
 
     if (alg) {
-        if (!MPL_strcmp(alg, "MD2")) {
+        if (!PL_strcmp(alg, "MD2")) {
             hashAlgTag = SEC_OID_MD2;
-        } else if (!MPL_strcmp(alg, "MD4")) {
+        } else if (!PL_strcmp(alg, "MD4")) {
             hashAlgTag = SEC_OID_MD4;
-        } else if (!MPL_strcmp(alg, "MD5")) {
+        } else if (!PL_strcmp(alg, "MD5")) {
             hashAlgTag = SEC_OID_MD5;
-        } else if (!MPL_strcmp(alg, "SHA1")) {
+        } else if (!PL_strcmp(alg, "SHA1")) {
             hashAlgTag = SEC_OID_SHA1;
-        } else if (!MPL_strcmp(alg, "SHA224")) {
+        } else if (!PL_strcmp(alg, "SHA224")) {
             hashAlgTag = SEC_OID_SHA224;
-        } else if (!MPL_strcmp(alg, "SHA256")) {
+        } else if (!PL_strcmp(alg, "SHA256")) {
             hashAlgTag = SEC_OID_SHA256;
-        } else if (!MPL_strcmp(alg, "SHA384")) {
+        } else if (!PL_strcmp(alg, "SHA384")) {
             hashAlgTag = SEC_OID_SHA384;
-        } else if (!MPL_strcmp(alg, "SHA512")) {
+        } else if (!PL_strcmp(alg, "SHA512")) {
             hashAlgTag = SEC_OID_SHA512;
         }
     }

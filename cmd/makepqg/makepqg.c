@@ -188,8 +188,8 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : argv[0];
 
     /* Parse command line arguments */
-    optstate = MPL_CreateOptState(argc, argv, "?abg:l:n:o:r");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "?abg:l:n:o:r");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
 
             case 'l':
@@ -232,7 +232,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     if (status == PL_OPT_BAD) {
         Usage();

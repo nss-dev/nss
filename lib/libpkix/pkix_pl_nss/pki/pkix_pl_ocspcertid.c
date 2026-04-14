@@ -129,7 +129,7 @@ PKIX_PL_OcspCertID_Create(
                 PKIX_CHECK(pkix_pl_Date_GetPRTime(validity, &time, plContext),
                         PKIX_DATEGETPRTIMEFAILED);
         } else {
-                time = MPR_Now();
+                time = PR_Now();
         }
 
         cid->certID = CERT_CreateOCSPCertID(cert->nssCert, time);
@@ -193,7 +193,7 @@ PKIX_PL_OcspCertID_GetFreshCacheStatus(
                 PKIX_CHECK(pkix_pl_Date_GetPRTime(validity, &time, plContext),
                         PKIX_DATEGETPRTIMEFAILED);
         } else {
-                time = MPR_Now();
+                time = PR_Now();
         }
 
         rv = ocsp_GetCachedOCSPResponseStatus(

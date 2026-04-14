@@ -23,7 +23,7 @@ SEC_BEGIN_PROTOS
          ? ((SECStatus(*) arglist)SSL_GetExperimentalAPI(name))args \
          : SECFailure)
 #define SSL_DEPRECATED_EXPERIMENTAL_API \
-    (MPR_SetError(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API, 0), SECFailure)
+    (PR_SetError(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API, 0), SECFailure)
 
 /*
  * SSL_GetExtensionSupport() returns whether NSS supports a particular TLS
@@ -105,7 +105,7 @@ typedef enum {
  *
  * If there is an error, return PR_FALSE; if the error is truly fatal, the
  * application can mark the connection as failed. However, recursively calling
- * functions that alter the file descriptor in the callback - such as MPR_Close()
+ * functions that alter the file descriptor in the callback - such as PR_Close()
  * - should be avoided.
  *
  * Note: The ClientHello message can be sent twice in TLS 1.3.  An
@@ -195,7 +195,7 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
  *
  * After calling this function, early data will be rejected until |window|
  * elapses.  This prevents replay across crashes and restarts.  Only call this
- * function once to avoid inadvertently disabling 0-RTT (use MPR_CallOnce() to
+ * function once to avoid inadvertently disabling 0-RTT (use PR_CallOnce() to
  * avoid this problem).
  *
  * The primary tuning parameter is |bits| which determines the amount of memory
@@ -882,10 +882,10 @@ typedef struct SSLAeadContextStr SSLAeadContext;
                           hsHash, hsHashLen, label, labelLen,                  \
                           mech, keySize, variant, keyp))
 
-/* SSL_SetTimeFunc overrides the default time function (MPR_Now()) and provides
+/* SSL_SetTimeFunc overrides the default time function (PR_Now()) and provides
  * an alternative source of time for the socket. This is used in testing, and in
  * applications that need better control over how the clock is accessed. Set the
- * function to NULL to use MPR_Now().*/
+ * function to NULL to use PR_Now().*/
 typedef PRTime(PR_CALLBACK *SSLTimeFunc)(void *arg);
 
 #define SSL_SetTimeFunc(fd, f, arg)                                      \

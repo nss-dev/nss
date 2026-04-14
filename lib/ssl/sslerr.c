@@ -11,7 +11,7 @@
 #include "sslerr.h"
 #include "seccomon.h"
 
-/* look at the current value of MPR_GetError, and evaluate it to see
+/* look at the current value of PR_GetError, and evaluate it to see
  * if it is meaningful or meaningless (out of context).
  * If it is meaningless, replace it with the hiLevelError.
  * Returns the chosen error value.

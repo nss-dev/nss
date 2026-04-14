@@ -67,8 +67,8 @@ main(int argc, char **argv)
     inFile = 0;
     outFile = 0;
     typeTag = 0;
-    optstate = MPL_CreateOptState(argc, argv, "at:i:o:uw");
-    while (MPL_GetNextOpt(optstate) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "at:i:o:uw");
+    while (PL_GetNextOpt(optstate) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);
@@ -79,12 +79,12 @@ main(int argc, char **argv)
                 break;
 
             case 'i':
-                inFile = MPR_Open(optstate->value, PR_RDONLY, 0);
+                inFile = PR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
                     PORT_Free(typeTag);
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     return -1;
                 }
                 break;
@@ -95,7 +95,7 @@ main(int argc, char **argv)
                     fprintf(stderr, "%s: unable to open \"%s\" for writing\n",
                             progName, optstate->value);
                     PORT_Free(typeTag);
-                    MPL_DestroyOptState(optstate);
+                    PL_DestroyOptState(optstate);
                     return -1;
                 }
                 break;
@@ -113,7 +113,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
     if (!typeTag)
         Usage(progName);
 
@@ -122,7 +122,7 @@ main(int argc, char **argv)
     if (!outFile)
         outFile = stdout;
 
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_NoDB_Init(NULL);
     if (rv != SECSuccess) {
         fprintf(stderr, "%s: NSS_NoDB_Init failed (%s)\n",
@@ -184,7 +184,7 @@ main(int argc, char **argv)
     PORT_Free(typeTag);
 
     if (inFile != PR_STDIN)
-        MPR_Close(inFile);
+        PR_Close(inFile);
     PORT_Free(der.data);
     if (rv) {
         fprintf(stderr, "%s: problem converting data (%s)\n",
@@ -195,6 +195,6 @@ main(int argc, char **argv)
                 progName, SECU_Strerror(PORT_GetError()));
         rv = SECFailure;
     }
-    MPR_Cleanup();
+    PR_Cleanup();
     return rv;
 }

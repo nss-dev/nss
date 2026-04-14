@@ -63,7 +63,7 @@ create_key_loop(void *arg)
     int threadnumber = *(int *)arg;
     int failures = 0;
     int progress = 5;
-    PRIntervalTime epoch = MPR_IntervalNow();
+    PRIntervalTime epoch = PR_IntervalNow();
     param.keySizeInBits = KEY_SIZE;
     param.pe = 0x10001L;
     printf(" - thread %d starting\n", threadnumber);
@@ -83,10 +83,10 @@ create_key_loop(void *arg)
             failures++;
         }
         if (VERBOSE && (i % progress) == 0) {
-            PRIntervalTime current = MPR_IntervalNow();
+            PRIntervalTime current = PR_IntervalNow();
             PRIntervalTime interval = current - epoch;
-            int seconds = (interval / MPR_TicksPerSecond());
-            int mseconds = ((interval * 1000) / MPR_TicksPerSecond()) - (seconds * 1000);
+            int seconds = (interval / PR_TicksPerSecond());
+            int mseconds = ((interval * 1000) / PR_TicksPerSecond()) - (seconds * 1000);
             epoch = current;
             printf(" - thread %d @ %d iterations %d.%03d sec\n", threadnumber,
                    i, seconds, mseconds);
@@ -176,14 +176,14 @@ main(int argc, char **argv)
     printf("creating %d threads\n", THREAD_COUNT);
     for (i = 0; i < THREAD_COUNT; i++) {
         threadnumber[i] = i;
-        thread[i] = MPR_CreateThread(PR_USER_THREAD, create_key_loop,
+        thread[i] = PR_CreateThread(PR_USER_THREAD, create_key_loop,
                                     &threadnumber[i], PR_PRIORITY_NORMAL,
                                     PR_GLOBAL_THREAD,
                                     PR_JOINABLE_THREAD, STACK_SIZE);
         if (thread[i] == NULL) {
             ERROR++;
             fprintf(stderr,
-                    "MPR_CreateThread failed iteration %d, %s\n", i,
+                    "PR_CreateThread failed iteration %d, %s\n", i,
                     PORT_ErrorToString(PORT_GetError()));
         }
     }
@@ -192,11 +192,11 @@ main(int argc, char **argv)
         if (thread[i] == NULL) {
             continue;
         }
-        status = MPR_JoinThread(thread[i]);
+        status = PR_JoinThread(thread[i]);
         if (status != PR_SUCCESS) {
             ERROR++;
             fprintf(stderr,
-                    "MPR_CreateThread filed iteration %d, %s\n", i,
+                    "PR_CreateThread filed iteration %d, %s\n", i,
                     PORT_ErrorToString(PORT_GetError()));
         }
     }

@@ -34,7 +34,7 @@ class KeyLogFileTestBase : public TlsConnectGeneric {
     TlsConnectGeneric::SetUp();
     // Remove previous results (if any).
     (void)remove(kKeylogFilePath.c_str());
-    MPR_SetEnv(env_to_set_.c_str());
+    PR_SetEnv(env_to_set_.c_str());
   }
 
   void ConnectAndCheck() {

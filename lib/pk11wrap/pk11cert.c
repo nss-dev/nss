@@ -840,7 +840,7 @@ PK11_FindCertsFromURI(const char *uri, void *wincx)
 
     foundCerts = find_certs_from_uri(uri, wincx);
     if (foundCerts) {
-        PRTime now = MPR_Now();
+        PRTime now = PR_Now();
         certList = CERT_NewCertList();
         for (i = 0, c = *foundCerts; c; c = foundCerts[++i]) {
             if (certList) {
@@ -1024,7 +1024,7 @@ FindCertsEmailCallback(CERTCertificate *cert, SECItem *item, void *arg)
     do {
         if (!strcmp(cert_email, cbparam->email)) {
             /* found one matching email address */
-            PRTime now = MPR_Now();
+            PRTime now = PR_Now();
             found = PR_TRUE;
             CERT_AddCertToListSorted(cbparam->certList,
                                      CERT_DupCertificate(cert),
@@ -1081,7 +1081,7 @@ PK11_FindCertsFromNickname(const char *nickname, void *wincx)
 
     foundCerts = find_certs_from_nickname(nickname, wincx);
     if (foundCerts) {
-        PRTime now = MPR_Now();
+        PRTime now = PR_Now();
         certList = CERT_NewCertList();
         for (i = 0, c = *foundCerts; c; c = foundCerts[++i]) {
             if (certList) {
@@ -1670,7 +1670,7 @@ pk11_FindCertObjectByRecipientNew(PK11SlotInfo *slot, NSSCMSRecipient **recipien
                  * cert_FindDERCertBySubjectKeyID doesn't necessarily imply
                  * that the cert is unavailable - the token might simply
                  * have been inserted after the initial run of
-                 * pk11_keyIDHash_populate (wrapped by MPR_CallOnceWithArg),
+                 * pk11_keyIDHash_populate (wrapped by PR_CallOnceWithArg),
                  * or a different token might have been present in that
                  * slot, initially. Let's check for new tokens...
                  */
@@ -1921,7 +1921,7 @@ PK11_FindCertAndKeyByRecipientListNew(NSSCMSRecipient **recipientlist, void *win
     PRStatus rv;
     int rlIndex;
 
-    rv = MPR_CallOnceWithArg(&keyIDHashCallOnce, pk11_keyIDHash_populate, wincx);
+    rv = PR_CallOnceWithArg(&keyIDHashCallOnce, pk11_keyIDHash_populate, wincx);
     if (rv != PR_SUCCESS)
         return -1;
 

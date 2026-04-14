@@ -496,9 +496,9 @@ tls13_VerifyDelegatedCredential(sslSocket *ss,
         return SECFailure;
     }
 
-    MPR_ExplodeTime(start + (dc->validTime * PR_USEC_PER_SEC),
-                   MPR_GMTParameters, &end);
-    if (MPR_FormatTime(endStr, sizeof(endStr), "%a %b %d %H:%M:%S %Y", &end)) {
+    PR_ExplodeTime(start + (dc->validTime * PR_USEC_PER_SEC),
+                   PR_GMTParameters, &end);
+    if (PR_FormatTime(endStr, sizeof(endStr), "%a %b %d %H:%M:%S %Y", &end)) {
         SSL_TRC(20, ("%d: TLS13[%d]: Received delegated credential (expires %s)",
                      SSL_GETPID(), ss->fd, endStr));
     } else {

@@ -165,7 +165,7 @@ nss_MD_win32_map_send_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -180,7 +180,7 @@ nss_MD_win32_map_sendto_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -198,7 +198,7 @@ nss_MD_win32_map_accept_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -225,7 +225,7 @@ nss_MD_win32_map_connect_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -240,7 +240,7 @@ nss_MD_win32_map_bind_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -258,7 +258,7 @@ nss_MD_win32_map_listen_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -279,7 +279,7 @@ nss_MD_win32_map_getsockname_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -327,7 +327,7 @@ nss_MD_win32_map_select_error(PRInt32 err)
             nss_MD_win32_map_default_error(err);
             return;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }
 
 void
@@ -546,5 +546,5 @@ nss_MD_win32_map_default_error(PRInt32 err)
             prError = PR_UNKNOWN_ERROR;
             break;
     }
-    MPR_SetError(prError, err);
+    PR_SetError(prError, err);
 }

@@ -53,7 +53,7 @@ RNG_SystemRNG(void *dest, size_t maxLen)
     unsigned char *buffer = dest;
     ssize_t result;
 
-    MPR_CallOnce(&rng_KernelFips, rng_getKernelFips);
+    PR_CallOnce(&rng_KernelFips, rng_getKernelFips);
 
     while (fileBytes < maxLen) {
         size_t getBytes = maxLen - fileBytes;

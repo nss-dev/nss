@@ -55,21 +55,21 @@ testAdd(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         dummyString,
-        MPL_strlen(dummyString),
+        PL_strlen(dummyString),
         testString,
         plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         dummyString2,
-        MPL_strlen(dummyString2),
+        PL_strlen(dummyString2),
         testString2,
         plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         dummyString3,
-        MPL_strlen(dummyString3),
+        PL_strlen(dummyString3),
         testString3,
         plContext));
 

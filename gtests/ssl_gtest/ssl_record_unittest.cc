@@ -135,12 +135,12 @@ TEST_P(TlsConnectStream, BadRecordMac) {
 
   // Read from the client, get error.
   uint8_t buf[10];
-  PRInt32 rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_GT(0, rv);
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, PORT_GetError());
 
   // Read the server alert.
-  rv = MPR_Read(client_->ssl_fd(), buf, sizeof(buf));
+  rv = PR_Read(client_->ssl_fd(), buf, sizeof(buf));
   EXPECT_GT(0, rv);
   EXPECT_EQ(SSL_ERROR_BAD_MAC_ALERT, PORT_GetError());
 }
@@ -172,12 +172,12 @@ TEST_F(TlsConnectStreamTls13, TooLargeRecord) {
   client_->SendData(10);  // This is expanded.
 
   uint8_t buf[record_limit + 2];
-  PRInt32 rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_GT(0, rv);
   EXPECT_EQ(SSL_ERROR_RX_RECORD_TOO_LONG, PORT_GetError());
 
   // Read the server alert.
-  rv = MPR_Read(client_->ssl_fd(), buf, sizeof(buf));
+  rv = PR_Read(client_->ssl_fd(), buf, sizeof(buf));
   EXPECT_GT(0, rv);
   EXPECT_EQ(SSL_ERROR_RECORD_OVERFLOW_ALERT, PORT_GetError());
 }
@@ -212,11 +212,11 @@ TEST_F(TlsConnectDatagram13, AeadLimit) {
 
   // Check the error on both endpoints.
   uint8_t buf[10];
-  PRInt32 rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(-1, rv);
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, PORT_GetError());
 
-  rv = MPR_Read(client_->ssl_fd(), buf, sizeof(buf));
+  rv = PR_Read(client_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(-1, rv);
   EXPECT_EQ(SSL_ERROR_BAD_MAC_ALERT, PORT_GetError());
 }

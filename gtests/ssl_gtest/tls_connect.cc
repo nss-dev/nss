@@ -227,7 +227,7 @@ PRTime TlsConnectTestBase::TimeFunc(void* arg) {
 void TlsConnectTestBase::SetUp() {
   SSL_ConfigServerSessionIDCache(1024, 0, 0, g_working_dir_path.c_str());
   SSLInt_ClearSelfEncryptKey();
-  now_ = MPR_Now();
+  now_ = PR_Now();
   ResetAntiReplay(kAntiReplayWindow);
   ClearStats();
   SaveAlgorithmPolicy();
@@ -907,7 +907,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(
     if (!post_clienthello_check()) return;
   }
   PRInt32 rv =
-      MPR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
+      PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
   if (expect_writable) {
     EXPECT_EQ(k0RttDataLen, rv);
   } else {
@@ -916,7 +916,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(
   server_->Handshake();  // Consume ClientHello
 
   std::vector<uint8_t> buf(k0RttDataLen);
-  rv = MPR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);  // 0-RTT read
+  rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);  // 0-RTT read
   if (expect_readable) {
     std::cerr << "0-RTT read " << rv << " bytes\n";
     EXPECT_EQ(k0RttDataLen, rv);
@@ -927,7 +927,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(
   }
 
   // Do a second read. This should fail.
-  rv = MPR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);
+  rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);
   EXPECT_EQ(SECFailure, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 }
@@ -985,7 +985,7 @@ void TlsConnectTestBase::ShiftDtlsTimers() {
   }
 
   if (time_shift != PR_INTERVAL_NO_TIMEOUT) {
-    AdvanceTime(MPR_IntervalToMicroseconds(time_shift));
+    AdvanceTime(PR_IntervalToMicroseconds(time_shift));
     EXPECT_EQ(SECSuccess,
               SSLInt_ShiftDtlsTimers(client_->ssl_fd(), time_shift));
     EXPECT_EQ(SECSuccess,

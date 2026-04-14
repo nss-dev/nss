@@ -436,7 +436,7 @@ smime_lock_algorithm_list(void)
 {
     PORT_Assert(algorithm_list_lock);
     if (algorithm_list_lock) {
-        MPR_Lock(algorithm_list_lock);
+        PR_Lock(algorithm_list_lock);
     }
     return;
 }
@@ -446,7 +446,7 @@ smime_unlock_algorithm_list(void)
 {
     PORT_Assert(algorithm_list_lock);
     if (algorithm_list_lock) {
-        MPR_Unlock(algorithm_list_lock);
+        PR_Unlock(algorithm_list_lock);
     }
     return;
 }
@@ -455,7 +455,7 @@ static SECStatus
 smime_shutdown(void *appData, void *nssData)
 {
     if (algorithm_list_lock) {
-        MPR_DestroyLock(algorithm_list_lock);
+        PR_DestroyLock(algorithm_list_lock);
         algorithm_list_lock = NULL;
     }
     smime_free_list(&smime_algorithm_list);
@@ -479,7 +479,7 @@ smime_init_once(void *arg)
         *error = PORT_GetError();
         return PR_FAILURE;
     }
-    algorithm_list_lock = MPR_NewLock();
+    algorithm_list_lock = PR_NewLock();
     if (algorithm_list_lock == NULL) {
         *error = PORT_GetError();
         return PR_FAILURE;
@@ -617,7 +617,7 @@ smime_init(void)
     if (smime_policy_initted) {
         return SECSuccess;
     }
-    nrv = MPR_CallOnceWithArg(&smime_init_arg, smime_init_once, &error);
+    nrv = PR_CallOnceWithArg(&smime_init_arg, smime_init_once, &error);
     if (nrv == PR_SUCCESS) {
         smime_policy_initted = PR_TRUE;
         return SECSuccess;

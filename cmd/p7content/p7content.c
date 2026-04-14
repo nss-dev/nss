@@ -184,15 +184,15 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = MPL_CreateOptState(argc, argv, "d:i:o:p:f:");
-    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = PL_CreateOptState(argc, argv, "d:i:o:p:f:");
+    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'd':
                 SECU_ConfigDirectory(optstate->value);
                 break;
 
             case 'i':
-                inFile = MPR_Open(optstate->value, PR_RDONLY, 0);
+                inFile = PR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
@@ -226,7 +226,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    MPL_DestroyOptState(optstate);
+    PL_DestroyOptState(optstate);
 
     if (status == PL_OPT_BAD)
         Usage(progName);
@@ -237,7 +237,7 @@ main(int argc, char **argv)
         outFile = stdout;
 
     /* Call the initialization routines */
-    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) {
         SECU_PrintPRandOSError(progName);
@@ -255,7 +255,7 @@ main(int argc, char **argv)
 
 done:
     if (inFile && inFile != PR_STDIN) {
-        MPR_Close(inFile);
+        PR_Close(inFile);
     }
     if (outFile && outFile != stdout) {
         fclose(outFile);

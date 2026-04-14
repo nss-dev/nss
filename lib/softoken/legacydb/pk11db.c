@@ -253,7 +253,7 @@ lgdb_FreeSlotStrings(char **slotStrings, int count)
 
     for (i = 0; i < count; i++) {
         if (slotStrings[i]) {
-            MPR_smprintf_free(slotStrings[i]);
+            PR_smprintf_free(slotStrings[i]);
             slotStrings[i] = NULL;
         }
     }
@@ -481,7 +481,7 @@ lgdb_DecodeData(char *defParams, DBT *data, PRBool *retInternal)
     /* it's permissible (and normal) for nss to be NULL. it simply means
      * there are no NSS specific parameters in the database */
     moduleSpec = NSSUTIL_MkModuleSpec(dllName, commonName, parameters, nss);
-    MPR_smprintf_free(nss);
+    PR_smprintf_free(nss);
     PORT_FreeArena(arena, PR_TRUE);
     return moduleSpec;
 
@@ -612,7 +612,7 @@ done:
     if (!moduleList[0]) {
         char *newparams = NSSUTIL_Quote(params, '"');
         if (newparams) {
-            moduleList[0] = MPR_smprintf(
+            moduleList[0] = PR_smprintf(
                 NSSUTIL_DEFAULT_INTERNAL_INIT1 "%s" NSSUTIL_DEFAULT_INTERNAL_INIT2 "%s" NSSUTIL_DEFAULT_INTERNAL_INIT3,
                 newparams, NSSUTIL_DEFAULT_SFTKN_FLAGS);
             PORT_Free(newparams);
@@ -639,7 +639,7 @@ legacy_ReleaseSecmodDBData(const char *appName, const char *filename,
     if (moduleSpecList) {
         char **index;
         for (index = moduleSpecList; *index; index++) {
-            MPR_smprintf_free(*index);
+            PR_smprintf_free(*index);
         }
         PORT_Free(moduleSpecList);
     }
