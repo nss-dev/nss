@@ -342,6 +342,151 @@ TEST_F(TlsConnectStreamTls13, ClientAuthWithMultipleTickets) {
   SendReceive(100);
 }
 
+// Splits the server's encrypted handshake flight at the Finished boundary:
+// the pre-Finished messages are delivered immediately, and the Finished record
+// is held for injection via Inject().  Used to simulate the TCP fragmentation
+// case from bug 2022410.
+class SplitServerFinished : public TlsRecordFilter {
+ public:
+  explicit SplitServerFinished(const std::shared_ptr<TlsAgent>& a)
+      : TlsRecordFilter(a), saved_finished_(), done_(false) {
+    EnableDecryption();
+  }
+
+  bool done() const { return done_; }
+
+  void Inject(DummyPrSocket* dst) {
+    ASSERT_TRUE(done_);
+    dst->PacketReceived(saved_finished_);
+  }
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& record, size_t* offset,
+                                    DataBuffer* output) override {
+    if (done_) return KEEP;
+    if (!header.is_protected()) return KEEP;
+
+    uint16_t protection_epoch = 0;
+    uint8_t inner_content_type = 0;
+    DataBuffer plaintext;
+    TlsRecordHeader out_header(header);
+    if (!Unprotect(header, record, &protection_epoch, &inner_content_type,
+                   &plaintext, &out_header)) {
+      return KEEP;
+    }
+    if (inner_content_type != ssl_ct_handshake) return KEEP;
+
+    // Locate the Finished message in the plaintext.
+    size_t finished_start = plaintext.len();  // "not found" sentinel
+    {
+      TlsParser scanner(plaintext);
+      while (scanner.remaining() >= 4) {
+        size_t pos = scanner.consumed();
+        uint32_t msg_type = 0, msg_len = 0;
+        if (!scanner.Read(&msg_type, 1) || !scanner.Read(&msg_len, 3)) break;
+        if (static_cast<uint8_t>(msg_type) == kTlsHandshakeFinished) {
+          finished_start = pos;
+          break;
+        }
+        if (!scanner.Skip(msg_len)) break;
+      }
+    }
+    if (finished_start == plaintext.len()) return KEEP;
+
+    auto& pspec = spec(protection_epoch);
+
+    if (finished_start > 0) {
+      DataBuffer without_finished;
+      without_finished.Assign(plaintext.data(), finished_start);
+      DataBuffer ciphertext1;
+      TlsRecordHeader hdr1(out_header);
+      if (!Protect(pspec, hdr1, ssl_ct_handshake, without_finished,
+                   &ciphertext1, &hdr1)) {
+        return KEEP;
+      }
+      *offset = hdr1.Write(output, *offset, ciphertext1);
+    }
+
+    {
+      DataBuffer finished_only;
+      finished_only.Assign(plaintext.data() + finished_start,
+                           plaintext.len() - finished_start);
+      DataBuffer ciphertext2;
+      TlsRecordHeader hdr2(out_header);
+      if (!Protect(pspec, hdr2, ssl_ct_handshake, finished_only, &ciphertext2,
+                   &hdr2)) {
+        return KEEP;
+      }
+      hdr2.Write(&saved_finished_, 0, ciphertext2);
+    }
+
+    done_ = true;
+    Disable();
+    return (finished_start > 0) ? CHANGE : DROP;
+  }
+
+ private:
+  DataBuffer saved_finished_;
+  bool done_ = false;
+};
+
+// Regression tests for bug 2022410: ssl3_ClientCertCallbackComplete must not
+// assert when restartTarget is NULL.  The async cert callback can complete
+// before the server Finished is processed when the Finished is delayed (TLS:
+// TCP fragmentation; DTLS: packet loss).  The fixed code handles this
+// gracefully and the handshake completes once Finished arrives.
+TEST_F(TlsConnectStreamTls13, ClientCertCallbackBeforeServerFinished) {
+  client_->SetupClientAuth(ClientAuthCallbackType::kAsyncDelay, true);
+  server_->RequestClientAuth(true);
+  auto split = MakeTlsFilter<SplitServerFinished>(server_);
+  StartConnect();
+
+  client_->Handshake();  // ClientHello
+  server_
+      ->Handshake();  // ServerHello..CertVerify (Finished withheld by filter)
+  ASSERT_TRUE(split->done());
+
+  // Processes EE..CertVerify; cert hook fires (restartTarget still NULL);
+  // kAsyncDelay calls SSL_ForceHandshake() expecting WOULD_BLOCK, then
+  // SSL_ClientCertCallbackComplete() hits the restartTarget==NULL fixed path.
+  client_->Handshake();
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());
+
+  split->Inject(client_->adapter().get());  // deliver withheld Finished
+
+  client_->Handshake();  // processes Finished, sends client second flight
+  server_->Handshake();  // processes client cert + Finished
+
+  CheckConnected();
+  client_->CheckClientAuthCompleted();
+}
+
+// DTLS variant: Finished is its own record, so SplitServerFinished drops it
+// entirely (finished_start == 0) and saves it for injection via Inject().
+TEST_F(TlsConnectDatagram13, ClientCertCallbackBeforeServerFinished) {
+  client_->SetupClientAuth(ClientAuthCallbackType::kAsyncDelay, true);
+  server_->RequestClientAuth(true);
+  auto split = MakeTlsFilter<SplitServerFinished>(server_);
+  StartConnect();
+
+  client_->Handshake();  // ClientHello
+  server_->Handshake();  // server flight (Finished withheld by filter)
+  ASSERT_TRUE(split->done());
+
+  // Async cert callback fires with restartTarget==NULL; fixed path taken.
+  client_->Handshake();
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());
+
+  split->Inject(client_->adapter().get());  // deliver withheld Finished
+
+  client_->Handshake();  // processes Finished, sends client second flight
+  server_->Handshake();  // processes client cert + Finished
+
+  CheckConnected();
+  client_->CheckClientAuthCompleted();
+}
+
 // All stream only tests; PostHandshakeAuth isn't supported for DTLS.
 
 TEST_P(TlsConnectClientAuthStream13, PostHandshakeAuth) {
@@ -2294,4 +2439,5 @@ INSTANTIATE_TEST_SUITE_P(
                                          TlsAgent::kServerEcdsa384),
                        ::testing::Values(ssl_auth_ecdsa),
                        ::testing::Values(ssl_sig_ecdsa_sha1)));
+
 }  // namespace nss_test
