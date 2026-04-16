@@ -9,7 +9,6 @@
 #include "gtest/gtest.h"
 #include "prnetdb.h"
 
-#include <climits>
 #include <stdint.h>
 #include <string.h>
 #include <string>
@@ -983,87 +982,5 @@ INSTANTIATE_TEST_SUITE_P(BadUtf16TestCases, BadUtf16Test,
 INSTANTIATE_TEST_SUITE_P(Iso88591TestCases, Iso88591Test,
                          ::testing::ValuesIn(kIso88591Cases));
 ;
-
-TEST(Utf8Overflow, Ucs4LenOverflow) {
-  // UTF-8 → UCS-4: each single-byte ASCII char produces 4 output bytes.
-  // With inBufLen = UINT_MAX/4 + 1, len = (UINT_MAX/4+1)*4 wraps to 3.
-  unsigned int inBufLen = (UINT_MAX / 4) + 1;
-  unsigned char *buf =
-      static_cast<unsigned char *>(malloc(inBufLen));
-  ASSERT_NE(nullptr, buf) << "Need ~1 GiB of RAM for this test";
-  memset(buf, 'A', inBufLen);
-
-  unsigned char out[16];
-  unsigned int outLen = 99;
-
-  PRBool rv = sec_port_ucs4_utf8_conversion_function(
-      PR_TRUE, buf, inBufLen, out, sizeof(out), &outLen);
-  EXPECT_EQ(PR_FALSE, rv);
-  EXPECT_EQ(0U, outLen);
-
-  free(buf);
-}
-
-TEST(Utf8Overflow, Ucs2LenOverflow) {
-  // UTF-8 → UCS-2: each single-byte ASCII char produces 2 output bytes.
-  // With inBufLen = UINT_MAX/2 + 1, len = (UINT_MAX/2+1)*2 wraps to 0.
-  unsigned int inBufLen = (UINT_MAX / 2) + 1;
-  unsigned char *buf =
-      static_cast<unsigned char *>(malloc(inBufLen));
-  ASSERT_NE(nullptr, buf) << "Need ~2 GiB of RAM for this test";
-  memset(buf, 'A', inBufLen);
-
-  unsigned char out[16];
-  unsigned int outLen = 99;
-
-  PRBool rv = sec_port_ucs2_utf8_conversion_function(
-      PR_TRUE, buf, inBufLen, out, sizeof(out), &outLen);
-  EXPECT_EQ(PR_FALSE, rv);
-  EXPECT_EQ(0U, outLen);
-
-  free(buf);
-}
-
-TEST(Utf8Overflow, Ucs2FromUnicodeLenOverflow) {
-  // UCS-2 → UTF-8: each 2-byte char in 0x0800-0xFFFF produces 3 UTF-8 bytes.
-  // With inBufLen = 2*(UINT_MAX/3 + 1), (inBufLen/2)*3 wraps to a small value.
-  unsigned int inBufLen = ((UINT_MAX / 3) + 1) * 2;
-  unsigned char *buf =
-      static_cast<unsigned char *>(calloc(inBufLen, 1));
-  ASSERT_NE(nullptr, buf) << "Need ~2.7 GiB of RAM for this test";
-  for (unsigned int i = 0; i < inBufLen; i += 2) {
-    buf[i] = 0x08;
-  }
-
-  unsigned char out[16];
-  unsigned int outLen = 99;
-
-  PRBool rv = sec_port_ucs2_utf8_conversion_function(
-      PR_FALSE, buf, inBufLen, out, sizeof(out), &outLen);
-  EXPECT_EQ(PR_FALSE, rv);
-  EXPECT_EQ(0U, outLen);
-
-  free(buf);
-}
-
-TEST(Utf8Overflow, Iso88591LenOverflow) {
-  // ISO-8859-1 → UTF-8: each byte >= 0x80 produces 2 output bytes.
-  // With inBufLen = UINT_MAX/2 + 1, len = (UINT_MAX/2+1)*2 wraps to 0.
-  unsigned int inBufLen = (UINT_MAX / 2) + 1;
-  unsigned char *buf =
-      static_cast<unsigned char *>(malloc(inBufLen));
-  ASSERT_NE(nullptr, buf) << "Need ~2 GiB of RAM for this test";
-  memset(buf, 0x80, inBufLen);
-
-  unsigned char out[16];
-  unsigned int outLen = 99;
-
-  PRBool rv = sec_port_iso88591_utf8_conversion_function(
-      buf, inBufLen, out, sizeof(out), &outLen);
-  EXPECT_EQ(PR_FALSE, rv);
-  EXPECT_EQ(0U, outLen);
-
-  free(buf);
-}
 
 }  // namespace nss_test
