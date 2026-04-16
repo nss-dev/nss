@@ -1,0 +1,122 @@
+.. _mozilla_projects_nss_nss_3_123_release_notes:
+
+NSS 3.123 release notes
+=======================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.123 was released on *16 April 2026**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_123_RTM. NSS 3.123 requires NSPR 4.38.2 or newer.
+
+   NSS 3.123 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_123_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.123:
+
+`Changes in NSS 3.123 <#changes_in_nss_3.123>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 2023202 - Add gtests for SSL_ReconfigFD covering certs, ALPN, PSK, and double-reconfig.
+   - Bug 2022410 - handle client cert callback completion prior to server Finished.
+   - Bug 2023202 - Extract ssl_CopySocketConfig() to remove duplicate logic in SSL_ReconfigFD.
+   - Bug 2030135 - improve error handling in PK11_ImportPrivateKeyInfoAndReturnKey (NSS 3.90.5).
+   - Bug 2029462 - store email on subject cache_entry in NSS trust domain.
+   - Bug 2029425 - Heap use-after-free in cert_VerifyCertChainOld via dangling certsList[] entry on NameConstraints violation.
+   - Bug 2029323 - Improve size calculations in CMS content buffering.
+   - Bug 2028001 - avoid integer overflow while escaping RFC822 Names.
+   - Bug 2027378 - Reject excessively large ASN.1 SEQUENCE OF in quickder.
+   - Bug 2027365 - Deep copy profile data in CERT_FindSMimeProfile.
+   - Bug 2027345 - Improve input validation in DSAU signature decoding.
+   - Bug 2026089 - Clarify extension negotiation mechanism for TLS Handshakes (NSS 3.90.5).
+   - Bug 2023209 - ensure permittedSubtrees don't match wildcards that could be outside the permitted tree r?jschanck.
+   - Bug 2009552 - avoid integer overflow in platform-independent ghash.
+   - Bug 1935995 - make ss->ssl3.hs.cookie an owned-copy of the cookie.
+   - Bug 2030135 - improve error handling in PK11_ImportPrivateKeyInfoAndReturnKey.
+   - Bug 2029752 - Improving the allocation of S/MIME DecryptSymKey.
+   - Bug 2026311 - avoid integer overflow in RSA_EMSAEncodePSS.
+   - Bug 2019357 - RSA_EMSAEncodePSS should validate the length of mHash r?nkulatova.
+   - Bug 2026156 - Add a maximum cert uncompressed len and tests.
+   - Bug 2026089 - Clarify extension negotiation mechanism for TLS Handshakes.
+   - Bug 2023207 - Fix integer underflow in tls13_AEAD when ciphertext is shorter than tag.
+   - Bug 2019224 - Remove invalid PORT_Free(), r?#nss-reviewers,djackson.
+   - Bug 1964722 - free digest objects in SEC_PKCS7DecoderFinish if they haven't already been freed r?#nss-reviewers.
+   - Bug 2027382 - Reject oversized inputs in UTF-8 conversion functions.
+   - Bug 1998526 - Align PKCS7 digest array with digestAlgorithms.
+   - Bug 2030729 - remove SEC_ASN1_CHOICE entries from PQ private key templates.
+   - Bug 2029782 - fix 8-byte over-read of AES-192 key buffer in x86 builds without USE_HW_AES.
+   - Bug 2031163 - set PK11_ChangePW error after PK11_InitToken.
+   - Bug 2026025 - Extend ./mach tests & all.sh to pretty print their output.
+   - Bug 2029720 - avoid integer overflow when converting AVA value to hex string.
+   - Bug 2030979 - handle SEC_ASN1_NULL in sec_asn1e_contents_length.
+   - Bug 2027329 - PK11SDR_Decrypt: allowlist supported encryption algorithms.
+   - Bug 2029783 - fix use of PORT_ArenaGrow when decoding multi-chunk PKCS#7 EncryptedData with no content callback.
+   - Bug 2029818 - avoid refcount over-release in CERT_CertChainFromCert error path.
+   - Bug 2030794 - avoid memory leak in SECITEM_FreeArray.
+   - Bug 2027847 - Set nssckbi version to 2.86.
+   - Bug 2027847 - Remove FIRMAPROFESIONAL CA ROOT-A WEB from NSS.
+   - Bug 2020164 - Remove GLOBALTRUST 2020 from NSS.
+   - Bug 2020151 - Remove TeliaSonera Root CA v1 from NSS.
+   - Bug 2020144 - Remove Six Viking Cloud Root CAs from NSS.
+   - Bug 2020137 - Turn off certain Trust Bits in NSS for Five GTS CAs.
+   - Bug 2017471 - Remove Websites Trust Bit from SwissSign Gold CA - G2.
+   - Bug 2017468 - Remove OU=certSIGN ROOT CA from NSS.
+   - Bug 2017464 - Remove Websites Trust Bit from Root CN=Certigna.
+   - Bug 2017460 - Remove AffirmTrust Roots from NSS.
+   - Bug 2017453 - Remove Websites Trust Bit from DigiCert 2006 Roots.
+   - Bug 2017348 - Remove Websites Trust Bit from Entrust Root Certification Authority – G2 & EC1.
+   - Bug 2017345 - Remove Websites Trust Bit from COMODO Certification Authority.
+   - Bug 2017322 - Set CKA_NSS_SERVER_DISTRUST_AFTER for CN=Izenpe.com.
+   - Bug 2016750 - Remove Email Trust Bit from Four Amazon Root CAs.
+   - Bug 2029431 - avoid signed int overflow in CTS_EncryptUpdate.
+   - Bug 2030100 - VerifyCodeSigningCertificateChain: require at least one certificate.
+   - Bug 2029721 - fix use of uninitialised length after failed PK11_SignWithMechanism.
+   - Bug 2029731 - modify linked-list only on success in CERT_AddExtensionByOID.
+   - Bug 2029746 - reject oversized DSA subPrime values.
+   - Bug 2029740 - check object handle types in NSC_EncapsulateKey and NSC_DecapsulateKey.
+   - Bug 2029448 - enforce minimum buffer length in sftk_CheckCBCPadding.
+   - Bug 2029432 - validate parameter length in sftk_ChaCha20_Poly1305_Message_Encrypt.
+   - Bug 2029771 - Heap use-after-free in [@ token_destructor] reading tok->pk11slot after nssToken_Destroy frees the token arena.
+   - Bug 2029774 - Invalid free of arena-interior pointer in [@ DSA_NewRandom] due to inverted arena guard.
+   - Bug 2029885 - avoid leaving dangling pointer in tls_DestroySignOrVerifyContext.
+   - Bug 2022059 - NSS can't import, store, or export mlk-kem keys.
+   - Bug 2029439 - fix instances of softoken attributes freed after owning object.
+   - Bug 2027381 - improve error handling in SECITEM_DupArray with non-null arena.
+   - Bug 2027324 - NSS_CMSContentInfo_SetContent: only modify cinfo if everything succeeds.
+   - Bug 2027363 - initialize src in SEC_PKCS5GetIV.
+   - Bug 2029046 - clang format.
+   - Bug 2029046 - changes to allow building gtests from mozilla-central.
+   - Bug 2029182 - split database creation scripts out of ssl_gtests.sh and gtests.sh.
+   - Bug 2017948 - handleObjects in Softoken needs cleanup.
+   - Bug 2027383 - fix maxSize calculation in NSSUTIL_AddNSSFlagToModuleSpec.
+   - Bug 2029023 - add missing breaks in CheckECDHShareReuse test helper.
+   - Bug 2027434 - avoid integer underflow in sec_CreateRSAPSSParameters.
+   - Bug 2007224 - mlDsaPubTemplate is missing a CKA_ENCAPSULATE entry.
+   - Bug 2024530 - Add clang-tidy CI job with security-focused checks.
+   - Bug 1834672 - Adjust PBE iteration limit.
+   - Bug 2025100 - Update Botan version for cryptofuzz.
+   - Bug 2017788 - FIPS indicators need to take into account target keys.
+   - Bug 1965329 - add failure checks to pk11_mergeTrust() .
+   - Bug 2024785 - consistently protect SFTKSlot.{isLoggedIn,ssoLoggedIn,needLogin} with slotLock.
+   - Bug 2025098 - Part 2: Always return unique nickname for PKCS12 fuzzer.
+   - Bug 2025098 - Part 1: Simplify fuzzer MAC verification to always pass.
+   - Bug 1834672 - Limit PBE iteration count.
+   - Bug 2025801 - TLS interoperability tests - fix gnutls flakiness and extend to all platforms.
+   - Bug 2012680 - improve DER_GetInteger error handling.
+   - Bug 2017987 - Fix missing zero-init in generate_blinding_params.
+   - Bug 2017987 - Need "partial public key validation" for RSA OAEP in FIPS mode.
+
