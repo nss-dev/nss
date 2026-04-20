@@ -125,8 +125,7 @@ An overview of NSS Internals
      implements the classic database storage, and finally a core NSS library for the big set of
      “everything else”. Newer generations of the database use the SQLite database to allow
      concurrent access by multiple applications.
-   | All of the above are provided as shared libraries. The CRMF library, which is used to produce
-     certain kinds of certificate requests, is available as a library for static linking only.
+   | All of the above are provided as shared libraries.
    | When dealing with certificates (X.509), file formats such as PKCS#12 (certificates and keys),
      PKCS#7 (signed data), and message formats as CMS, we should mention ASN.1, which is a syntax
      for storing structured data in a very efficient (small sized) presentation. It was originally

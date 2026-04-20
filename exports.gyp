@@ -23,7 +23,6 @@
             'lib/certhigh/exports.gyp:lib_certhigh_exports',
             'lib/ckfw/builtins/exports.gyp:lib_ckfw_builtins_exports',
             'lib/ckfw/exports.gyp:lib_ckfw_exports',
-            'lib/crmf/exports.gyp:lib_crmf_exports',
             'lib/cryptohi/exports.gyp:lib_cryptohi_exports',
             'lib/dev/exports.gyp:lib_dev_exports',
             'lib/freebl/exports.gyp:lib_freebl_exports',

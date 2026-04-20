@@ -25,7 +25,6 @@
 #   fips.sh      - tests basic functionallity of NSS in FIPS-compliant
 #                - mode
 #   sdr.sh       - tests NSS SDR
-#   crmf.sh      - CRMF/CMMF testing
 #   smime.sh     - S/MIME testing
 #   ssl.sh       - tests SSL V2 SSL V3 and TLS
 #   ocsp.sh      - OCSP testing
@@ -280,7 +279,7 @@ run_cycle_pkix()
     init_directories
 
     TESTS="${ALL_TESTS}"
-    TESTS_SKIP="cipher cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3 dbtests sdr crmf smime merge multinit"
+    TESTS_SKIP="cipher cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3 dbtests sdr smime merge multinit"
 
     export -n NSS_SSL_RUN
 
@@ -479,7 +478,7 @@ if [ $NO_INIT_SUPPORT -eq 0 ] && [ $IS_FIPS_DISABLED -eq 0 ]; then
     RUN_FIPS="fips"
 fi
 
-tests="cipher lowhash libpkix cert dbtests tools $RUN_FIPS sdr crmf smime ssl ocsp merge pkits ec gtests ssl_gtests policy mpi cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3"
+tests="cipher lowhash libpkix cert dbtests tools $RUN_FIPS sdr smime ssl ocsp merge pkits ec gtests ssl_gtests policy mpi cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3"
 thread_tests="ssl ssl_gtests"
 # Don't run chains tests when we have a gyp build.
 if [ "$OBJDIR" != "Debug" -a "$OBJDIR" != "Release" ]; then

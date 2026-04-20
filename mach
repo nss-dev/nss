@@ -965,7 +965,7 @@ def parse_arguments():
         'tests', help='Run tests through tests/all.sh.')
     tests = [
         "cipher", "lowhash", "chains", "cert", "dbtests", "tools", "fips",
-        "sdr", "crmf", "smime", "ssl", "ocsp", "merge", "pkits", "ec",
+        "sdr", "smime", "ssl", "ocsp", "merge", "pkits", "ec",
         "gtests", "ssl_gtests", "bogo", "interop", "policy", "mpi",
         "cipher-noaes", "cipher-noavx", "cipher-nopclmul", "cipher-nosha",
         "cipher-nosse41", "cipher-nossse3",

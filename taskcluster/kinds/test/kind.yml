@@ -286,20 +286,6 @@ tasks:
                 TC_PARENT_TASK_ID: {task-reference: "<certs>"}
                 NSS_TESTS: policy
 
-    crmf:
-        description: CRMF tests
-        from-deps:
-            kinds: [certs]
-            with-attributes:
-                dbm: [false]
-                make-fips: [false]
-        treeherder:
-            symbol: CRMF
-        worker:
-            env:
-                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
-                NSS_TESTS: crmf
-
     db:
         description: DB tests
         from-deps:

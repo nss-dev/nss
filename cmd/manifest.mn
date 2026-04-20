@@ -40,7 +40,6 @@ NSS_SRCDIRS = \
  certutil  \
  chktest  \
  crlutil  \
- crmftest \
  dbtest \
  derdump  \
  digest  \

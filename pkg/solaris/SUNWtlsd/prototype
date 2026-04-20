@@ -35,13 +35,9 @@ f none usr/include/mps/cert.h 0644 root bin
 f none usr/include/mps/certdb.h 0644 root bin
 f none usr/include/mps/certt.h 0644 root bin
 f none usr/include/mps/ciferfam.h 0644 root bin
-f none usr/include/mps/cmmf.h 0644 root bin
-f none usr/include/mps/cmmft.h 0644 root bin
 f none usr/include/mps/cms.h 0644 root bin
 f none usr/include/mps/cmsreclist.h 0644 root bin
 f none usr/include/mps/cmst.h 0644 root bin
-f none usr/include/mps/crmf.h 0644 root bin
-f none usr/include/mps/crmft.h 0644 root bin
 f none usr/include/mps/cryptohi.h 0644 root bin
 f none usr/include/mps/cryptoht.h 0644 root bin
 f none usr/include/mps/ecl-exp.h 0644 root bin

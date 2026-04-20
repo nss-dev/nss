@@ -66,7 +66,6 @@ Introduction to Network Security Services
 
    The following static libraries aren't included in any shared libraries
 
-   -  ``libcrmf.a``/``crmf.lib`` provides an API for CRMF operations.
    -  ``libjar.a``/``jar.lib`` provides an API for creating JAR files.
 
    The following static libraries are included only in external loadable PKCS #11 modules:
