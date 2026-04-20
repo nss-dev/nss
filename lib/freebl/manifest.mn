@@ -150,7 +150,6 @@ CSRCS = \
 	pqg.c \
 	dsa.c \
 	rsa.c \
-	rsa_blind.c \
 	rsapkcs.c \
 	shvfy.c \
 	tlsprfalg.c \

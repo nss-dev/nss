@@ -45,7 +45,6 @@
     'rawhash.c',
     'rijndael.c',
     'rsa.c',
-    'rsa_blind.c',
     'rsapkcs.c',
     'sha_fast.c',
     'shvfy.c',
