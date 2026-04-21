@@ -1412,6 +1412,7 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     slot->RSAInfoFlags = 0;
 
     /* initialize the maxKeyCount value */
+    PR_Lock(slot->freeListLock);
     if (slot->tokenInfo.ulMaxSessionCount == 0) {
         slot->maxKeyCount = 800; /* should be #define or a config param */
     } else if (slot->tokenInfo.ulMaxSessionCount < 20) {
@@ -1420,6 +1421,7 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     } else {
         slot->maxKeyCount = slot->tokenInfo.ulMaxSessionCount / 2;
     }
+    PR_Unlock(slot->freeListLock);
 
     /* Make sure our session handle is valid */
     if (slot->session == CK_INVALID_HANDLE) {

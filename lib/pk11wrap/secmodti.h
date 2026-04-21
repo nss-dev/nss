@@ -58,11 +58,15 @@ struct PK11SlotInfoStr {
     /* keep track of who is using us so we don't accidently get freed while
      * still in use */
     PRInt32 refCount; /* to be in/decremented by atomic calls ONLY! */
+
+    // freeListLock protects freeSymKeysWithSessionHead, freeSymKeysHead,
+    // keyCount, and maxKeyCount.
     PRLock *freeListLock;
     PK11SymKey *freeSymKeysWithSessionHead;
     PK11SymKey *freeSymKeysHead;
     int keyCount;
     int maxKeyCount;
+
     /* Password control functions for this slot. many of these are only
      * active if the appropriate flag is on in defaultFlags */
     int askpw;           /* what our password options are */
