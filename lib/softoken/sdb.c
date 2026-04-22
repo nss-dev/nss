@@ -25,6 +25,7 @@
 #include "prthread.h"
 #include "prio.h"
 #include <stdio.h>
+#include <limits.h>
 #include "secport.h"
 #include "prmon.h"
 #include "prenv.h"
@@ -831,12 +832,15 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, CK_ULONG count,
     sqlite3_free(newStr);
     for (i = 0; sqlerr == SQLITE_OK && i < count; i++) {
         const void *blobData = template[i].pValue;
-        unsigned int blobSize = template[i].ulValueLen;
+        CK_ULONG blobSize = template[i].ulValueLen;
         if (blobSize == 0) {
-            blobSize = SQLITE_EXPLICIT_NULL_LEN;
             blobData = SQLITE_EXPLICIT_NULL;
+            blobSize = SQLITE_EXPLICIT_NULL_LEN;
+        } else if (blobSize > INT_MAX) {
+            error = CKR_ARGUMENTS_BAD;
+            goto loser;
         }
-        sqlerr = sqlite3_bind_blob(findstmt, i + 1, blobData, blobSize,
+        sqlerr = sqlite3_bind_blob(findstmt, i + 1, blobData, (int)blobSize,
                                    SQLITE_TRANSIENT);
     }
     if (sqlerr == SQLITE_OK) {
