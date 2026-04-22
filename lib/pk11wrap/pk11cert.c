@@ -650,7 +650,7 @@ transfer_uri_certs_to_collection(nssList *certList, PK11URI *uri,
          * CKA_ID from the URI
          */
         if (id && (id->len != certs[i]->id.size ||
-                   memcmp(id, certs[i]->id.data, certs[i]->id.size)))
+                   memcmp(id->data, certs[i]->id.data, certs[i]->id.size)))
             continue;
         tokens = nssPKIObject_GetTokens(&certs[i]->object, NULL);
         if (tokens) {
