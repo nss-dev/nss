@@ -2863,12 +2863,16 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
     while (len > totalSent) {
         PRInt32 sent, toSend;
 
-        if (totalSent > 0) {
+        if (totalSent > 0 && ssl_SocketIsBlocking(ss)) {
             /*
              * The thread yield is intended to give the reader thread a
              * chance to get some cycles while the writer thread is in
              * the middle of a large application data write.  (See
              * Bugzilla bug 127740, comment #1.)
+             *
+             * For non-blocking sockets, the pendingBuf check below
+             * already breaks out of the loop when the underlying
+             * socket cannot accept more data.
              */
             ssl_ReleaseXmitBufLock(ss);
             PR_Sleep(PR_INTERVAL_NO_WAIT); /* PR_Yield(); */
