@@ -361,10 +361,6 @@ create_object(
         goto loser;
     }
     rvCachedObject->arena = arena;
-    /* The cache is tied to the token, and therefore the objects
-     * in it should not hold references to the token.
-     */
-    (void)nssToken_Destroy(object->token);
     rvCachedObject->object = object;
     rvCachedObject->attributes = nss_ZNEWARRAY(arena, CK_ATTRIBUTE, numTypes);
     if (!rvCachedObject->attributes) {
@@ -386,6 +382,12 @@ create_object(
     *status = PR_SUCCESS;
     nssSlot_Destroy(slot);
 
+    /* The cache is tied to the token, and therefore the objects in it should
+     * not hold references to the token. Drop the object's token reference
+     * only after success so that on failure the caller can still safely
+     * destroy the object (and its token reference) exactly once.
+     */
+    (void)nssToken_Destroy(object->token);
     return rvCachedObject;
 loser:
     *status = PR_FAILURE;
