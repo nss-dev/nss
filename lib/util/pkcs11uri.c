@@ -624,9 +624,9 @@ pk11uri_ParseAttributes(const char **string,
             }
             if (*p == '%') {
                 const char ch2 = *++p;
-                if (strchr(PK11URI_HEXDIG, ch2) != NULL) {
+                if (ch2 != '\0' && strchr(PK11URI_HEXDIG, ch2) != NULL) {
                     const char ch3 = *++p;
-                    if (strchr(PK11URI_HEXDIG, ch3) != NULL)
+                    if (ch3 != '\0' && strchr(PK11URI_HEXDIG, ch3) != NULL)
                         continue;
                 }
             }
