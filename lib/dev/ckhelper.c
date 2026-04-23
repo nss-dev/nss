@@ -93,7 +93,7 @@ nssCKObject_GetAttributes(
         /* Allocate memory for each attribute. */
         for (i = 0; i < count; i++) {
             CK_ULONG ulValueLen = obj_template[i].ulValueLen;
-            if (ulValueLen == 0 || ulValueLen == (CK_ULONG)-1) {
+            if (ulValueLen == 0 || ulValueLen >= (CK_ULONG)PR_UINT32_MAX) {
                 obj_template[i].pValue = NULL;
                 obj_template[i].ulValueLen = 0;
                 continue;
