@@ -7,11 +7,13 @@
 #include "nss.h"
 #include "pk11pub.h"
 #include "prerror.h"
+#include "secoid.h"
 
 #include "cpputil.h"
 #include "json_reader.h"
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_keygen.h"
 #include "testvectors_base/test-structs.h"
 
 namespace nss_test {
@@ -233,5 +235,81 @@ class Pkcs11EcdhTest : public ::testing::Test {
 TEST_F(Pkcs11EcdhTest, P256) { Run("ecdh_secp256r1"); }
 TEST_F(Pkcs11EcdhTest, P384) { Run("ecdh_secp384r1"); }
 TEST_F(Pkcs11EcdhTest, P521) { Run("ecdh_secp521r1"); }
+
+class Pkcs11ANSIX963KdfTest : public ::testing::Test {
+ protected:
+  void GenerateKeyPair(ScopedSECKEYPrivateKey* priv,
+                       ScopedSECKEYPublicKey* pub) {
+    Pkcs11KeyPairGenerator generator(CKM_EC_KEY_PAIR_GEN,
+                                     SEC_OID_SECG_EC_SECP256R1);
+    generator.GenerateKey(priv, pub);
+    ASSERT_TRUE(*priv);
+    ASSERT_TRUE(*pub);
+  }
+
+  void ExpectDeriveSuccess(CK_ULONG kdf, SECItem* shared_info) {
+    ScopedSECKEYPrivateKey priv;
+    ScopedSECKEYPublicKey pub;
+    GenerateKeyPair(&priv, &pub);
+
+    ScopedPK11SymKey sym_key(PK11_PubDeriveWithKDF(
+        priv.get(), pub.get(), false, nullptr, nullptr, CKM_ECDH1_DERIVE,
+        CKM_SHA256_HMAC, CKA_DERIVE, 32, kdf, shared_info, nullptr));
+    EXPECT_TRUE(sym_key);
+  }
+
+  void ExpectDeriveFailure(CK_ULONG kdf, CK_ULONG shared_info_len) {
+    ScopedSECKEYPrivateKey priv;
+    ScopedSECKEYPublicKey pub;
+    GenerateKeyPair(&priv, &pub);
+
+    // Non-NULL data pointer is required to reach the overflow check;
+    // a NULL SharedInfo causes SharedInfoLen to be zeroed before the check.
+    uint8_t dummy = 0;
+    SECItem shared_info = {siBuffer, &dummy,
+                           static_cast<unsigned int>(shared_info_len)};
+
+    ScopedPK11SymKey sym_key(PK11_PubDeriveWithKDF(
+        priv.get(), pub.get(), false, nullptr, nullptr, CKM_ECDH1_DERIVE,
+        CKM_SHA256_HMAC, CKA_DERIVE, 32, kdf, &shared_info, nullptr));
+    EXPECT_FALSE(sym_key);
+  }
+};
+
+TEST_F(Pkcs11ANSIX963KdfTest, DeriveNoSharedInfo) {
+  ExpectDeriveSuccess(CKD_SHA256_KDF, nullptr);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, DeriveWithSharedInfo) {
+  uint8_t info[] = {0x01, 0x02, 0x03, 0x04};
+  SECItem shared_info = {siBuffer, info, sizeof(info)};
+  ExpectDeriveSuccess(CKD_SHA256_KDF, &shared_info);
+}
+
+// Regression tests for bug 2030564: integer overflow in buffer length
+// calculation when SharedInfoLen is near UINT32_MAX.
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowSHA1KDF) {
+  ExpectDeriveFailure(CKD_SHA1_KDF, 0xfffffffeUL);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowSHA224KDF) {
+  ExpectDeriveFailure(CKD_SHA224_KDF, 0xfffffffeUL);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowSHA256KDF) {
+  ExpectDeriveFailure(CKD_SHA256_KDF, 0xfffffffeUL);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowSHA384KDF) {
+  ExpectDeriveFailure(CKD_SHA384_KDF, 0xfffffffeUL);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowSHA512KDF) {
+  ExpectDeriveFailure(CKD_SHA512_KDF, 0xfffffffeUL);
+}
+
+TEST_F(Pkcs11ANSIX963KdfTest, OverflowUINT32MAX) {
+  ExpectDeriveFailure(CKD_SHA256_KDF, 0xffffffffUL);
+}
 
 }  // namespace nss_test

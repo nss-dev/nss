@@ -8088,6 +8088,10 @@ sftk_compute_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len, SECItem *SharedSecr
     if (SharedInfo == NULL)
         SharedInfoLen = 0;
 
+    if (SharedSecret->len > PR_UINT32_MAX - 4 ||
+        SharedInfoLen > PR_UINT32_MAX - 4 - SharedSecret->len)
+        return CKR_ARGUMENTS_BAD;
+
     buffer_len = SharedSecret->len + 4 + SharedInfoLen;
     buffer = (CK_BYTE *)PORT_Alloc(buffer_len);
     if (buffer == NULL) {
