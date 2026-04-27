@@ -190,16 +190,17 @@ STAN_RemoveModuleFromDefaultTrustDomain(
             nssToken_NotifyCertsNotVisible(token);
             NSSRWLock_LockWrite(td->tokensLock);
             nssList_Remove(td->tokenList, token);
+            /* Rebuild the td->tokens iterator clone while still holding the
+             * write lock, so that concurrent readers cannot observe the token
+             * through a stale iterator after we drop the lock and free it. */
+            nssListIterator_Destroy(td->tokens);
+            td->tokens = nssList_CreateIterator(td->tokenList);
             NSSRWLock_UnlockWrite(td->tokensLock);
             PK11Slot_SetNSSToken(module->slots[i], NULL);
             (void)nssToken_Destroy(token); /* for the |td->tokenList| reference */
             (void)nssToken_Destroy(token); /* for our PK11Slot_GetNSSToken reference */
         }
     }
-    NSSRWLock_LockWrite(td->tokensLock);
-    nssListIterator_Destroy(td->tokens);
-    td->tokens = nssList_CreateIterator(td->tokenList);
-    NSSRWLock_UnlockWrite(td->tokensLock);
     return SECSuccess;
 }
 

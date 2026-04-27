@@ -254,10 +254,11 @@ NSSTrustDomain_FindTokensByURI(
     count = nssList_Count(td->tokenList);
     tokens = nss_ZNEWARRAY(NULL, NSSToken *, count + 1);
     if (!tokens) {
+        NSSRWLock_UnlockRead(td->tokensLock);
         return NULL;
     }
     for (tok = (NSSToken *)nssListIterator_Start(td->tokens);
-         tok != (NSSToken *)NULL;
+         tok != (NSSToken *)NULL && i < count;
          tok = (NSSToken *)nssListIterator_Next(td->tokens)) {
         if (nssToken_IsPresent(tok)) {
             slotinfo = tok->pk11slot;
