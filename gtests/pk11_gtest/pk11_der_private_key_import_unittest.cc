@@ -73,6 +73,31 @@ const std::vector<uint8_t> kInvalidLengthKey = {
     0x00  // OCTET STRING(len=0)
 };
 
+// Ed25519 PKCS#8 PrivateKeyInfo with non-empty algorithm parameters.
+// RFC 8410 section 3 says parameters MUST be absent for Ed25519, so NSS rejects
+// this at the parameters-length check in PK11_ImportPrivateKeyInfoAndReturnKey.
+//
+//   SEQUENCE {
+//     INTEGER 0
+//     SEQUENCE {
+//       OBJECT IDENTIFIER 1.3.101.112 (Ed25519)
+//       NULL                            <-- params.len != 0, triggers rejection
+//     }
+//     OCTET STRING { OCTET STRING { 32 zero bytes } }
+//   }
+const std::vector<uint8_t> kEd25519WithNonEmptyAlgorithmParams = {
+    0x30, 0x30,                    // SEQUENCE(48)
+    0x02, 0x01, 0x00,              // INTEGER(0) -- version
+    0x30, 0x07,                    // SEQUENCE(7) -- AlgorithmIdentifier
+    0x06, 0x03, 0x2b, 0x65, 0x70,  // OID 1.3.101.112 (Ed25519)
+    0x05, 0x00,  // NULL -- parameters must be absent per RFC 8410
+    0x04, 0x22,  // OCTET STRING(34) -- privateKey
+    0x04, 0x20,  // OCTET STRING(32) -- CurvePrivateKey
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 const std::vector<uint8_t> kInvalidZeroLengthKey = {
     0x30, 0x1a,        // SEQUENCE(len=26)
     0x02, 0x01, 0x00,  // INT(len=1) = 0
@@ -216,6 +241,11 @@ TEST_F(DERPrivateKeyImportTest, ImportZeroLengthPrivateKey) {
 TEST_F(DERPrivateKeyImportTest, ImportZeroLengthMLDSAPrivateKey) {
   EXPECT_EQ(BuildPrivateKeyInfoAndImportIt(SEC_OID_ML_DSA_44), SECFailure);
   EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_KEY);
+}
+
+TEST_F(DERPrivateKeyImportTest, ImportEd25519WithNonEmptyAlgorithmParams) {
+  EXPECT_FALSE(ParsePrivateKey(kEd25519WithNonEmptyAlgorithmParams, false));
+  EXPECT_EQ(PORT_GetError(), SEC_ERROR_UNSUPPORTED_KEYALG);
 }
 
 }  // namespace nss_test
