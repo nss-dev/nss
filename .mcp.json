@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "moz": {
+      "type": "http",
+      "url": "https://mcp-dev.moz.tools/mcp"
+    }
+  }
+}
