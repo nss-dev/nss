@@ -511,7 +511,7 @@ dbtest_main()
         Echo "testing if key corruption is detected in attribute $i"
         cp ${KEYDB}.save ${KEYDB}  # restore the saved keydb
         # find all the hmacs for this key attribute and mangle each entry
-        sqlite3 ${KEYDB} ".dump metadata" |  sed -e "/sig_key_.*_00000$i/{s/.*VALUES('\\(.*\\)',X'\\(.*\\)',NULL.*/\\1 \\2/;p;};d" | while read sig data
+        sqlite3 ${KEYDB} ".dump metadata" |  sed -e "/sig_key_.*_00000$i/{s/.*VALUES('\\(.*\\)',[xX]'\\(.*\\)',NULL.*/\\1 \\2/;p;};d" | while read sig data
         do
           # mangle the last byte of the hmac
           # The following increments the last nibble by 1 with both F and f
