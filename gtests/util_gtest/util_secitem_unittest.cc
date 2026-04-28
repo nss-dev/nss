@@ -172,7 +172,6 @@ TEST_F(SecItemReallocTest, ReallocV2SameSizeNoOp) {
   EXPECT_EQ(ptr, item.data);
 }
 
-
 // ---------------------------------------------------------------------------
 // SECITEM_ReallocItem (deprecated)
 // ---------------------------------------------------------------------------
@@ -185,7 +184,8 @@ TEST_F(SecItemReallocLegacyTest, ReallocLegacyOldlenZeroNewlenZero) {
   EXPECT_EQ(SECSuccess, SECITEM_ReallocItem(nullptr, &item, 0, 0));
 }
 
-// oldlen=0: allocates fresh data buffer (note: legacy bug — len is updated here).
+// oldlen=0: allocates fresh data buffer (note: legacy bug — len is updated
+// here).
 TEST_F(SecItemReallocLegacyTest, ReallocLegacyOldlenZeroNewlenNonzero) {
   SECItem item = {siBuffer, nullptr, 0};
   ASSERT_EQ(SECSuccess, SECITEM_ReallocItem(nullptr, &item, 0, 8));
@@ -330,7 +330,8 @@ TEST_F(SecItemCompareTest, ItemsAreEqualBothNullData) {
   EXPECT_EQ(PR_TRUE, SECITEM_ItemsAreEqual(&a, &b));
 }
 
-// Same nonzero len but both data pointers NULL: equal (hits the null-data guard).
+// Same nonzero len but both data pointers NULL: equal (hits the null-data
+// guard).
 TEST_F(SecItemCompareTest, ItemsAreEqualBothNullDataNonzeroLen) {
   SECItem a = {siBuffer, nullptr, 3};
   SECItem b = {siBuffer, nullptr, 3};
@@ -522,7 +523,8 @@ TEST_F(SecItemFreeTest, FreeItemNull) {
   SECITEM_FreeItem(nullptr, PR_TRUE);
 }
 
-// ZfreeItem: zeroes then frees the data buffer; freeit=PR_TRUE frees the struct.
+// ZfreeItem: zeroes then frees the data buffer; freeit=PR_TRUE frees the
+// struct.
 TEST_F(SecItemFreeTest, ZfreeItemFreeit) {
   SECItem *item = SECITEM_AllocItem(nullptr, nullptr, 8);
   ASSERT_TRUE(item);
@@ -592,12 +594,14 @@ TEST_F(SecItemHashTest, HashCompareUnequalItems) {
 }
 
 // ---------------------------------------------------------------------------
-// SECITEM_AllocArray / SECITEM_DupArray / SECITEM_FreeArray / SECITEM_ZfreeArray
+// SECITEM_AllocArray / SECITEM_DupArray / SECITEM_FreeArray /
+// SECITEM_ZfreeArray
 // ---------------------------------------------------------------------------
 
 class SecItemArrayTest : public ::testing::Test {};
 
-// AllocArray with NULL array: allocates the struct and a zero-filled items array.
+// AllocArray with NULL array: allocates the struct and a zero-filled items
+// array.
 TEST_F(SecItemArrayTest, AllocArrayHeapNullArray) {
   SECItemArray *arr = SECITEM_AllocArray(nullptr, nullptr, 3);
   ASSERT_TRUE(arr);
