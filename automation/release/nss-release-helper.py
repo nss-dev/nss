@@ -896,7 +896,16 @@ def release_nss(args):
         )
     print_separator()
 
-    # Step 12: Push changes
+    # Step 12: Check cf_status_nss on Bugzilla
+    print("Step 12: Checking cf_status_nss on Bugzilla...")
+    cf_status_script = os.path.join(
+        os.path.dirname(__file__), "bugzilla_cf_status_nss.py"
+    )
+    check_call_noisy([sys.executable, cf_status_script, version])
+    input("Review the cf_status_nss report above. Press Enter to continue.")
+    print_separator()
+
+    # Step 13: Push changes
     response = input("Push these changes to the NSS repository? [yN]: ")
     if "y" in response.lower():
         print("Pushing changes to default branch...")

@@ -77,10 +77,9 @@ def default_branch_has_version(major, minor):
     """Return True if lib/nss/nss.h on the default branch tip has NSS_VMAJOR/VMINOR set to major.minor."""
     try:
         content = check_output(["hg", "cat", "-r", "default", "lib/nss/nss.h"]).decode()
-        return (
-            re.search(rf'#define\s+NSS_VMAJOR\s+{re.escape(major)}\b', content) and
-            re.search(rf'#define\s+NSS_VMINOR\s+{re.escape(minor)}\b', content)
-        )
+        return re.search(
+            rf"#define\s+NSS_VMAJOR\s+{re.escape(major)}\b", content
+        ) and re.search(rf"#define\s+NSS_VMINOR\s+{re.escape(minor)}\b", content)
     except Exception:
         return False
 
@@ -157,6 +156,20 @@ def find_beta_bump_commit(upper, prev_branch, major, minor):
     return None
 
 
+def extract_bug_ids(bug_lines):
+    """Extract integer bug IDs from formatted 'Bug N - description.' lines."""
+    seen = set()
+    ids = []
+    for line in bug_lines:
+        m = re.match(r"Bug\s+(\d+)", line, re.IGNORECASE)
+        if m:
+            bid = int(m.group(1))
+            if bid not in seen:
+                seen.add(bid)
+                ids.append(bid)
+    return ids
+
+
 def get_bug_list_for_version(version):
     """Extract bug changes from Mercurial log for the given release version.
 
@@ -183,7 +196,9 @@ def get_bug_list_for_version(version):
         print(f"Branch {branch_name} not yet created; using default branch.")
         upper = "default"
     else:
-        exit_with_failure(f"Cannot find branch {branch_name} and default does not contain NSS {version}.")
+        exit_with_failure(
+            f"Cannot find branch {branch_name} and default does not contain NSS {version}."
+        )
 
     if len(parts) == 3:
         patch = int(parts[2])
