@@ -25,5 +25,8 @@ popd
 # Build.
 mozmake -C nss nss_build_all
 
+# Build sqlite3 CLI tool for use by dbtests.
+bash "$(dirname "$0")/build_sqlite3.sh" dist nss/lib/sqlite
+
 # Package.
 7z a public/build/dist.7z dist

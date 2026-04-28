@@ -51,5 +51,8 @@ export -f make
 # Build with gyp.
 ./nss/build.sh -g -v --enable-libpkix -Denable_draft_hpke=1 "$@"
 
+# Build sqlite3 CLI tool for use by dbtests.
+bash "$(dirname "$0")/build_sqlite3.sh" dist nss/lib/sqlite
+
 # Package.
 7z a public/build/dist.7z dist
