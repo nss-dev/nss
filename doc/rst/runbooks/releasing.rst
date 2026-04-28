@@ -45,9 +45,9 @@ Tagging NSS for Release
 
 The NSS Release Owner will run the release script:
 
-      python3 automation/release/nss-release-helper.py release_nss <3.XXX or 3.XXX.YYY> <previous_version> <esr_version> <remote>
+      python3 automation/release/nss-release-helper.py release_nss <3.XXX or 3.XXX.YYY> <esr_version> <remote>
 
-``<previous_version>`` is the previous release version (e.g. ``3.YYY``) and ``<esr_version>`` is the current NSS ESR version (e.g. ``3.ZZZ.X``).
+``<esr_version>`` is the current NSS ESR version (e.g. ``3.ZZZ.X``).
 
 Note that if you're making an ESR or patch release, you'll need to manually update ``index.rst`` when prompted by the script. You may also be asked to merge the changes to this file.
 
@@ -116,7 +116,7 @@ Manually tagging NSS for release
 1. Make sure you're on the appropriate branch (``hg checkout NSS_3_XXX_BRANCH``).
 2. Update the NSS version numbers: ``python3 automation/release/nss-release-helper.py remove_beta``
 3. Commit the change: ``hg commit -m "Set version numbers to 3.XXX final``
-4. Generate a release note by running ``python3 automation/release/nss-release-helper.py generate_release_note 3.XXX 3.YYY > doc/rst/releases/nss_3_XXX.rst`` where ``3.YYY`` is the previous version.
+4. Generate a release note by running ``python3 automation/release/generate_release_doc.py 3.XXX``.
 5. Generate a new release note index by running ``python3 automation/release/nss-release-helper.py generate_release_notes_index <latest_release> <latest_esr_release>``.
 6. Commit the release notes: ``hg commit -m "Release notes for NSS 3.XXX"`` The commit hash of this change will be needed later, so make a note of it (we'll refer to it as ``{DOCS_COMMIT}``).
 7. Tag the release version: ``hg tag NSS_3_XXX_RTM``
