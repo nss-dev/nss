@@ -1,14 +1,14 @@
 .. _mozilla_projects_nss_nss_3_121_release_notes:
 
 NSS 3.121 release notes
-===============================
+=======================
 
 `Introduction <#introduction>`__
 --------------------------------
 
 .. container::
 
-   Network Security Services (NSS) 3.121 was released on *19 February 2026**.
+   Network Security Services (NSS) 3.121 was released on *19 February 2026*.
 
 `Distribution Information <#distribution_information>`__
 --------------------------------------------------------
@@ -44,11 +44,12 @@ NSS 3.121 release notes
    - Bug 2010389 - Add e-Szigno TLS Root CA 2023 to NSS.
    - Bug 2005516 - allow manual selection of CPU_ARCH=x86_64 and ppc64 in coreconf/Darwin.mk.
    - Bug 2009998 - Update cryptofuzz version.
-   - Bug 2001167: Paranoia assert.
+   - Bug 2001167 - Paranoia assert.
    - Bug 2000737 - Darwin compatibility for intel-aes.S and intel-gcm.S.
    - Bug 2000737 - rename intel-{aes,gcm}.s to .S.
    - Bug 2000737 - rename C files for platform-specific ghash implementations.
    - Bug 2000737 - simplify compilation of platform-specific GCM and GHASH.
    - Bug 2007911 - FORWARD_NULL null deref of worker in p7decode.c (sec_pkcs7_decoder_abort_digests).
    - Bug 2008112 - Out-of-Bounds Read in ML-DSA Private Key Parsing (zero-length privateKey).
+   - Bug 2007908 - CID 1678226: Dereferencing null pointer plaintext.data().
 

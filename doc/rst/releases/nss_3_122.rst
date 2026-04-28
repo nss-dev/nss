@@ -1,7 +1,7 @@
 .. _mozilla_projects_nss_nss_3_122_release_notes:
 
 NSS 3.122 release notes
-===============================
+=======================
 
 `Introduction <#introduction>`__
 --------------------------------
@@ -34,6 +34,7 @@ NSS 3.122 release notes
    - Bug 2023209 - ensure permittedSubtrees don't match wildcards that could be outside the permitted tree.
    - Bug 2023664 - run mach doc-lint from generate_release_doc.py.
    - Bug 2023207 - Fix integer underflow in tls13_AEAD when ciphertext is shorter than tag.
+   - Bug 2021913 - clang format.
    - Bug 2020614 - tls13_CopyEchConfigs uses PR_LIST_TAIL instead of loop variable.
    - Bug 2021911 - fix cipher spec count intermittent CI failures.
    - Bug 2021913 - fix Mlkem768x25519ShareDamager intermittent CI failures.
@@ -45,21 +46,22 @@ NSS 3.122 release notes
    - Bug 1916429 - Swap order of asserts and state check.
    - Bug 2022149 - set correct value of unused curve parameters in tls13_HandleKeyShare.
    - Bug 2017929 - GCM needs to check for various limits in FIPS mode.
-   - Bug 2017938 - Get Key Length not working from ED and Montgomery keys.
+   - Bug 2017938 - Get Key Length not working form ED and Montgomery keys.
    - Bug 2017927 - Not all ike modes are FIPS approved. Adjust the indicators when they aren't.
    - Bug 2020721 - fix intermittent ssl.sh test failures on windows runners.
-   - Bug 2017918 - FIPS indicators on HKDF needs to be restricted to TLS usage.
+   - Bug 2017918 - FIPS indicators on HDKF needs to be restricted to TLS usage.
    - Bug 2017920 - Generate keys not getting indicators.
    - Bug 2020612 - improve error handling in smime_init_once.
    - Bug 1987288 - Detect CPU features on OpenBSD using elf_aux_info.
    - Bug 2019357 - RSA_EMSAEncodePSS should validate the length of mHash.
    - Bug 2020442 - more robustly distinguish SFTKSessionObject and SFTKTokenObjects.
    - Bug 2019194 - fix missing .S file error in Solaris Makefile builds.
+   - Bug 2020188 - avoid null deref in mp_div_d sign normalization.
    - Bug 2020486 - fix memory leak in NSC_GenerateKey error path.
    - Bug 2020615 - Missing SECFailure return after FATAL_ERROR in tls13_HandleEncryptedExtensions.
    - Bug 2020613 - release xmit buf lock on dtls13_MaybeSendKeyUpdate error paths.
    - Bug 2020849 - release 1stHandshakeLock on SSL_ResetHandshake error path.
-   - Bug 2020188 - avoid null deref in mp_div_d sign normalization.
+   - Bug 2017945 - Temp private key lifecycle is broken. -- fix clangformat.
    - Bug 2017945 - Temp private key lifecycle is broken.
    - Bug 1851073 - protect rwSessionCount with slotLock.
    - Bug 2019224 - Remove invalid PORT_Free().
@@ -84,3 +86,4 @@ NSS 3.122 release notes
    - Bug 2006218 - allow selfserv makefile build to use system zlib.
    - Bug 2002247 - Add allocation limit to pkcs12 decoding.
    - Bug 2012406 - Add text/html single-line example emails to NSS S/SMIME CMS tests.
+
