@@ -1518,6 +1518,87 @@ TEST_F(TlsConnectStreamTls13, ExternalTokenWithPeerId) {
   SendReceive();
 }
 
+TEST_F(TlsConnectStreamTls13, ResumptionTokenPeerIDNotNullTerminated) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  EXPECT_EQ(SECSuccess, SSL_SetSockPeerID(client_->ssl_fd(), "x"));
+  client_->SetResumptionTokenCallback();
+  Connect();
+  SendReceive();
+
+  const auto& token = client_->GetResumptionToken();
+  ASSERT_FALSE(token.empty());
+
+  size_t off = 41;
+  // skip peerCert (3-byte length prefix)
+  ASSERT_GE(token.size(), off + 3);
+  off += 3 + ((size_t(token[off]) << 16) | (size_t(token[off + 1]) << 8) |
+              size_t(token[off + 2]));
+  // skip peerCertStatus (2-byte length prefix)
+  ASSERT_GE(token.size(), off + 2);
+  off += 2 + ((size_t(token[off]) << 8) | size_t(token[off + 1]));
+  // off is now the 1-byte peerID length prefix.
+  ASSERT_GE(token.size(), off + 1);
+  size_t peerIDLen = token[off];
+  ASSERT_GT(peerIDLen, 0U);
+
+  // Overwrite peerID bytes with 0x41 (no null terminator) and truncate right
+  // after the peerID data. Without the fix for Bug 2029403, PORT_Strdup would
+  // scan past the end of the allocated buffer looking for a null byte.
+  std::vector<uint8_t> crafted(
+      token.begin(),
+      token.begin() + static_cast<ptrdiff_t>(off + 1 + peerIDLen));
+  std::fill(crafted.begin() + static_cast<ptrdiff_t>(off + 1), crafted.end(),
+            0x41);
+
+  Reset();
+  StartConnect();
+  EXPECT_EQ(SECFailure,
+            SSL_SetResumptionToken(client_->ssl_fd(), crafted.data(),
+                                   static_cast<unsigned int>(crafted.size())));
+  EXPECT_EQ(SSL_ERROR_BAD_RESUMPTION_TOKEN_ERROR, PORT_GetError());
+}
+
+TEST_F(TlsConnectStreamTls13, ResumptionTokenUrlSvrNameNotNullTerminated) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  client_->SetResumptionTokenCallback();
+  Connect();
+  SendReceive();
+
+  const auto& token = client_->GetResumptionToken();
+  ASSERT_FALSE(token.empty());
+
+  size_t off = 41;
+  // skip peerCert (3-byte length prefix)
+  ASSERT_GE(token.size(), off + 3);
+  off += 3 + ((size_t(token[off]) << 16) | (size_t(token[off + 1]) << 8) |
+              size_t(token[off + 2]));
+  // skip peerCertStatus (2-byte length prefix)
+  ASSERT_GE(token.size(), off + 2);
+  off += 2 + ((size_t(token[off]) << 8) | size_t(token[off + 1]));
+  // skip peerID (1-byte length prefix)
+  ASSERT_GE(token.size(), off + 1);
+  off += 1 + size_t(token[off]);
+  // off is now the 1-byte urlSvrName length prefix.
+  ASSERT_GE(token.size(), off + 1);
+  size_t urlLen = token[off];
+  ASSERT_GT(urlLen, 0U);
+
+  // Overwrite urlSvrName bytes with 0x41 (no null terminator) and truncate
+  // right after the urlSvrName data. Without the fix, PORT_Strdup would scan
+  // past the end of the allocated buffer looking for a null byte.
+  std::vector<uint8_t> crafted(
+      token.begin(), token.begin() + static_cast<ptrdiff_t>(off + 1 + urlLen));
+  std::fill(crafted.begin() + static_cast<ptrdiff_t>(off + 1), crafted.end(),
+            0x41);
+
+  Reset();
+  StartConnect();
+  EXPECT_EQ(SECFailure,
+            SSL_SetResumptionToken(client_->ssl_fd(), crafted.data(),
+                                   static_cast<unsigned int>(crafted.size())));
+  EXPECT_EQ(SSL_ERROR_BAD_RESUMPTION_TOKEN_ERROR, PORT_GetError());
+}
+
 TEST_F(TlsConnectStreamTls13, ResumptionTokenSessionIDOverflow) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   client_->SetResumptionTokenCallback();
