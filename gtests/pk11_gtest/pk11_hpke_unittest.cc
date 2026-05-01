@@ -848,4 +848,43 @@ TEST_F(ModeParameterizedTest, InvalidReceiverKeyType) {
   EXPECT_EQ(SEC_ERROR_BAD_KEY, PORT_GetError());
 }
 
+TEST_F(ModeParameterizedTest, SetupLargeInfoLen) {
+  ScopedHpkeContext sender(
+      PK11_HPKE_NewContext(HpkeDhKemX25519Sha256, HpkeKdfHkdfSha256,
+                           HpkeAeadAes128Gcm, nullptr, nullptr));
+  ASSERT_TRUE(sender);
+
+  ScopedSECKEYPublicKey pub_key_r;
+  ScopedSECKEYPrivateKey priv_key_r;
+  ASSERT_TRUE(GenerateKeyPair(pub_key_r, priv_key_r));
+
+  // info->len near UINT_MAX must be rejected before reaching
+  // pk11_hpke_MakeExtractLabel
+  uint8_t info_data = 0;
+  SECItem oversized_info = {siBuffer, &info_data, 0xFFFFFFE7U};
+  EXPECT_EQ(SECFailure, PK11_HPKE_SetupS(sender.get(), nullptr, nullptr,
+                                         pub_key_r.get(), &oversized_info));
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+
+  // SetupR is also affected; use a valid sender to obtain enc first
+  ScopedHpkeContext sender2(
+      PK11_HPKE_NewContext(HpkeDhKemX25519Sha256, HpkeKdfHkdfSha256,
+                           HpkeAeadAes128Gcm, nullptr, nullptr));
+  ASSERT_TRUE(sender2);
+  SECItem valid_info = {siBuffer, &info_data, 1};
+  EXPECT_EQ(SECSuccess, PK11_HPKE_SetupS(sender2.get(), nullptr, nullptr,
+                                         pub_key_r.get(), &valid_info));
+  const SECItem *enc = PK11_HPKE_GetEncapPubKey(sender2.get());
+  ASSERT_NE(nullptr, enc);
+
+  ScopedHpkeContext receiver(
+      PK11_HPKE_NewContext(HpkeDhKemX25519Sha256, HpkeKdfHkdfSha256,
+                           HpkeAeadAes128Gcm, nullptr, nullptr));
+  ASSERT_TRUE(receiver);
+  EXPECT_EQ(SECFailure,
+            PK11_HPKE_SetupR(receiver.get(), pub_key_r.get(), priv_key_r.get(),
+                             const_cast<SECItem *>(enc), &oversized_info));
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+}
+
 }  // namespace nss_test
