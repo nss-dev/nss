@@ -93,6 +93,37 @@ GTests live in `gtests/` (unit tests per module) and `tests/ssl_gtests/` (SSL in
 ./mach fuzz-coverage     # coverage for fuzzing targets
 ```
 
+## Try server
+
+`./mach try` pushes the current changeset to the `nss-try` Taskcluster branch to
+validate a change against CI before landing. Run it with no arguments to print the
+current set of valid platform/test/tool tokens; pass try syntax after `--`:
+
+```sh
+./mach try                                   # print help + valid tokens
+./mach try -- -b do -p all -u all -t all     # everything: both build types, all platforms/tests/tools
+./mach try -- -p linux-x64 -u ssl,gtest      # a targeted subset
+```
+
+Flags: `-b` build type (`d`/`o`/`do`), `-p` platforms, `-u` unit tests, `-t` tools,
+`-e all` extra builds. See `doc/src/try.md` for the full flag reference and how the
+try syntax is implemented.
+
+**Working from a git checkout — install git-cinnabar:** NSS's canonical repository
+is Mercurial, and its `mach try` drives `hg` directly (`hg status`, `hg push
+nss-try`, `hg strip`, …) — unlike Firefox's `mach try`, which supports git/git-cinnabar
+natively. If you work from a git checkout, install
+[git-cinnabar](https://github.com/glandium/git-cinnabar), the git⇆Mercurial bridge
+Mozilla uses, so git can talk to the `hg.mozilla.org` servers:
+
+```sh
+pip install git-cinnabar     # other install methods: see the project README
+git cinnabar download        # fetch the prebuilt helper binary
+```
+
+Either way, the working tree must be clean (uncommitted changes are refused) and
+the `nss-try` push path must be configured.
+
 ## Bugzilla and Phabricator
 
 NSS tracks bugs in Bugzilla and uses Phabricator for code review. The `moz` MCP server gives direct access to both. The server is defined in `.mcp.json`; to enable it, create `.claude/settings.local.json` if it doesn't exist:
