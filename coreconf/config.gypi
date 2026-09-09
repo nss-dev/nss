@@ -201,6 +201,12 @@
           '-llog',
         ],
       }],
+      # Without this, NSPR's Windows headers mark PR_* dllimport, breaking a static link.
+      [ 'OS=="win"', {
+        'defines': [
+          '_NSPR_BUILD_',
+        ],
+      }],
       [ 'fuzz==1', {
         'variables': {
           'debug_optimization_level%': '3',
