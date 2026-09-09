@@ -8,6 +8,7 @@
    :glob:
    :hidden:
 
+   nss_3_129.md
    nss_3_128.md
    nss_3_127.md
    nss_3_126_1.md
@@ -117,9 +118,9 @@
 ```
 
 :::{note}
-**NSS 3.128** is the latest version of NSS.
-Complete release notes are available here: {ref}`mozilla-projects-nss-nss-3-128-release-notes`
+**NSS 3.129** is the latest version of NSS.
+Complete release notes are available here: {ref}`mozilla-projects-nss-nss-3-129-release-notes`
 
-**NSS 3.122.5 (ESR)** is the latest ESR version of NSS.
-Complete release notes are available here: {ref}`mozilla-projects-nss-nss-3-122-5-release-notes`
+**NSS 3.125 (ESR)** is the latest ESR version of NSS.
+Complete release notes are available here: {ref}`mozilla-projects-nss-nss-3-125-release-notes`
 :::
