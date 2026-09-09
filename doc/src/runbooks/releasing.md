@@ -42,13 +42,18 @@ further changes to the development branch.
 
 The NSS Release Owner will run the release script:
 
-> python3 automation/release/nss-release-helper.py release_nss \<3.XXX or 3.XXX.YYY> \<esr_version> \<remote>
+> python3 automation/release/nss-release-helper.py release_nss \<3.XXX or 3.XXX.YYY> \<remote>
 
-`<esr_version>` is the current NSS ESR version (e.g. `3.ZZZ.X`).
+The script asks whether this is an ESR release. Answer yes only for a release off an ESR branch: it then updates the ESR version in the release notes index and leaves the latest-release version alone. Answering no does the opposite. Either way, the version you aren't updating is carried over from the existing index, so neither has to be passed in.
 
-Note that if you're making an ESR or patch release, you'll need to manually update `index.md` when prompted by the script. You may also be asked to merge the changes to this file.
+This will update the version numbers, generate release notes and tag the release as `NSS_3_XXX_RTM`. The release notes will be placed in `doc/src/releases/nss_3_XXX.md` and the index of release notes will be updated. The script also:
 
-This will update the version numbers, generate release notes and tag the release as `NSS_3_XXX_RTM`. The release notes will be placed in `doc/src/releases/nss_3_XXX.md` and the index of release notes will be updated. After it syncs to Github, you can manually uplift the tagged release into mozilla-unified via `./mach nss-uplift {tag_name}`.
+- sets `cf_status_nss` on the Bugzilla bugs in this release (see below);
+- checks the version on the default branch and, if it isn't already ahead of the release, bumps it to `3.{XXX+1}` Beta and commits that.
+
+After it syncs to Github, you can manually uplift the tagged release into mozilla-unified via `./mach nss-uplift {tag_name}`.
+
+Setting `cf_status_nss` needs a [Bugzilla API key](https://bugzilla.mozilla.org/userprefs.cgi?tab=apikey). Put it in `BUGZILLA_API_KEY` or paste it in when prompted. Bugs that already have `cf_status_nss` set to some other value are left alone and reported; review those by hand.
 
 :::{warning}
 The nss-uplift script does not currently update the root CA telemetry. This must be done manually.
@@ -67,9 +72,8 @@ You will need the `gcloud` tool installed from <https://cloud.google.com/sdk/doc
 > 2. Assign the next release owner in the rotation.
 > 3. Update the [NSS Release Calendar](https://calendar.google.com/calendar/embed?src=mozilla.com_2gnk73saaledse6q8n93b1m2u4%40group.calendar.google.com&ctz=Europe%2FLondon) using the dates from <https://whattrainisitnow.com/>
 > 4. Update the release tracker in the team meeting notes (internal only).
-> 5. Update NSS to the next version: `python3 automation/release/nss-release-helper.py set_version_to_minor_release 3 XXX+1`.
-> 6. `hg commit -m "Set version numbers to 3.{XXX+1} Beta"` and push this commit.
-> 7. Approve any waiting commits from Updatebot.
+> 5. Check that NSS on the default branch is on the next version. `release_nss` normally takes care of this, but if it didn't: `python3 automation/release/nss-release-helper.py set_version_to_minor_release 3 XXX+1`, then `hg commit -m "Set version numbers to 3.{XXX+1} Beta"` and push this commit.
+> 6. Approve any waiting commits from Updatebot.
 
 Please now copy the checklist below and fill it out in the NSS release bug and close it:
 
@@ -88,7 +92,7 @@ NSPR releases are infrequent, but require changing the NSPR version is listed in
 
 ## Making an ESR release
 
-For an ESR release, there will already be a release branch. You will need to manually graft any patches you're backporting from the main release branch onto the ESR branch. You can then run the release_nss and create_nss_release_archive commands with the usual parameters. Afterwards, you'll need to request them for uplift to mozilla-unified via the ESR option.
+For an ESR release, there will already be a release branch. You will need to manually graft any patches you're backporting from the main release branch onto the ESR branch. You can then run the release_nss and create_nss_release_archive commands with the usual parameters, answering yes when `release_nss` asks whether this is an ESR release. Afterwards, you'll need to request them for uplift to mozilla-unified via the ESR option.
 
 ## Manually freezing a version for release
 

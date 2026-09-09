@@ -19,6 +19,8 @@ softkver_h = "lib/softoken/softkver.h"
 nss_h = "lib/nss/nss.h"
 nssckbi_h = "lib/ckfw/builtins/nssckbi.h"
 abi_base_version_file = "automation/abi-check/previous-nss-release"
+release_notes_dir = "doc/src/releases"
+release_notes_index = "doc/src/releases/index.md"
 
 abi_report_files = [
     "automation/abi-check/expected-report-libfreebl3.so.txt",
@@ -352,12 +354,15 @@ def set_root_ca_version(args):
     )
 
 
-def set_all_lib_versions(version, major, minor, patch, build):
+def get_current_versions():
+    """Return the (major, minor) version numbers of the checked out tree."""
     grep_major = check_output(["grep", "define.*NSS_VMAJOR", nss_h])
     grep_minor = check_output(["grep", "define.*NSS_VMINOR", nss_h])
+    return int(grep_major.split()[2]), int(grep_minor.split()[2])
 
-    old_major = int(grep_major.split()[2])
-    old_minor = int(grep_minor.split()[2])
+
+def set_all_lib_versions(version, major, minor, patch, build):
+    old_major, old_minor = get_current_versions()
 
     new_major = int(major)
     new_minor = int(minor)
@@ -672,10 +677,66 @@ NSS {version} release notes
     return rst_content
 
 
-def generate_release_notes_index(args):
-    ensure_arguments_count(args, 2, "latest_release_version  latest_esr_version")
-    latest_version = args[0].strip()  # e.g. 3.116
-    esr_version = args[1].strip()  # e.g. 3.112.1
+latest_note_regex = re.compile(r"^\*\*NSS ([0-9.]+)\*\* is the latest version of NSS\.")
+esr_note_regex = re.compile(
+    r"^\*\*NSS ([0-9.]+) \(ESR\)\*\* is the latest ESR version of NSS\."
+)
+
+
+def read_release_notes_index_versions():
+    """Return the (latest, esr) versions recorded in the release notes index.
+
+    Either element is None if the corresponding note could not be found.
+    """
+    latest_version = None
+    esr_version = None
+    if not os.path.exists(release_notes_index):
+        return latest_version, esr_version
+
+    with open(release_notes_index) as index_file:
+        for line in index_file:
+            latest_match = latest_note_regex.match(line)
+            if latest_match:
+                latest_version = latest_match.group(1)
+            esr_match = esr_note_regex.match(line)
+            if esr_match:
+                esr_version = esr_match.group(1)
+
+    return latest_version, esr_version
+
+
+def generate_release_notes_index(args, is_esr=False):
+    """Rewrite doc/src/releases/index.md.
+
+    With two arguments both the latest release and the ESR version in the note
+    at the bottom of the index are set explicitly. With one argument only one
+    of them is updated -- the ESR version if is_esr is set, the latest release
+    version otherwise -- and the other is carried over from the existing index.
+    """
+    if len(args) == 2:
+        latest_version = args[0].strip()  # e.g. 3.116
+        esr_version = args[1].strip()  # e.g. 3.112.1
+    elif len(args) == 1:
+        version = args[0].strip()
+        latest_version, esr_version = read_release_notes_index_versions()
+        if is_esr:
+            esr_version = version
+        else:
+            latest_version = version
+        if latest_version is None or esr_version is None:
+            exit_with_failure(
+                "cannot read the current versions from {}, please pass both of "
+                "them explicitly:\n"
+                "latest_release_version  latest_esr_version".format(release_notes_index)
+            )
+    else:
+        exit_with_failure(
+            "incorrect number of arguments, expected parameters are:\n"
+            "release_version [latest_esr_version]"
+        )
+
+    print(f"Latest release version: {latest_version}")
+    print(f"Latest ESR version: {esr_version}")
 
     # The release notes define their anchor with dashes, so the references to
     # them have to use dashes too.
@@ -683,7 +744,7 @@ def generate_release_notes_index(args):
     esr_dash = esr_version.replace(".", "-")
 
     # Read all release note files from doc/src/releases/
-    release_dir = "doc/src/releases"
+    release_dir = release_notes_dir
     if not os.path.exists(release_dir):
         exit_with_failure(f"Release notes directory not found: {release_dir}")
 
@@ -733,11 +794,10 @@ Complete release notes are available here: {{ref}}`mozilla-projects-nss-nss-{esr
 :::
 """
 
-    index_file = os.path.join(release_dir, "index.md")
-    with open(index_file, "w") as f:
+    with open(release_notes_index, "w") as f:
         f.write(index_content)
 
-    print(f"Generated {index_file}")
+    print(f"Generated {release_notes_index}")
     print()
     print("=" * 70)
     print("Content:")
@@ -745,11 +805,36 @@ Complete release notes are available here: {{ref}}`mozilla-projects-nss-nss-{esr
     print(index_content)
 
 
+def bump_version_on_default(released_major, released_minor):
+    """Move the default branch past the version that was just released."""
+    major, minor = get_current_versions()
+    if (major, minor) > (released_major, released_minor):
+        print(f"Default branch is at {major}.{minor}, no bump needed.")
+        return
+
+    next_major = released_major
+    next_minor = released_minor + 1
+    print(
+        f"Default branch is at {major}.{minor}, bumping it to "
+        f"{next_major}.{next_minor} Beta..."
+    )
+    set_version_to_minor_release([str(next_major), str(next_minor)])
+    set_beta_status()
+
+    hg_status = check_output(["hg", "status"]).decode("utf-8").strip()
+    if not hg_status:
+        print("Version numbers are unchanged, nothing to commit.")
+        return
+
+    check_call_noisy(
+        ["hg", "commit", "-m", f"Set version numbers to {next_major}.{next_minor} Beta"]
+    )
+
+
 def release_nss(args):
-    ensure_arguments_count(args, 3, "version_string  esr_version  remote")
+    ensure_arguments_count(args, 2, "version_string  remote")
     version_string = args[0].strip()
-    esr_version = args[1].strip()
-    remote = args[2].strip()
+    remote = args[1].strip()
 
     major, minor, patch = parse_version_string(version_string)
 
@@ -763,8 +848,9 @@ def release_nss(args):
     print_separator()
     print("RELEASE NSS")
     print_separator()
+    is_esr = "y" in input("Is this an ESR release? [yN]: ").lower()
     print(f"Release version: {version}")
-    print(f"ESR version: {esr_version}")
+    print(f"ESR release: {'yes' if is_esr else 'no'}")
     print(f"Remote: {remote}")
     print_separator()
 
@@ -861,12 +947,8 @@ def release_nss(args):
 
     # Step 8: Generate new release note index
     print("Step 8: Generating release notes index...")
-    generate_release_notes_index([version, esr_version])
+    generate_release_notes_index([version], is_esr=is_esr)
     print_separator()
-
-    input(
-        "Are you making an ESR release? If so, please manually edit doc/src/releases/index.md to adjust the ESR / main version note. Press enter when done."
-    )
 
     # Step 9: Check the documentation still builds cleanly
     print("Step 9: Running doc-lint...")
@@ -898,6 +980,23 @@ def release_nss(args):
     check_call_noisy(["hg", "graft", "-r", docs_commit])
     print_separator()
 
+    # Step 13: Make sure the default branch is ahead of the release
+    print("Step 13: Checking the version numbers on the default branch...")
+    bump_version_on_default(int(major), int(minor))
+    print_separator()
+
+    # Step 14: Update cf_status_nss on Bugzilla
+    print("Step 14: Updating cf_status_nss on Bugzilla...")
+    cf_status_script = os.path.join(
+        os.path.dirname(__file__), "bugzilla_cf_status_nss.py"
+    )
+    check_call_noisy([sys.executable, cf_status_script, version, "--fix"])
+    input(
+        "Review the cf_status_nss report above; any skipped bugs need to be "
+        "handled manually. Press Enter to continue."
+    )
+    print_separator()
+
     response = input("Display the outgoing changes? [yN]: ")
     if "y" in response.lower():
         check_call_noisy(
@@ -905,16 +1004,7 @@ def release_nss(args):
         )
     print_separator()
 
-    # Step 13: Check cf_status_nss on Bugzilla
-    print("Step 13: Checking cf_status_nss on Bugzilla...")
-    cf_status_script = os.path.join(
-        os.path.dirname(__file__), "bugzilla_cf_status_nss.py"
-    )
-    check_call_noisy([sys.executable, cf_status_script, version])
-    input("Review the cf_status_nss report above. Press Enter to continue.")
-    print_separator()
-
-    # Step 14: Push changes
+    # Step 15: Push changes
     response = input("Push these changes to the NSS repository? [yN]: ")
     if "y" in response.lower():
         print("Pushing changes to default branch...")
@@ -1069,6 +1159,7 @@ o = OptionParser(
             "set_release_candidate_number",
             "set_4_digit_release_number",
             "make_release_branch",
+            "release_nss",
             "create_nss_release_archive",
             "generate_release_note",
             "generate_release_notes_index",

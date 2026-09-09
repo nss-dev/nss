@@ -31,7 +31,7 @@ from release_utils import (
 def generate_email_content(version, nspr_version, bug_lines, release_date):
     """Generate the email content for the release announcement."""
     version_underscore = version_string_to_underscore(version)
-    changes_text = "\n\n".join([f"    {line}" for line in bug_lines])
+    changes_text = "\n".join([f"    {line}" for line in bug_lines])
 
     email_content = f"""Network Security Services (NSS) {version} was released on {release_date}.
 

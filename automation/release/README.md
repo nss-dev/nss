@@ -85,6 +85,12 @@ For a complete NSS release (e.g., NSS 3.118), follow these steps:
    version" note. A new release note that is not in the toctree makes
    `doc-lint` fail, so this has to happen before the next step.
 
+   Passing a single version updates only the latest-release note and keeps the
+   ESR version already recorded in the index:
+   ```bash
+   python3 automation/release/nss-release-helper.py generate_release_notes_index 3.118
+   ```
+
 3. **Check the documentation builds cleanly:**
    ```bash
    ./mach doc-lint
