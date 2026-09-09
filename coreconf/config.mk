@@ -132,6 +132,22 @@ endif
 # Master "Core Components" macros for Hardware features               #
 #######################################################################
 
+# Test toolchain for endianness and set LITTLE_ENDIAN variable accordingly.
+# Must come after $(OS_TARGET).mk, which is where CC is finalized.
+ifndef LITTLE_ENDIAN
+    ifeq (1,$(CC_IS_GCC))
+        ENDIANNESS := $(shell echo | $(CC) -dM -E - 2>/dev/null | grep __BYTE_ORDER__)
+        ifeq ($(findstring __ORDER_LITTLE_ENDIAN__,$(ENDIANNESS)),__ORDER_LITTLE_ENDIAN__)
+            LITTLE_ENDIAN := 1
+        else
+            LITTLE_ENDIAN := 0
+        endif
+    else
+        # MSVC can't be probed this way; all its targets are little-endian.
+        LITTLE_ENDIAN := 1
+    endif
+endif
+
 ifndef NSS_DISABLE_SSE3
     NSS_DISABLE_SSE3 = 0
     ifndef CC_IS_CLANG

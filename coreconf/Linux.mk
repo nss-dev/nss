@@ -188,14 +188,6 @@ endif
 endif
 endif
 
-# Test toolchain for endianness and set LITTLE_ENDIAN variable accordingly
-ENDIANNESS := $(shell echo | $(CC) -dM -E - | grep __BYTE_ORDER__)
-ifeq ($(findstring __ORDER_LITTLE_ENDIAN__,$(ENDIANNESS)),__ORDER_LITTLE_ENDIAN__)
-    LITTLE_ENDIAN := 1
-else
-    LITTLE_ENDIAN := 0
-endif
-
 USE_SYSTEM_ZLIB = 1
 ZLIB_LIBS = -lz
 
