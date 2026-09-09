@@ -39,6 +39,7 @@ task-defaults:
             - run.command
     attributes:
         retrigger: true
+        tsan: false
     treeherder:
         kind: test
 

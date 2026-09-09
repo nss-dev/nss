@@ -11,6 +11,7 @@ task-defaults:
             dbm: [false]
             cc: [false]
             make-fips: [false]
+            tsan: [false]
 
 cipher:
     description: Cipher tests

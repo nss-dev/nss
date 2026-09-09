@@ -132,7 +132,6 @@ nssPKIObject_Destroy(
     nssPKIObject *object)
 {
     PRUint32 i;
-    PR_ASSERT(object->refCount > 0);
     if (PR_ATOMIC_DECREMENT(&object->refCount) == 0) {
         for (i = 0; i < object->numInstances; i++) {
             nssCryptokiObject_Destroy(object->instances[i]);

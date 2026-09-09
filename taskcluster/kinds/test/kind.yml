@@ -93,6 +93,7 @@ tasks:
                 modular: [false]
                 make-fips: [false]
                 fuzz: [false]
+                tsan: [false]
         worker:
             docker-image: {in-tree: builds}
             env:
@@ -121,6 +122,7 @@ tasks:
                 cc: [false]
                 modular: [false]
                 fuzz: [false]
+                tsan: [false]
         worker:
             env:
                 TC_PARENT_TASK_ID: {task-reference: "<build>"}
@@ -148,6 +150,7 @@ tasks:
                 cc: [false]
                 modular: [false]
                 fuzz: [false]
+                tsan: [false]
         worker:
             docker-image: {in-tree: tlsinterop}
             env:
@@ -176,6 +179,7 @@ tasks:
                 cc: [false]
                 modular: [false]
                 fuzz: [false]
+                tsan: [false]
         worker:
             docker-image: {in-tree: tlsinterop}
             env:
@@ -202,6 +206,7 @@ tasks:
                 cc: [false]
                 modular: [false]
                 fuzz: [false]
+                tsan: [false]
 
     # Schedule tests that need certificates.
     chains:
@@ -231,6 +236,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: EC
         worker:
@@ -245,6 +251,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: Lowhash
         worker:
@@ -259,6 +266,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: SDR
         worker:
@@ -273,6 +281,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: Policy
         worker:
@@ -287,6 +296,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: DB
         worker:
@@ -301,6 +311,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: Merge
         worker:
@@ -315,6 +326,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: SMIME
         worker:
@@ -329,6 +341,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: Tools
         worker:
@@ -344,6 +357,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: SSL(standard)
         worker:
@@ -360,6 +374,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [false]
         treeherder:
             symbol: SSL(pkix)
         worker:
@@ -376,6 +391,7 @@ tasks:
             with-attributes:
                 dbm: [false]
                 make-fips: [false]
+                tsan: [true]
         treeherder:
             symbol: SSL(stress)
         worker:
@@ -385,3 +401,4 @@ tasks:
                 NSS_CYCLES: sharedb
                 NSS_SSL_RUN: stress
                 NSS_SSL_TESTS: normal_normal
+            max-run-time: 7200

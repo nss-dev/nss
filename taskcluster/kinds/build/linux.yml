@@ -69,6 +69,19 @@ linux-x64/debug-fuzz:
     worker:
         allow-ptrace: true
 
+linux-x64/debug-tsan:
+    description: "Linux x64 (debug, TSan)"
+    attributes:
+        tsan: true
+        certs: true
+    worker:
+        env:
+            CC: "clang"
+            CCC: "clang++"
+            CFLAGS: "-O2"
+        allow-ptrace: true
+
+
 # Linux aarch64 (ARM64) builds. Platform names follow <os>-<arch>, so this is
 # linux-aarch64 (cf. linux-x86 / linux-x64 above). It contains "64" so
 # USE_64/native GYP kick in. The x86-only build variants (extra compilers,

@@ -12,6 +12,7 @@ task-defaults:
             cc: [false]
             modular: [false]
             fuzz: [false]
+            tsan: [false]
 
 # Default and SWCrypto group under Gtest(...) on non-FIPS builds. The FIPS
 # build carries its own treeherder group (FIPS(B)) and the test transform wraps
