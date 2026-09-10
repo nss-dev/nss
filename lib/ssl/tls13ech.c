@@ -438,7 +438,7 @@ SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int 
     unsigned int savedOffset;
     unsigned int len;
     sslBuffer b = SSL_BUFFER_EMPTY;
-    PRUint8 tmpBuf[66]; // Large enough for an EC public key, currently only X25519.
+    PRUint8 tmpBuf[133]; // Large enough for an EC public key, currently up to P521.
     unsigned int tmpLen;
 
     if (!publicName || !hpkeSuites || hpkeSuiteCount == 0 ||

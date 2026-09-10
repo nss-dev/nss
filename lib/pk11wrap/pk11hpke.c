@@ -51,7 +51,9 @@ struct HpkeContextStr {
 
 static const hpkeKemParams kemParams[] = {
     /* KEM, Nsk, Nsecret, Npk, oidTag, Hash mechanism  */
-    { HpkeDhKemX25519Sha256, 32, 32, 32, SEC_OID_CURVE25519, CKM_SHA256 },
+    { HpkeDhKemP256Sha256, 32, 32, 65, SEC_OID_ANSIX962_EC_PRIME256V1, CKM_SHA256, ecKey },
+    { HpkeDhKemP384Sha384, 48, 48, 97, SEC_OID_SECG_EC_SECP384R1, CKM_SHA384, ecKey },
+    { HpkeDhKemX25519Sha256, 32, 32, 32, SEC_OID_X25519, CKM_SHA256, ecMontKey },
 };
 
 #define MAX_WRAPPED_EXP_LEN 72 // Largest kdfParams->Nh + 8
@@ -73,8 +75,12 @@ static inline const hpkeKemParams *
 kemId2Params(HpkeKemId kemId)
 {
     switch (kemId) {
-        case HpkeDhKemX25519Sha256:
+        case HpkeDhKemP256Sha256:
             return &kemParams[0];
+        case HpkeDhKemP384Sha384:
+            return &kemParams[1];
+        case HpkeDhKemX25519Sha256:
+            return &kemParams[2];
         default:
             return NULL;
     }
@@ -471,7 +477,8 @@ CLEANUP:
 SECStatus
 PK11_HPKE_Serialize(const SECKEYPublicKey *pk, PRUint8 *buf, unsigned int *len, unsigned int maxLen)
 {
-    if (!pk || !len || pk->keyType != ecKey) {
+    if (!pk || !len ||
+        (pk->keyType != ecKey && pk->keyType != ecMontKey)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
@@ -513,7 +520,7 @@ PK11_HPKE_Deserialize(const HpkeContext *cx, const PRUint8 *enc,
     CHECK_FAIL(!pubKey);
 
     pubKey->arena = arena;
-    pubKey->keyType = ecKey;
+    pubKey->keyType = cx->kemParams->keyType;
     pubKey->pkcs11Slot = NULL;
     pubKey->pkcs11ID = CK_INVALID_HANDLE;
 
@@ -543,28 +550,32 @@ CLEANUP:
     return rv;
 };
 
+/* It is OK to accept a plain ecKey for X25519 */
+static PRBool
+pk11_hpke_KeyTypeOk(const HpkeContext *cx, KeyType actual)
+{
+    return actual == cx->kemParams->keyType ||
+           (actual == ecKey && cx->kemParams->keyType == ecMontKey);
+}
+
 static SECStatus
 pk11_hpke_CheckKeys(const HpkeContext *cx, const SECKEYPublicKey *pk,
                     const SECKEYPrivateKey *sk)
 {
     SECOidTag pkTag;
-    unsigned int i;
-    if (pk->keyType != ecKey || (sk && sk->keyType != ecKey)) {
+    if (!pk11_hpke_KeyTypeOk(cx, pk->keyType) ||
+        (sk && !pk11_hpke_KeyTypeOk(cx, sk->keyType))) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         return SECFailure;
     }
     pkTag = SECKEY_GetECCOid(&pk->u.ec.DEREncodedParams);
-    if (pkTag != cx->kemParams->oidTag) {
+    /* For X25519, we need to accept keys with the old CURVE25519 OID. */
+    if (pkTag != cx->kemParams->oidTag &&
+        !(pkTag == SEC_OID_CURVE25519 && cx->kemParams->oidTag == SEC_OID_X25519)) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         return SECFailure;
     }
-    for (i = 0; i < PR_ARRAY_SIZE(kemParams); i++) {
-        if (cx->kemParams->oidTag == kemParams[i].oidTag) {
-            return SECSuccess;
-        }
-    }
-
-    return SECFailure;
+    return SECSuccess;
 }
 
 static SECStatus

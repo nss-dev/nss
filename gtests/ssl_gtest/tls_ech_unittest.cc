@@ -162,17 +162,40 @@ class TlsConnectStreamTls13Ech : public TlsConnectTestBase {
   }
 
   void SetMutualEchConfigs(ScopedSECKEYPublicKey& pub,
-                           ScopedSECKEYPrivateKey& priv) {
+                           ScopedSECKEYPrivateKey& priv,
+                           HpkeKemId kem = HpkeDhKemX25519Sha256) {
     DataBuffer echconfig;
-    TlsConnectTestBase::GenerateEchConfig(HpkeDhKemX25519Sha256, kDefaultSuites,
-                                          kPublicName, 100, echconfig, pub,
-                                          priv);
+    TlsConnectTestBase::GenerateEchConfig(kem, kDefaultSuites, kPublicName, 100,
+                                          echconfig, pub, priv);
     ASSERT_EQ(SECSuccess,
               SSL_SetServerEchConfigs(server_->ssl_fd(), pub.get(), priv.get(),
                                       echconfig.data(), echconfig.len()));
     ASSERT_EQ(SECSuccess,
               SSL_SetClientEchConfigs(client_->ssl_fd(), echconfig.data(),
                                       echconfig.len()));
+  }
+
+  void UseKem(HpkeKemId kem, SECOidTag oid) {
+    SECOidData* oidData = SECOID_FindOIDByTag(oid);
+    ASSERT_TRUE(!!oidData);
+
+    uint8_t buf[static_cast<size_t>(2 + oidData->oid.len)];
+    SECItem ecp = {siDEROID, buf, 2 + oidData->oid.len };
+    buf[0] = SEC_ASN1_OBJECT_ID;
+    buf[1] = oidData->oid.len;
+    PORT_Memcpy(&buf[2], oidData->oid.data, oidData->oid.len);
+
+    ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+    ASSERT_TRUE(!!slot);
+
+    SECKEYPublicKey* pk_ptr = NULL;
+    SECKEYPrivateKey* sk_ptr =
+        PK11_GenerateKeyPair(slot.get(), CKM_EC_KEY_PAIR_GEN, &ecp, &pk_ptr,
+                             PR_FALSE, PR_TRUE, NULL);
+    ScopedSECKEYPublicKey pub(pk_ptr);
+    ScopedSECKEYPrivateKey priv(sk_ptr);
+
+    SetMutualEchConfigs(pub, priv, kem);
   }
 
   //   struct {
@@ -673,6 +696,26 @@ TEST_F(TlsConnectTest, RenegotiateClientECHGrease) {
   server_->StartRenegotiate();
   Handshake();
   CheckConnected();
+}
+
+TEST_F(TlsConnectStreamTls13Ech, EchP256) {
+  EnsureTlsSetup();
+
+  UseKem(HpkeDhKemP256Sha256, SEC_OID_ANSIX962_EC_PRIME256V1);
+
+  client_->ExpectEch();
+  server_->ExpectEch();
+  Connect();
+}
+
+TEST_F(TlsConnectStreamTls13Ech, EchP384) {
+  EnsureTlsSetup();
+
+  UseKem(HpkeDhKemP384Sha384, SEC_OID_SECG_EC_SECP384R1);
+
+  client_->ExpectEch();
+  server_->ExpectEch();
+  Connect();
 }
 
 // The next set of tests all use a fixed server key and a pre-built ClientHello.

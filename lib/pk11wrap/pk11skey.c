@@ -2440,6 +2440,7 @@ pk11_PubDeriveECKeyWithKDF(
                     key_size = pk11_ECPubKeySize(pubKey);
                     if (key_size == 0) {
                         PK11_FreeSymKey(symKey);
+                        PORT_SetError(SEC_ERROR_INVALID_KEY);
                         return NULL;
                     }
                     break;
