@@ -27,6 +27,7 @@
         {
           'files': [
             'dev3hack.h',
+            'pk11hpkei.h',
             'secmodi.h',
             'secmodti.h'
           ],

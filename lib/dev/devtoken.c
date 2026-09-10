@@ -15,6 +15,7 @@
 #include "pk11func.h"
 #include "dev3hack.h"
 #include "secerr.h"
+#include "hasht.h"
 
 extern const NSSError NSS_ERROR_NOT_FOUND;
 extern const NSSError NSS_ERROR_INVALID_ARGUMENT;
@@ -1298,8 +1299,8 @@ nssToken_Digest(
     /* XXX the standard says this should work, but it doesn't */
     ckrv = CKAPI(epv)->C_Digest(session->handle, NULL, 0, NULL, &digestLen);
     if (ckrv != CKR_OK) {
-	nssSession_ExitMonitor(session);
-	return NULL;
+        nssSession_ExitMonitor(session);
+        return NULL;
     }
 #endif
     digestLen = 0; /* XXX for now */

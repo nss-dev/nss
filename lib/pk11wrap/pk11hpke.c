@@ -9,7 +9,7 @@
 #include "keyhi.h"
 #include "pkcs11t.h"
 #include "pk11func.h"
-#include "pk11hpke.h"
+#include "pk11hpkei.h"
 #include "pk11pqg.h"
 #include "secerr.h"
 #include "secitem.h"
