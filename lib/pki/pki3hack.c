@@ -242,7 +242,7 @@ nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der,
     }
     secrv = CERT_SerialNumberFromDERCert(&derCert, &derSerial);
     if (secrv != SECSuccess) {
-        PORT_Free(derSerial.data);
+        PORT_Free(derIssuer.data);
         return PR_FAILURE;
     }
     issuer->data = derIssuer.data;
@@ -747,20 +747,15 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, NSSTrust *ccT
         NSSTrust *nssTrust = ccTrust;
         NSSTrust *tdTrust = NULL;
         if (!nssTrust) {
-            /* chicken and egg issue:
-             *
-             * c->issuer and c->serial are empty at this point, but
-             * nssTrustDomain_FindTrustForCertificate use them to look up
-             * up the trust object, so we point them to cc->derIssuer and
-             * cc->serialNumber.
-             *
-             * Our caller will fill these in with proper arena copies when we
-             * return. */
-            c->issuer.data = cc->derIssuer.data;
-            c->issuer.size = cc->derIssuer.len;
-            c->serial.data = cc->serialNumber.data;
-            c->serial.size = cc->serialNumber.len;
-            nssTrust = tdTrust = nssTrustDomain_FindTrustForCertificate(context->td, &c->encoding, &c->issuer, &c->serial);
+            NSSDER encoding;
+            NSSITEM_FROM_SECITEM(&encoding, &cc->derCert);
+            NSSDER issuer;
+            NSSDER serial;
+            if (nssPKIX509_GetIssuerAndSerialFromDER(&encoding, &issuer, &serial) == PR_SUCCESS) {
+                nssTrust = tdTrust = nssTrustDomain_FindTrustForCertificate(context->td, &encoding, &issuer, &serial);
+                PORT_Free(issuer.data);
+                PORT_Free(serial.data);
+            }
         }
         if (nssTrust) {
             trust = cert_trust_from_stan_trust(nssTrust, cc->arena);
