@@ -474,8 +474,6 @@ DERTemplate CERTSignedDataTemplate[] = {
     { 0 }
 };
 
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
-
 static SECOidTag
 seckey_CurveOidFromPrivKey(const SECKEYPrivateKey *privKey)
 {
