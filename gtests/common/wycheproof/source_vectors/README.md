@@ -37,7 +37,8 @@ published and are updated by moving to the `testvectors_v1/` equivalent.
 | `testvectors_v1/` | `e0df04e0c033` | `hkdf_sha{1,256,384,512}` | `pk11_gtest/pk11_hkdf_unittest.cc` |
 | `testvectors_v1/` | `6d7cccd0fcb1` | `mldsa_{44,65,87}_sign_{seed,noseed}` | `freebl_gtest/mldsa_unittest.cc`, `pk11_gtest/pk11_mldsa_unittest.cc`, `cryptohi_gtest/cryptohi_mldsa_unittest.cc` |
 | `testvectors_v1/` | `12fd3aaf33eb` | `mldsa_{44,65,87}_verify` | as above |
-| `testvectors_v1/` | `fca0d3ba9f12` | `mlkem_{512,768,1024}`, `mlkem_*_keygen_seed` | `freebl_gtest/kyber_unittest.cc` |
+| `testvectors_v1/` | `12fd3aaf33eb` | `mlkem_{512,768,1024}` | `freebl_gtest/kyber_unittest.cc` |
+| `testvectors_v1/` | `fca0d3ba9f12` | `mlkem_*_keygen_seed` | `freebl_gtest/kyber_unittest.cc` |
 | `testvectors_v1/` | `7a87c8699e57` | `mlkem_*_encaps` | `freebl_gtest/kyber_unittest.cc` |
 | `testvectors_v1/` | `44dcf469edba` | `mlkem_*_semi_expanded_decaps` | `freebl_gtest/kyber_unittest.cc` |
 
