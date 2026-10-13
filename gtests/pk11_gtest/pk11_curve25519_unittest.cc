@@ -130,6 +130,8 @@ class Pkcs11Curve25519Wycheproof : public Pkcs11Curve25519TestBase,
       }
       if (n == "curve") {
         ASSERT_EQ("curve25519", r.ReadString());
+      } else if (n == "source") {
+        r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("XdhComp", r.ReadString());
       } else if (n == "tests") {
@@ -216,7 +218,7 @@ class Pkcs11Curve25519Wycheproof : public Pkcs11Curve25519TestBase,
 };
 
 TEST_F(Pkcs11Curve25519Wycheproof, Run) {
-  WycheproofHeader("x25519", "XDH", "xdh_comp_schema.json",
+  WycheproofHeader("x25519", "XDH", "xdh_comp_schema_v1.json",
                    [this](JsonReader& r) { RunGroup(r); });
 }
 
