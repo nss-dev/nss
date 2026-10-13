@@ -1,3 +1,6 @@
+# Variants marked x86-only disable a CPU feature aarch64 doesn't have, so they
+# would only repeat Cipher(Default) there; nss_taskgraph.transforms.platforms
+# drops them on aarch64.
 task-defaults:
     worker:
         env:
@@ -40,6 +43,8 @@ cipher-nosha:
 
 cipher-nopclmul:
     description: Cipher tests, no PCLMUL
+    attributes:
+        x86-only: true
     treeherder:
         symbol: Cipher(NoPCLMUL)
     worker:
@@ -48,6 +53,8 @@ cipher-nopclmul:
 
 cipher-noavx:
     description: Cipher tests, no AVX
+    attributes:
+        x86-only: true
     treeherder:
         symbol: Cipher(NoAVX)
     worker:
@@ -56,6 +63,8 @@ cipher-noavx:
 
 cipher-noavx:
     description: Cipher tests, no AVX2
+    attributes:
+        x86-only: true
     treeherder:
         symbol: Cipher(NoAVX2)
     worker:
@@ -73,6 +82,8 @@ cipher-nossse3:
 
 cipher-nosse41:
     description: Cipher tests, no SSE4.1
+    attributes:
+        x86-only: true
     treeherder:
         symbol: Cipher(NoSSE4.1)
     worker:

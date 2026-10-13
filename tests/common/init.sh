@@ -473,30 +473,53 @@ NSS=trustOrder=100
         . ${DIST}/${OBJDIR}/platform.cfg
     fi
 
-    # only need make if we don't already have certain variables set
-    if [ -z "${OBJDIR}" -o -z "${OS_ARCH}" -o -z "${DLL_PREFIX}" -o -z "${DLL_SUFFIX}" ]; then
-        MAKE=gmake
-        $MAKE -v >/dev/null 2>&1 || MAKE=make
-        $MAKE -v >/dev/null 2>&1 || MAKE=mozmake
-        $MAKE -v >/dev/null 2>&1 || { echo "You are missing make."; exit 5; }
-        MAKE="$MAKE --no-print-directory"
+    # Both build.sh and "make nss_build_all" record the objdir in dist/latest.
+    if [ -z "${OBJDIR}" ]; then
+        if [ ! -f ${DIST}/latest ]; then
+            echo "${DIST}/latest not found; set OBJDIR to the dist subdirectory to test."
+            exit 5
+        fi
+        OBJDIR=$(cat ${DIST}/latest)
     fi
 
-    if [ "${OBJDIR}" = "" ]; then
-        if [ -f ${DIST}/latest ]; then
-            OBJDIR=$(cat ${DIST}/latest)
-        else
-            OBJDIR=`($MAKE -s -C $COMMON objdir_name)`
+    # These mirror coreconf (arch.mk and the per-OS .mk files). Test whether
+    # each is set at all rather than non-empty: DLL_PREFIX is legitimately
+    # empty on Windows, so a value the caller set has to win.
+    if [ -z "${OS_ARCH+set}" ]; then
+        OS_ARCH=`uname -s | sed -e "s|/|_|g"`
+        case "${OS_ARCH}" in
+            Windows_NT|CYGWIN_NT*|MSYS_NT-*|MINGW32_NT-*|MINGW64_NT-*)
+                OS_ARCH=WINNT ;;
+            GNU|GNU_kFreeBSD)
+                OS_ARCH=Linux ;;
+            UNIX_System_V)
+                OS_ARCH=NEC ;;
+        esac
+        if [ "${OS_TARGET}" = "Android" ]; then
+            OS_ARCH=Android
         fi
     fi
-    if [ "${OS_ARCH}" = "" ]; then
-        OS_ARCH=`(cd $COMMON; $MAKE os_arch)`
+    if [ -z "${DLL_PREFIX+set}" ]; then
+        if [ "${OS_ARCH}" = "WINNT" ]; then
+            DLL_PREFIX=
+        else
+            DLL_PREFIX=lib
+        fi
     fi
-    if [ "${DLL_PREFIX}" = "" ]; then
-        DLL_PREFIX=`(cd $COMMON; $MAKE dll_prefix)`
-    fi
-    if [ "${DLL_SUFFIX}" = "" ]; then
-        DLL_SUFFIX=`(cd $COMMON; $MAKE dll_suffix)`
+    if [ -z "${DLL_SUFFIX+set}" ]; then
+        case "${OS_ARCH}" in
+            WINNT) DLL_SUFFIX=dll ;;
+            Darwin) DLL_SUFFIX=dylib ;;
+            OpenBSD) DLL_SUFFIX=so.1.0 ;;
+            HP-UX)
+                if [ "`uname -m`" = "ia64" ]; then
+                    DLL_SUFFIX=so
+                else
+                    DLL_SUFFIX=sl
+                fi
+                ;;
+            *) DLL_SUFFIX=so ;;
+        esac
     fi
     OS_NAME=`uname -s | sed -e "s/-[0-9.-]*//" | sed -e "s/-WOW64//"`
 

@@ -3,10 +3,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 
+loader: taskgraph.loader.transform:loader
+
 transforms:
     - taskgraph.transforms.from_deps
     - nss_taskgraph.transforms.treeherder
     - nss_taskgraph.transforms.platforms
+    - taskgraph.transforms.run
+    # Has to see the env that taskgraph.transforms.run sets.
+    - nss_taskgraph.transforms.hg_store
+    - taskgraph.transforms.task
 
 kind-dependencies:
     - build
@@ -48,21 +54,16 @@ tasks:
                         - type: directory
                           path: public
             docker-image: {in-tree: base}
-            taskcluster-proxy:
-                by-platform:
-                    win.*: true
-                    default: false
         worker-type:
             by-platform:
                 linux-aarch64.*: b-linux-aarch64
                 # Matches x86 linux only; the lookahead keeps it from also
                 # matching linux-aarch64 (keyed-by forbids two matching arms).
                 linux(?!-aarch64).*: b-linux
-                win.*: b-win2022
+                # certutil is a target binary, so cert generation for the
+                # cross-built win-aarch64 has to happen on ARM64 hardware.
+                win-aarch64.*: b-win-aarch64
+                win(?!-aarch64).*: b-win2022
                 mac.*: b-osx
         treeherder:
             symbol: Certs
-        scopes:
-            by-platform:
-                win.*: ["project:releng:services/tooltool/api/download/internal"]
-                default: []

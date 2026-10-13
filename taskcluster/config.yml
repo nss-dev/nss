@@ -33,6 +33,11 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: b-win2022
+        b-win-aarch64:
+            provisioner: 'nss-{level}'
+            implementation: generic-worker
+            os: windows
+            worker-type: win11-a64-25h2-builder
         b-osx:
             provisioner: releng-hardware
             implementation: generic-worker
@@ -48,6 +53,11 @@ workers:
             implementation: docker-worker
             os: linux
             worker-type: t-linux-arm64-docker
+        t-win-aarch64:
+            provisioner: nss-t
+            implementation: generic-worker
+            os: windows
+            worker-type: win11-a64-25h2
 
 taskgraph:
     repositories:

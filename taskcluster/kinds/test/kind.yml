@@ -3,11 +3,17 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 
+loader: taskgraph.loader.transform:loader
+
 transforms:
   - taskgraph.transforms.from_deps
   - nss_taskgraph.transforms.from_deps_task_name
   - nss_taskgraph.transforms.platforms
   - nss_taskgraph.transforms.treeherder
+  - taskgraph.transforms.run
+  # Has to see the env that taskgraph.transforms.run sets.
+  - nss_taskgraph.transforms.hg_store
+  - taskgraph.transforms.task
 
 kind-dependencies:
   - build
@@ -21,10 +27,6 @@ task-defaults:
         env:
             NSS_MAX_MP_PBE_ITERATION_COUNT: "100"
         max-run-time: 3600
-        taskcluster-proxy:
-            by-platform:
-                win.*: true
-                default: false
         docker-image: {in-tree: base}
     run:
         using: run-task
@@ -37,10 +39,6 @@ task-defaults:
                 default: "${VCS_PATH}/nss/automation/taskcluster/scripts/run_tests.sh"
     attributes:
         retrigger: true
-    scopes:
-        by-platform:
-            win.*: ["project:releng:services/tooltool/api/download/internal"]
-            default: []
     worker-type:
         by-platform:
             linux-aarch64.*: t-linux-aarch64
@@ -48,7 +46,8 @@ task-defaults:
             # linux-aarch64 (keyed-by forbids a platform matching two arms).
             linux(?!-aarch64).*: t-linux
             mac.*: b-osx
-            win.*: b-win2022
+            win-aarch64.*: t-win-aarch64
+            win(?!-aarch64).*: b-win2022
 
 tasks-from:
     - cipher.yml

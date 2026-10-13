@@ -34,3 +34,16 @@ win-x86/opt:
 win-x86/debug:
     description: "Windows x86 (debug)"
 
+# Cross-compiled from the x64 builder; the certs and test tasks that consume
+# these run on the native ARM64 pools. See the `cross` attribute in
+# nss_taskgraph.transforms.build.
+win-aarch64/opt:
+    description: "Windows AArch64 (opt)"
+    attributes:
+        cross: true
+
+win-aarch64/debug:
+    description: "Windows AArch64 (debug)"
+    attributes:
+        cross: true
+

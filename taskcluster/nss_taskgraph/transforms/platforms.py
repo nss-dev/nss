@@ -9,6 +9,17 @@ transforms = TransformSequence()
 
 
 @transforms.add
+def drop_x86_only_on_aarch64(config, tasks):
+    """Drop tasks marked x86-only (e.g. cipher runs that disable an x86 CPU
+    feature) on aarch64, where they would repeat the default run."""
+    for task in tasks:
+        attributes = task.get("attributes", {})
+        if attributes.get("x86-only") and "aarch64" in attributes["build_platform"]:
+            continue
+        yield task
+
+
+@transforms.add
 def resolve_platform_differences(config, tasks):
     for task in tasks:
         for key in ("worker-type", "run.command", "scopes", "worker.artifacts", "worker.taskcluster-proxy", "worker.max-run-time"):

@@ -49,9 +49,10 @@ def filter_platform(platform, task):
     # Check the platform name.
     keep = task_platform == PLATFORM_ALIASES.get(platform, platform)
     # A `<platform>-<variant>` selector shares its platform name with the plain
-    # build, so narrow to the variant by its attribute.
-    if platform in PLATFORM_ALIASES:
-        keep &= task.attributes[_VARIANT_ATTR[platform.rsplit("-", 1)[1]]]
+    # build, so narrow to the variant by its attribute. Kinds that don't build
+    # (e.g. fuzz) needn't set the variant attributes.
+    if keep and platform in PLATFORM_ALIASES:
+        keep = bool(task.attributes.get(_VARIANT_ATTR[platform.rsplit("-", 1)[1]]))
     return keep
 
 
