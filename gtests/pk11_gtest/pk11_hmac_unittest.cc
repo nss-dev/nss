@@ -21,7 +21,7 @@ class Pkcs11HmacTest : public ::testing::Test {
  protected:
   void Run(const std::string& name, const std::string& algorithm,
            CK_MECHANISM_TYPE mech) {
-    WycheproofHeader(name, algorithm, "mac_test_schema.json",
+    WycheproofHeader(name, algorithm, "mac_test_schema_v1.json",
                      [this, mech](JsonReader& r) { RunGroup(r, mech); });
   }
 
@@ -35,7 +35,7 @@ class Pkcs11HmacTest : public ::testing::Test {
         break;
       }
 
-      if (n == "keySize" || n == "tagSize") {
+      if (n == "keySize" || n == "tagSize" || n == "source") {
         r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("MacTest", r.ReadString());

@@ -30,7 +30,7 @@ published and are updated by moving to the `testvectors_v1/` equivalent.
 | `testvectors/` | `4672ff74d687` | `x25519` | `pk11_gtest/pk11_curve25519_unittest.cc` |
 | `testvectors/` | `fe3dba2640b6` | `dsa` | `pk11_gtest/pk11_dsa_unittest.cc` |
 | `testvectors/` | `f63678bb717b` | `eddsa` | `pk11_gtest/pk11_eddsa_unittest.cc` |
-| `testvectors/` | `2fb91a6923b6` | `hmac_sha{224,256,384,512}`, `hmac_sha3_*` | `pk11_gtest/pk11_hmac_unittest.cc` |
+| `testvectors_v1/` | `12fd3aaf33eb` | `hmac_sha{224,256,384,512}`, `hmac_sha3_*` | `pk11_gtest/pk11_hmac_unittest.cc` |
 | `testvectors_v1/` | `e0df04e0c033` | `aes_gcm` | `pk11_gtest/pk11_aes_gcm_unittest.cc` |
 | `testvectors_v1/` | `e0df04e0c033` | `hkdf_sha{1,256,384,512}` | `pk11_gtest/pk11_hkdf_unittest.cc` |
 | `testvectors_v1/` | `6d7cccd0fcb1` | `mldsa_{44,65,87}_sign_{seed,noseed}`, `mldsa_{44,65}_verify` | `freebl_gtest/mldsa_unittest.cc`, `pk11_gtest/pk11_mldsa_unittest.cc`, `cryptohi_gtest/cryptohi_mldsa_unittest.cc` |
