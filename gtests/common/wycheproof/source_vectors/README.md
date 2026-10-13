@@ -19,7 +19,7 @@ published and are updated by moving to the `testvectors_v1/` equivalent.
 | Upstream path | Commit | Files | Read by |
 | --- | --- | --- | --- |
 | `testvectors_v1/` | `12fd3aaf33eb` | `aes_cbc_pkcs5` | `pk11_gtest/pk11_cbc_unittest.cc` |
-| `testvectors/` | `4672ff74d687` | `aes_cmac` | `pk11_gtest/pk11_aes_cmac_unittest.cc` |
+| `testvectors_v1/` | `12fd3aaf33eb` | `aes_cmac` | `pk11_gtest/pk11_aes_cmac_unittest.cc` |
 | `testvectors/` | `4672ff74d687` | `chacha20_poly1305` | `pk11_gtest/pk11_chacha20poly1305_unittest.cc` |
 | `testvectors/` | `4672ff74d687` | `ecdh_secp{256,384,521}r1` | `pk11_gtest/pk11_ecdh_unittest.cc` |
 | `testvectors/` | `4672ff74d687` | `ecdsa_secp*_sha*` | `pk11_gtest/pk11_ecdsa_unittest.cc` |

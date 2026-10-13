@@ -57,7 +57,7 @@ class Pkcs11AesCmacTest : public ::testing::Test {
   }
 
   void RunWycheproof() {
-    WycheproofHeader("aes_cmac", "AES-CMAC", "mac_test_schema.json",
+    WycheproofHeader("aes_cmac", "AES-CMAC", "mac_test_schema_v1.json",
                      [this](JsonReader& r) { RunWycheproofGroup(r); });
   }
 
@@ -76,6 +76,8 @@ class Pkcs11AesCmacTest : public ::testing::Test {
         key_size = r.ReadInt();
       } else if (n == "tagSize") {
         ASSERT_EQ(AES_BLOCK_SIZE * 8U, r.ReadInt());
+      } else if (n == "source") {
+        r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("MacTest", r.ReadString());
       } else if (n == "tests") {
