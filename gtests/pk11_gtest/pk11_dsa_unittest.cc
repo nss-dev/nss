@@ -69,14 +69,35 @@ class Pkcs11DsaTestBase : public Pk11SignatureTest {
   }
 };
 
+struct DsaWycheproofFile {
+  const char* name;
+  const char* schema;
+  SECOidTag hash;
+};
+
+std::ostream& operator<<(std::ostream& os, const DsaWycheproofFile& f) {
+  return os << f.name;
+}
+
+// dsa_test.json has no successor in testvectors_v1/ for its 1024-bit SHA-1
+// groups, so it is kept for those. Its other groups are superseded by the
+// dsa_<p>_<q>_<hash> files.
+static const DsaWycheproofFile kDsaWycheproofFiles[] = {
+    {"dsa", "dsa_verify_schema.json", SEC_OID_SHA1},
+    {"dsa_2048_224_sha224", "dsa_verify_schema_v1.json", SEC_OID_SHA224},
+    {"dsa_2048_224_sha256", "dsa_verify_schema_v1.json", SEC_OID_SHA256},
+    {"dsa_2048_256_sha256", "dsa_verify_schema_v1.json", SEC_OID_SHA256},
+    {"dsa_3072_256_sha256", "dsa_verify_schema_v1.json", SEC_OID_SHA256},
+};
+
 class Pkcs11DsaTest : public Pkcs11DsaTestBase,
-                      public ::testing::WithParamInterface<SECOidTag> {
+                      public ::testing::WithParamInterface<DsaWycheproofFile> {
  public:
-  Pkcs11DsaTest() : Pkcs11DsaTestBase(GetParam()), tests_run_(0) {}
+  Pkcs11DsaTest() : Pkcs11DsaTestBase(GetParam().hash), tests_run_(0) {}
 
  protected:
   void Run() {
-    WycheproofHeader("dsa", "DSA", "dsa_verify_schema.json",
+    WycheproofHeader(GetParam().name, "DSA", GetParam().schema,
                      [this](JsonReader& r) { RunGroup(r); });
     EXPECT_LT(0U, tests_run_) << "no test groups use this hash";
   }
@@ -93,9 +114,10 @@ class Pkcs11DsaTest : public Pkcs11DsaTestBase,
         break;
       }
 
-      if (n == "key" || n == "keyPem") {
+      if (n == "key" || n == "keyPem" || n == "publicKey" ||
+          n == "publicKeyPem" || n == "source") {
         r.SkipValue();
-      } else if (n == "keyDer") {
+      } else if (n == "keyDer" || n == "publicKeyDer") {
         public_key = r.ReadHex();
       } else if (n == "sha") {
         hash_oid = r.ReadHash();
@@ -106,10 +128,14 @@ class Pkcs11DsaTest : public Pkcs11DsaTestBase,
                             [](DsaTestVector& t, const std::string& result,
                                const std::vector<std::string>& flags) {
                               // NSS accepts signatures that are missing the
-                              // leading zero on a positive integer.
+                              // leading zero on a positive integer. The flag
+                              // was renamed in testvectors_v1/.
                               if (result == "acceptable" &&
-                                  std::find(flags.begin(), flags.end(),
-                                            "NoLeadingZero") != flags.end()) {
+                                  std::find_if(flags.begin(), flags.end(),
+                                               [](const std::string& f) {
+                                                 return f == "NoLeadingZero" ||
+                                                        f == "MissingZero";
+                                               }) != flags.end()) {
                                 t.valid = true;
                               }
                             });
@@ -118,9 +144,9 @@ class Pkcs11DsaTest : public Pkcs11DsaTestBase,
       }
     }
 
-    // The file mixes groups for several hashes, but the base class is
+    // dsa_test.json mixes groups for several hashes, but the base class is
     // configured for a single hash. Only run the groups that use it.
-    if (hash_oid != GetParam()) {
+    if (hash_oid != GetParam().hash) {
       return;
     }
 
@@ -150,7 +176,6 @@ class Pkcs11DsaTest : public Pkcs11DsaTestBase,
 TEST_P(Pkcs11DsaTest, WycheproofVectors) { Run(); }
 
 INSTANTIATE_TEST_SUITE_P(DsaTest, Pkcs11DsaTest,
-                         ::testing::Values(SEC_OID_SHA1, SEC_OID_SHA224,
-                                           SEC_OID_SHA256));
+                         ::testing::ValuesIn(kDsaWycheproofFiles));
 
 }  // namespace nss_test
