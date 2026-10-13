@@ -110,7 +110,7 @@ INSTANTIATE_TEST_SUITE_P(EddsaRound, Pkcs11EddsaRoundtripTest,
 class Pkcs11EddsaWycheproofTest : public ::testing::Test {
  protected:
   void Run(const std::string& name) {
-    WycheproofHeader(name, "EDDSA", "eddsa_verify_schema.json",
+    WycheproofHeader(name, "EDDSA", "eddsa_verify_schema_v1.json",
                      [this](JsonReader& r) { RunGroup(r); });
   }
 
@@ -125,9 +125,10 @@ class Pkcs11EddsaWycheproofTest : public ::testing::Test {
         break;
       }
 
-      if (n == "jwk" || n == "key" || n == "keyPem") {
+      if (n == "publicKey" || n == "publicKeyJwk" || n == "publicKeyPem" ||
+          n == "source") {
         r.SkipValue();
-      } else if (n == "keyDer") {
+      } else if (n == "publicKeyDer") {
         public_key = r.ReadHex();
       } else if (n == "type") {
         ASSERT_EQ("EddsaVerify", r.ReadString());
@@ -177,6 +178,6 @@ class Pkcs11EddsaWycheproofTest : public ::testing::Test {
   };
 };
 
-TEST_F(Pkcs11EddsaWycheproofTest, Ed25519) { Run("eddsa"); }
+TEST_F(Pkcs11EddsaWycheproofTest, Ed25519) { Run("ed25519"); }
 
 }  // namespace nss_test
