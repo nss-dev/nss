@@ -1212,6 +1212,15 @@ RSA_DecryptBlock(RSAPrivateKey *key,
         return SECFailure;
     }
 
+    /* The ciphertext must be less than the modulus. This only depends on
+     * public values, so reject it here rather than letting the private key
+     * operation fail below, which would produce implicit rejection output. */
+    if (memcmp(input, key->modulus.data + (key->modulus.len - modulusLen),
+               modulusLen) >= 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     /* Allocate enough space to decrypt */
     buffer = PORT_ZAlloc(modulusLen);
     if (!buffer) {
