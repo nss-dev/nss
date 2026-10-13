@@ -95,6 +95,8 @@ class Pkcs11EcdhTest : public ::testing::Test {
         curve = r.ReadString();
       } else if (n == "encoding") {
         ASSERT_EQ("asn", r.ReadString());
+      } else if (n == "source") {
+        r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("EcdhTest", r.ReadString());
       } else if (n == "tests") {
@@ -116,7 +118,7 @@ class Pkcs11EcdhTest : public ::testing::Test {
   }
 
   void Run(const std::string& file) {
-    WycheproofHeader(file, "ECDH", "ecdh_test_schema.json",
+    WycheproofHeader(file, "ECDH", "ecdh_test_schema_v1.json",
                      [this](JsonReader& r) { RunGroup(r); });
   }
 
