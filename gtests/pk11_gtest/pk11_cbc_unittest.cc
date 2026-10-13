@@ -561,7 +561,7 @@ class Pkcs11AesCbcWycheproofTest : public ::testing::Test {
  protected:
   void Run() {
     WycheproofHeader("aes_cbc_pkcs5", "AES-CBC-PKCS5",
-                     "ind_cpa_test_schema.json",
+                     "ind_cpa_test_schema_v1.json",
                      [this](JsonReader& r) { RunGroup(r); });
   }
 
@@ -575,7 +575,7 @@ class Pkcs11AesCbcWycheproofTest : public ::testing::Test {
         break;
       }
 
-      if (n == "ivSize" || n == "keySize") {
+      if (n == "ivSize" || n == "keySize" || n == "source") {
         r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("IndCpaTest", r.ReadString());
@@ -633,9 +633,12 @@ class Pkcs11AesCbcWycheproofTest : public ::testing::Test {
     ASSERT_NE(nullptr, pKey);
     ScopedPK11SymKey spKey = ScopedPK11SymKey(pKey);
 
-    SECStatus rv = PK11_Decrypt(spKey.get(), kMech, &iv_item, decrypted.data(),
+    // A null output pointer would make this a length query, which succeeds.
+    SECStatus rv = PK11_Decrypt(spKey.get(), kMech, &iv_item,
+                                decrypted.data() ? decrypted.data() : &tmp,
                                 &decrypted_len, decrypted.size(),
-                                ciphertext.data(), ciphertext.size());
+                                ciphertext.data() ? ciphertext.data() : &tmp,
+                                ciphertext.size());
 
     ASSERT_EQ(valid ? SECSuccess : SECFailure, rv) << err;
     if (valid) {

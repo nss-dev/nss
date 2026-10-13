@@ -18,21 +18,21 @@ published and are updated by moving to the `testvectors_v1/` equivalent.
 
 | Upstream path | Commit | Files | Read by |
 | --- | --- | --- | --- |
-| `testvectors/` | `4672ff74d687` | `aes_cbc_pkcs5` | `pk11_gtest/pk11_cbc_unittest.cc` |
-| | | `aes_cmac` | `pk11_gtest/pk11_aes_cmac_unittest.cc` |
-| | | `chacha20_poly1305` | `pk11_gtest/pk11_chacha20poly1305_unittest.cc` |
-| | | `ecdh_secp{256,384,521}r1` | `pk11_gtest/pk11_ecdh_unittest.cc` |
-| | | `ecdsa_secp*_sha*` | `pk11_gtest/pk11_ecdsa_unittest.cc` |
-| | | `rsa_oaep_*` | `pk11_gtest/pk11_rsaoaep_unittest.cc` |
-| | | `rsa_pkcs1_{2048,3072,4096}` | `pk11_gtest/pk11_rsaencrypt_unittest.cc` |
-| | | `rsa_pss_*` | `pk11_gtest/pk11_rsapss_unittest.cc` |
-| | | `rsa_signature`, `rsa_signature_<bits>_<hash>` | `pk11_gtest/pk11_rsapkcs1_unittest.cc` |
-| | | `x25519` | `pk11_gtest/pk11_curve25519_unittest.cc` |
+| `testvectors_v1/` | `12fd3aaf33eb` | `aes_cbc_pkcs5` | `pk11_gtest/pk11_cbc_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `aes_cmac` | `pk11_gtest/pk11_aes_cmac_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `chacha20_poly1305` | `pk11_gtest/pk11_chacha20poly1305_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `ecdh_secp{256,384,521}r1` | `pk11_gtest/pk11_ecdh_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `ecdsa_secp*_sha*` | `pk11_gtest/pk11_ecdsa_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `rsa_oaep_*` | `pk11_gtest/pk11_rsaoaep_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `rsa_pkcs1_{2048,3072,4096}` | `pk11_gtest/pk11_rsaencrypt_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `rsa_pss_*` | `pk11_gtest/pk11_rsapss_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `rsa_signature`, `rsa_signature_<bits>_<hash>` | `pk11_gtest/pk11_rsapkcs1_unittest.cc` |
+| `testvectors/` | `4672ff74d687` | `x25519` | `pk11_gtest/pk11_curve25519_unittest.cc` |
 | `testvectors/` | `fe3dba2640b6` | `dsa` | `pk11_gtest/pk11_dsa_unittest.cc` |
 | `testvectors/` | `f63678bb717b` | `eddsa` | `pk11_gtest/pk11_eddsa_unittest.cc` |
 | `testvectors/` | `2fb91a6923b6` | `hmac_sha{224,256,384,512}`, `hmac_sha3_*` | `pk11_gtest/pk11_hmac_unittest.cc` |
 | `testvectors_v1/` | `e0df04e0c033` | `aes_gcm` | `pk11_gtest/pk11_aes_gcm_unittest.cc` |
-| | | `hkdf_sha{1,256,384,512}` | `pk11_gtest/pk11_hkdf_unittest.cc` |
+| `testvectors_v1/` | `e0df04e0c033` | `hkdf_sha{1,256,384,512}` | `pk11_gtest/pk11_hkdf_unittest.cc` |
 | `testvectors_v1/` | `6d7cccd0fcb1` | `mldsa_{44,65,87}_sign_{seed,noseed}`, `mldsa_{44,65}_verify` | `freebl_gtest/mldsa_unittest.cc`, `pk11_gtest/pk11_mldsa_unittest.cc`, `cryptohi_gtest/cryptohi_mldsa_unittest.cc` |
 | `testvectors_v1/` | `02872f4bdeda` | `mldsa_87_verify` | as above |
 | `testvectors_v1/` | `fca0d3ba9f12` | `mlkem_{512,768,1024}`, `mlkem_*_keygen_seed` | `freebl_gtest/kyber_unittest.cc` |
