@@ -4,10 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <utility>
 #include <vector>
 #include "nss.h"
 #include "p12.h"
+#include "secerr.h"
+#include "secoid.h"
 
+#include "der_encode.h"
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
 
@@ -335,7 +339,29 @@ static SECItem* CancelNicknameCallback(SECItem*, PRBool* cancel, void*) {
   return nullptr;
 }
 
-class PK12ImportTest : public ::testing::Test {};
+// The PKCS#12 encoder converts passwords through an application-supplied
+// UCS-2 conversion hook.  This mirrors the one pk12util installs.
+static PRBool Ucs2AsciiConversion(PRBool toUnicode, unsigned char* inBuf,
+                                  unsigned int inBufLen, unsigned char* outBuf,
+                                  unsigned int maxOutBufLen,
+                                  unsigned int* outBufLen, PRBool swapBytes) {
+  std::vector<unsigned char> in(inBuf, inBuf + inBufLen);
+  if (!toUnicode && swapBytes) {
+    for (size_t i = 0; i + 1 < in.size(); i += 2) {
+      std::swap(in[i], in[i + 1]);
+    }
+  }
+  return PORT_UCS2_UTF8Conversion(toUnicode, in.data(), in.size(), outBuf,
+                                  maxOutBufLen, outBufLen);
+}
+
+class PK12ImportTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    PORT_SetUCS2_ASCIIConversionFunction(Ucs2AsciiConversion);
+  }
+  void TearDown() override { PORT_SetUCS2_ASCIIConversionFunction(nullptr); }
+};
 
 TEST_F(PK12ImportTest, ImportPK12With2P7) {
   SECItem password = {siBuffer, nullptr, 0};
@@ -437,6 +463,199 @@ TEST_F(PK12ImportTest, NssCertDbColonNicknameDoesNotCrash) {
   ASSERT_EQ(SECSuccess, rv);
   // Cancel callback avoids writing to the cert DB.
   SEC_PKCS12DecoderValidateBags(dcx.get(), CancelNicknameCallback);
+}
+
+// Self-signed P-256 certificate, used only as SafeBag payload.
+static const uint8_t kNestedTestCert[] = {
+    0x30, 0x82, 0x01, 0x0d, 0x30, 0x81, 0xb5, 0xa0, 0x03, 0x02, 0x01, 0x02,
+    0x02, 0x01, 0x01, 0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+    0x04, 0x03, 0x02, 0x30, 0x11, 0x31, 0x0f, 0x30, 0x0d, 0x06, 0x03, 0x55,
+    0x04, 0x03, 0x13, 0x06, 0x6e, 0x65, 0x73, 0x74, 0x65, 0x64, 0x30, 0x1e,
+    0x17, 0x0d, 0x32, 0x36, 0x31, 0x30, 0x30, 0x37, 0x31, 0x36, 0x33, 0x31,
+    0x30, 0x36, 0x5a, 0x17, 0x0d, 0x32, 0x37, 0x31, 0x30, 0x30, 0x37, 0x31,
+    0x36, 0x33, 0x31, 0x30, 0x36, 0x5a, 0x30, 0x11, 0x31, 0x0f, 0x30, 0x0d,
+    0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x06, 0x6e, 0x65, 0x73, 0x74, 0x65,
+    0x64, 0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+    0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
+    0x03, 0x42, 0x00, 0x04, 0x87, 0xac, 0x80, 0x0a, 0xbe, 0x9b, 0x97, 0xb1,
+    0x8a, 0xe2, 0xd4, 0x3f, 0x40, 0xc5, 0x94, 0x69, 0xa6, 0x33, 0x03, 0xfb,
+    0x56, 0x07, 0x09, 0x71, 0x73, 0x7d, 0x3f, 0x68, 0x2e, 0x72, 0x07, 0xd5,
+    0x62, 0xbd, 0x0b, 0x1a, 0x68, 0xbe, 0xb4, 0xe3, 0xd1, 0x33, 0xce, 0x2e,
+    0xf9, 0xcb, 0x57, 0xfb, 0xc5, 0x55, 0x93, 0xf8, 0x28, 0x36, 0xc4, 0x64,
+    0x62, 0xdb, 0xae, 0xdc, 0x1e, 0x87, 0xd7, 0x93, 0x30, 0x0a, 0x06, 0x08,
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02, 0x03, 0x47, 0x00, 0x30,
+    0x44, 0x02, 0x20, 0x33, 0xa2, 0x7d, 0xf1, 0x8f, 0xe4, 0xc8, 0x08, 0x02,
+    0x21, 0x09, 0x57, 0xdf, 0xe7, 0xe9, 0x0b, 0xcd, 0xb7, 0xac, 0x5d, 0x1d,
+    0x08, 0xbd, 0x6b, 0x00, 0xbd, 0x29, 0x69, 0x30, 0xd7, 0x57, 0x65, 0x02,
+    0x20, 0x09, 0x6f, 0x98, 0x52, 0xb2, 0x77, 0x16, 0x2a, 0x78, 0x79, 0x60,
+    0x64, 0xee, 0xba, 0x0e, 0x6a, 0x4f, 0x3e, 0x85, 0x75, 0xc9, 0x64, 0x1a,
+    0xaa, 0xf2, 0x03, 0x29, 0x29, 0x27, 0x40, 0x75, 0x41};
+
+// The encoder takes the integrity password as ASCII and converts it itself;
+// the decoder expects the NUL-terminated BMPString form.
+static const uint8_t kAsciiPassword[] = {0x6e, 0x65, 0x73, 0x74, 0x65, 0x64};
+static const uint8_t kBmpPassword[] = {0x00, 0x6e, 0x00, 0x65, 0x00,
+                                       0x73, 0x00, 0x74, 0x00, 0x65,
+                                       0x00, 0x64, 0x00, 0x00};
+
+static void AppendEncoderOutput(void* arg, const char* buf, unsigned long len) {
+  auto* out = static_cast<Bytes*>(arg);
+  out->insert(out->end(), buf, buf + len);
+}
+
+// Uses the PKCS#12 encoder to build a MAC-protected PFX holding one certBag
+// placed |depth| safeContentsBag levels below the authenticated safe.
+static void EncodeCertAtNestingDepth(size_t depth, Bytes* out) {
+  SECItem password = {siBuffer, const_cast<uint8_t*>(kAsciiPassword),
+                      sizeof(kAsciiPassword)};
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  SECItem der = {siBuffer, const_cast<uint8_t*>(kNestedTestCert),
+                 sizeof(kNestedTestCert)};
+  ScopedCERTCertificate cert(CERT_NewTempCertificate(
+      CERT_GetDefaultCertDB(), &der, nullptr, PR_FALSE, PR_TRUE));
+  ASSERT_TRUE(cert);
+
+  ScopedSEC_PKCS12ExportContext ecx(
+      SEC_PKCS12CreateExportContext(nullptr, nullptr, slot.get(), nullptr));
+  ASSERT_TRUE(ecx);
+  ASSERT_EQ(SECSuccess,
+            SEC_PKCS12AddPasswordIntegrity(ecx.get(), &password, SEC_OID_SHA1));
+  SEC_PKCS12SafeInfo* safe = SEC_PKCS12CreateUnencryptedSafe(ecx.get());
+  ASSERT_NE(nullptr, safe);
+  void* nested = nullptr;
+  for (size_t i = 0; i < depth; i++) {
+    nested = SEC_PKCS12CreateNestedSafeContents(ecx.get(), safe, nested);
+    ASSERT_NE(nullptr, nested);
+  }
+  ASSERT_EQ(SECSuccess,
+            SEC_PKCS12AddCert(ecx.get(), safe, nested, cert.get(),
+                              CERT_GetDefaultCertDB(), nullptr, PR_FALSE));
+  ASSERT_EQ(SECSuccess, SEC_PKCS12Encode(ecx.get(), AppendEncoderOutput, out));
+}
+
+// Decodes |pfx| and collects the DER of every certBag the decoder exposes.
+static SECStatus DecodePfx(const Bytes& pfx, std::vector<Bytes>* certs) {
+  SECItem password = {siBuffer, const_cast<uint8_t*>(kBmpPassword),
+                      sizeof(kBmpPassword)};
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ScopedSEC_PKCS12DecoderContext dcx(
+      SEC_PKCS12DecoderStart(&password, slot.get(), nullptr, nullptr, nullptr,
+                             nullptr, nullptr, nullptr));
+  if (!dcx) {
+    return SECFailure;
+  }
+  Bytes copy(pfx);
+  SECStatus rv = SEC_PKCS12DecoderUpdate(dcx.get(), copy.data(), copy.size());
+  if (rv != SECSuccess) {
+    return rv;
+  }
+  rv = SEC_PKCS12DecoderVerify(dcx.get());
+  if (rv != SECSuccess) {
+    return rv;
+  }
+  rv = SEC_PKCS12DecoderIterateInit(dcx.get());
+  if (rv != SECSuccess) {
+    return rv;
+  }
+  const SEC_PKCS12DecoderItem* item;
+  while (SEC_PKCS12DecoderIterateNext(dcx.get(), &item) == SECSuccess) {
+    if (item->type == SEC_OID_PKCS12_V1_CERT_BAG_ID && item->der) {
+      certs->emplace_back(item->der->data, item->der->data + item->der->len);
+    }
+  }
+  return SECSuccess;
+}
+
+// Builds a PFX whose only content is |levels| nested safeContentsBag SafeBags,
+// each wrapping the next, with an empty SafeContents at the bottom.  Lengths
+// are computed bottom-up so the DER is emitted in a single O(levels) pass,
+// which keeps very deep nesting cheap to construct.
+static Bytes MakeNestedSafeContents(size_t levels) {
+  const SECOidData* od =
+      SECOID_FindOIDByTag(SEC_OID_PKCS12_V1_SAFE_CONTENTS_BAG_ID);
+  EXPECT_NE(nullptr, od);
+  Bytes oid = OidVal(od->oid.data, od->oid.len);
+
+  // Encoded length of the SafeContents at each depth; depth 0 is the
+  // innermost empty SafeContents (SEQUENCE {}, 2 bytes).
+  std::vector<size_t> len(levels + 1);
+  len[0] = 2;
+  for (size_t i = 1; i <= levels; i++) {
+    size_t ctx = 1 + DerLen(len[i - 1]).size() + len[i - 1];  // [0] EXPLICIT
+    size_t sb_content = oid.size() + ctx;
+    size_t sb = 1 + DerLen(sb_content).size() + sb_content;  // SafeBag
+    len[i] = 1 + DerLen(sb).size() + sb;                     // SafeContents
+  }
+
+  Bytes out;
+  out.reserve(len[levels]);
+  auto put = [&](const Bytes& b) { out.insert(out.end(), b.begin(), b.end()); };
+  for (size_t i = levels; i >= 1; i--) {
+    size_t ctx_content = len[i - 1];
+    size_t ctx = 1 + DerLen(ctx_content).size() + ctx_content;
+    size_t sb_content = oid.size() + ctx;
+    size_t sb = 1 + DerLen(sb_content).size() + sb_content;
+    put({0x30});
+    put(DerLen(sb));  // SafeContents holding one SafeBag
+    put({0x30});
+    put(DerLen(sb_content));  // SafeBag
+    put(oid);
+    put({0xa0});
+    put(DerLen(ctx_content));  // [0] EXPLICIT SafeContents
+  }
+  put({0x30, 0x00});  // innermost empty SafeContents
+  return out;
+}
+
+static Bytes MakeNestedPfx(size_t levels) {
+  const SECOidData* data = SECOID_FindOIDByTag(SEC_OID_PKCS7_DATA);
+  EXPECT_NE(nullptr, data);
+  Bytes data_oid = OidVal(data->oid.data, data->oid.len);
+
+  // ContentInfo { data, [0] EXPLICIT OCTET STRING(safeContents) }
+  Bytes content_info =
+      Seq(Cat({data_oid, Ctx0(OctetStr(MakeNestedSafeContents(levels)))}));
+  // AuthenticatedSafe = SEQUENCE OF ContentInfo
+  Bytes auth_safe = Seq(content_info);
+  // authSafe ContentInfo { data, [0] EXPLICIT OCTET STRING(AuthenticatedSafe) }
+  Bytes auth_safe_cinfo = Seq(Cat({data_oid, Ctx0(OctetStr(auth_safe))}));
+  // PFX = SEQUENCE { version INTEGER 3, authSafe ContentInfo }
+  return Seq(Cat({{0x02, 0x01, 0x03}, auth_safe_cinfo}));
+}
+
+// A certBag at the top level or inside a single safeContentsBag decodes and
+// is exposed to the caller.
+TEST_F(PK12ImportTest, SingleNestedSafeContentsDecodes) {
+  for (size_t depth : {0u, 1u}) {
+    SCOPED_TRACE(depth);
+    Bytes pfx;
+    ASSERT_NO_FATAL_FAILURE(EncodeCertAtNestingDepth(depth, &pfx));
+    std::vector<Bytes> certs;
+    ASSERT_EQ(SECSuccess, DecodePfx(pfx, &certs));
+    ASSERT_EQ(1u, certs.size());
+    EXPECT_EQ(Bytes(kNestedTestCert, kNestedTestCert + sizeof(kNestedTestCert)),
+              certs[0]);
+  }
+}
+
+// A safeContentsBag inside another safeContentsBag exceeds the nesting limit
+// and the PFX is rejected as corrupt.
+TEST_F(PK12ImportTest, DoublyNestedSafeContentsRejected) {
+  Bytes pfx;
+  ASSERT_NO_FATAL_FAILURE(EncodeCertAtNestingDepth(2, &pfx));
+  std::vector<Bytes> certs;
+  EXPECT_EQ(SECFailure, DecodePfx(pfx, &certs));
+  EXPECT_EQ(SEC_ERROR_PKCS12_CORRUPT_PFX_STRUCTURE, PORT_GetError());
+  EXPECT_TRUE(certs.empty());
+}
+
+// A PFX with very deeply nested safeContents must be rejected without
+// exhausting the stack.
+TEST_F(PK12ImportTest, DeepSafeContentsNestingDoesNotOverflowStack) {
+  Bytes pfx = MakeNestedPfx(60000);
+  std::vector<Bytes> certs;
+  EXPECT_EQ(SECFailure, DecodePfx(pfx, &certs));
+  EXPECT_TRUE(certs.empty());
 }
 
 }  // namespace nss_test

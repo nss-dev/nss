@@ -55,6 +55,11 @@ struct sec_PKCS12SafeContentsContextStr {
 
     /* if the safe contents is nested, the parent is pointed to here. */
     sec_PKCS12SafeContentsContext *nestedSafeContentsCtx;
+
+    /* nesting depth of this safe contents; the top-level authenticatedSafe
+     * is 0 and each nested safeContents increments it.
+     */
+    unsigned int nestingDepth;
 };
 
 /* opaque decoder context structure.  information for decoding a pkcs 12
@@ -696,6 +701,14 @@ loser:
     }
 }
 
+/* Bound the number of nested safeContents that may be decoded.  Each level
+ * creates a new ASN.1 decoder context, so the SEC_ASN1D_MAX_DEPTH structural
+ * limit does not apply across levels; without this bound a crafted file can
+ * drive unbounded recursion and exhaust the stack.  No known producer nests
+ * safeContents more than one level deep, so a single level is permitted.
+ */
+#define SEC_PKCS12_MAX_NESTING_DEPTH 1
+
 /* whenever a new safeContentsSafeBag is encountered, we need
  * to init a safeContentsContext.
  */
@@ -709,12 +722,22 @@ sec_pkcs12_decoder_begin_nested_safe_contents(sec_PKCS12SafeContentsContext
         return SECFailure;
     }
 
+    if (safeContentsCtx->nestingDepth >= SEC_PKCS12_MAX_NESTING_DEPTH) {
+        PORT_SetError(SEC_ERROR_PKCS12_CORRUPT_PFX_STRUCTURE);
+        safeContentsCtx->p12dcx->error = PR_TRUE;
+        safeContentsCtx->p12dcx->errorValue =
+            SEC_ERROR_PKCS12_CORRUPT_PFX_STRUCTURE;
+        return SECFailure;
+    }
+
     safeContentsCtx->nestedSafeContentsCtx =
         sec_pkcs12_decoder_safe_contents_init_decode(safeContentsCtx->p12dcx,
                                                      PR_TRUE);
     if (!safeContentsCtx->nestedSafeContentsCtx) {
         return SECFailure;
     }
+    safeContentsCtx->nestedSafeContentsCtx->nestingDepth =
+        safeContentsCtx->nestingDepth + 1;
 
     /* set up new filter proc */
     SEC_ASN1DecoderSetNotifyProc(
