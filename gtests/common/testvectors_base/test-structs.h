@@ -17,21 +17,20 @@
 #include "kyber.h"
 
 typedef struct AesCbcTestVectorStr {
-  uint32_t id;
-  std::string key;
-  std::string msg;
-  std::string iv;
-  std::string ciphertext;
+  uint64_t id;
+  std::vector<uint8_t> key;
+  std::vector<uint8_t> msg;
+  std::vector<uint8_t> iv;
+  std::vector<uint8_t> ciphertext;
   bool valid;
 } AesCbcTestVector;
 
 typedef struct AesCmacTestVectorStr {
-  uint32_t id;
-  std::string comment;
-  std::string key;
-  std::string msg;
-  std::string tag;
-  bool invalid;
+  uint64_t id;
+  std::vector<uint8_t> key;
+  std::vector<uint8_t> msg;
+  std::vector<uint8_t> tag;
+  bool valid;
 } AesCmacTestVector;
 typedef AesCmacTestVector HmacTestVector;
 
@@ -115,11 +114,11 @@ typedef struct EcdhTestVectorStr {
 } EcdhTestVector;
 
 typedef struct HkdfTestVectorStr {
-  uint32_t id;
-  std::string ikm;
-  std::string salt;
-  std::string info;
-  std::string okm;
+  uint64_t id;
+  std::vector<uint8_t> ikm;
+  std::vector<uint8_t> salt;
+  std::vector<uint8_t> info;
+  std::vector<uint8_t> okm;
   uint32_t size;
   bool valid;
 } HkdfTestVector;

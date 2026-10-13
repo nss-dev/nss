@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
 #include <memory>
 #include "nss.h"
 #include "pk11pub.h"
@@ -11,29 +12,107 @@
 #include "secerr.h"
 #include "sechash.h"
 
+#include "json_reader.h"
 #include "nss_scoped_ptrs.h"
 
-#include "testvectors/gcm-vectors.h"
+#include "testvectors_base/test-structs.h"
+#include "testvectors_base/gcm-vectors_base.h"
 #include "gtest/gtest.h"
 #include "util.h"
 
 namespace nss_test {
 
+struct AesGcmWycheproofTestVector {
+  uint64_t id;
+  std::vector<uint8_t> key;
+  std::vector<uint8_t> iv;
+  std::vector<uint8_t> aad;
+  std::vector<uint8_t> msg;
+  std::vector<uint8_t> ct;
+  std::vector<uint8_t> tag;
+  bool valid;
+  bool invalid_iv;
+};
+
 class Pkcs11AesGcmTest : public ::testing::TestWithParam<AesGcmKatValue> {
  protected:
   void RunTest(const AesGcmKatValue vec) {
-    std::vector<uint8_t> key = hex_string_to_bytes(vec.key);
-    std::vector<uint8_t> iv = hex_string_to_bytes(vec.iv);
-    std::vector<uint8_t> plaintext = hex_string_to_bytes(vec.plaintext);
-    std::vector<uint8_t> aad = hex_string_to_bytes(vec.additional_data);
-    std::vector<uint8_t> result = hex_string_to_bytes(vec.result);
-    bool invalid_ct = vec.invalid_ct;
-    bool invalid_iv = vec.invalid_iv;
-    std::string msg = "Test #" + std::to_string(vec.id) + " failed";
     // Ignore GHASH-only vectors.
-    if (key.empty()) {
+    if (vec.key.empty()) {
       return;
     }
+    RunTest(vec.id, hex_string_to_bytes(vec.key), hex_string_to_bytes(vec.iv),
+            hex_string_to_bytes(vec.plaintext),
+            hex_string_to_bytes(vec.additional_data),
+            hex_string_to_bytes(vec.result), vec.invalid_ct, vec.invalid_iv);
+  }
+
+  void RunWycheproof() {
+    WycheproofHeader("aes_gcm", "AES-GCM", "aead_test_schema_v1.json",
+                     [this](JsonReader& r) { RunWycheproofGroup(r); });
+  }
+
+  void RunWycheproofGroup(JsonReader& r) {
+    std::vector<AesGcmWycheproofTestVector> tests;
+
+    while (r.NextItem()) {
+      std::string n = r.ReadLabel();
+      if (n == "") {
+        break;
+      }
+
+      if (n == "ivSize" || n == "keySize" || n == "source") {
+        r.SkipValue();
+      } else if (n == "tagSize") {
+        ASSERT_EQ(128U, r.ReadInt());
+      } else if (n == "type") {
+        ASSERT_EQ("AeadTest", r.ReadString());
+      } else if (n == "tests") {
+        WycheproofReadTests(
+            r, &tests, ReadWycheproofTestAttr, true,
+            [](AesGcmWycheproofTestVector& t, const std::string&,
+               const std::vector<std::string>& flags) {
+              t.invalid_iv = std::find(flags.begin(), flags.end(),
+                                       "ZeroLengthIv") != flags.end();
+            });
+      } else {
+        FAIL() << "unknown label in group: " << n;
+      }
+    }
+
+    for (auto& t : tests) {
+      std::cout << "Running test " << t.id << std::endl;
+      std::vector<uint8_t> ct_and_tag(t.ct);
+      ct_and_tag.insert(ct_and_tag.end(), t.tag.begin(), t.tag.end());
+      RunTest(t.id, t.key, t.iv, t.msg, t.aad, ct_and_tag, !t.valid,
+              t.invalid_iv);
+    }
+  }
+
+  static void ReadWycheproofTestAttr(AesGcmWycheproofTestVector& t,
+                                     const std::string& n, JsonReader& r) {
+    if (n == "key") {
+      t.key = r.ReadHex();
+    } else if (n == "iv") {
+      t.iv = r.ReadHex();
+    } else if (n == "aad") {
+      t.aad = r.ReadHex();
+    } else if (n == "msg") {
+      t.msg = r.ReadHex();
+    } else if (n == "ct") {
+      t.ct = r.ReadHex();
+    } else if (n == "tag") {
+      t.tag = r.ReadHex();
+    } else {
+      FAIL() << "unknown test key: " << n;
+    }
+  }
+
+  void RunTest(uint64_t id, std::vector<uint8_t> key, std::vector<uint8_t> iv,
+               std::vector<uint8_t> plaintext, std::vector<uint8_t> aad,
+               const std::vector<uint8_t>& result, bool invalid_ct,
+               bool invalid_iv) {
+    std::string msg = "Test #" + std::to_string(id) + " failed";
 
     // Prepare AEAD params.
     CK_NSS_GCM_PARAMS gcm_params;
@@ -354,8 +433,7 @@ TEST_P(Pkcs11AesGcmTest, TestVectors) { RunTest(GetParam()); }
 INSTANTIATE_TEST_SUITE_P(NISTTestVector, Pkcs11AesGcmTest,
                          ::testing::ValuesIn(kGcmKatValues));
 
-INSTANTIATE_TEST_SUITE_P(WycheproofTestVector, Pkcs11AesGcmTest,
-                         ::testing::ValuesIn(kGcmWycheproofVectors));
+TEST_F(Pkcs11AesGcmTest, WycheproofVectors) { RunWycheproof(); }
 
 TEST_F(Pkcs11AesGcmTest, ZeroLengthIV) {
   std::vector<uint8_t> iv(0);

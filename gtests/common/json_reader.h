@@ -34,7 +34,8 @@ class JsonReader {
   // No input checking, overflow protection, or any safety.
   // Returns 0 if there isn't a number here rather than aborting.
   uint64_t ReadInt();
-  // No input checking, no unicode, no escaping (not even \"), just read ASCII.
+  // No input checking, no unicode, just read ASCII. Escape sequences are copied
+  // through undecoded, so an escaped quote does not end the string.
   std::string ReadString();
   // Read an unquoted lowercase token, i.e. one of the JSON literals null, true
   // and false.

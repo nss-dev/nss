@@ -57,6 +57,12 @@ class Pkcs11RsaBaseTest : public Pk11SignatureTest {
 
 class Pkcs11RsaPkcs1WycheproofTest : public ::testing::Test {
  protected:
+  void Run(const std::string& name) {
+    WycheproofHeader(name, "RSASSA-PKCS1-v1_5",
+                     "rsassa_pkcs1_verify_schema.json",
+                     [this](JsonReader& r) { RunGroup(r); });
+  }
+
   static void ReadTestAttr(RsaSignatureTestVector& t, const std::string& n,
                            JsonReader& r) {
     if (n == "msg") {
@@ -338,9 +344,31 @@ TEST(RsaPkcs1Test, KeyGenPublicExponentTooLarge) {
 }
 
 TEST_F(Pkcs11RsaPkcs1WycheproofTest, Pkcs11RsaPkcs1WycheproofTest) {
-  WycheproofHeader("rsa_signature", "RSASSA-PKCS1-v1_5",
-                   "rsassa_pkcs1_verify_schema.json",
-                   [this](JsonReader& r) { RunGroup(r); });
+  Run("rsa_signature");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa2048Sha224) {
+  Run("rsa_signature_2048_sha224");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa2048Sha256) {
+  Run("rsa_signature_2048_sha256");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa2048Sha512) {
+  Run("rsa_signature_2048_sha512");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa3072Sha256) {
+  Run("rsa_signature_3072_sha256");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa3072Sha384) {
+  Run("rsa_signature_3072_sha384");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa3072Sha512) {
+  Run("rsa_signature_3072_sha512");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa4096Sha384) {
+  Run("rsa_signature_4096_sha384");
+}
+TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa4096Sha512) {
+  Run("rsa_signature_4096_sha512");
 }
 
 }  // namespace nss_test

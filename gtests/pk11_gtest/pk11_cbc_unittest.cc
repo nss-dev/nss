@@ -10,9 +10,9 @@
 #include "secerr.h"
 
 #include "gtest/gtest.h"
+#include "json_reader.h"
 #include "nss_scoped_ptrs.h"
-#include "testvectors/cbc-vectors.h"
-#include "util.h"
+#include "testvectors_base/test-structs.h"
 
 namespace nss_test {
 
@@ -557,17 +557,64 @@ INSTANTIATE_TEST_SUITE_P(EncryptDecrypt, Pkcs11CbcPadTest,
                          ::testing::Values(CKM_AES_CBC_PAD, CKM_AES_CBC,
                                            CKM_DES3_CBC_PAD, CKM_DES3_CBC));
 
-class Pkcs11AesCbcWycheproofTest
-    : public ::testing::TestWithParam<AesCbcTestVector> {
+class Pkcs11AesCbcWycheproofTest : public ::testing::Test {
  protected:
-  void RunTest(const AesCbcTestVector vec) {
+  void Run() {
+    WycheproofHeader("aes_cbc_pkcs5", "AES-CBC-PKCS5",
+                     "ind_cpa_test_schema.json",
+                     [this](JsonReader& r) { RunGroup(r); });
+  }
+
+ private:
+  void RunGroup(JsonReader& r) {
+    std::vector<AesCbcTestVector> tests;
+
+    while (r.NextItem()) {
+      std::string n = r.ReadLabel();
+      if (n == "") {
+        break;
+      }
+
+      if (n == "ivSize" || n == "keySize") {
+        r.SkipValue();
+      } else if (n == "type") {
+        ASSERT_EQ("IndCpaTest", r.ReadString());
+      } else if (n == "tests") {
+        WycheproofReadTests(r, &tests, ReadTestAttr, false);
+      } else {
+        FAIL() << "unknown label in group: " << n;
+      }
+    }
+
+    for (auto& t : tests) {
+      std::cout << "Running test " << t.id << std::endl;
+      RunTest(t);
+    }
+  }
+
+  static void ReadTestAttr(AesCbcTestVector& t, const std::string& n,
+                           JsonReader& r) {
+    if (n == "key") {
+      t.key = r.ReadHex();
+    } else if (n == "iv") {
+      t.iv = r.ReadHex();
+    } else if (n == "msg") {
+      t.msg = r.ReadHex();
+    } else if (n == "ct") {
+      t.ciphertext = r.ReadHex();
+    } else {
+      FAIL() << "unknown test key: " << n;
+    }
+  }
+
+  void RunTest(const AesCbcTestVector& vec) {
     bool valid = vec.valid;
     std::string err = "Test #" + std::to_string(vec.id) + " failed";
-    std::vector<uint8_t> key = hex_string_to_bytes(vec.key);
-    std::vector<uint8_t> iv = hex_string_to_bytes(vec.iv);
-    std::vector<uint8_t> ciphertext = hex_string_to_bytes(vec.ciphertext);
-    std::vector<uint8_t> msg = hex_string_to_bytes(vec.msg);
-    std::vector<uint8_t> decrypted(vec.ciphertext.size());
+    std::vector<uint8_t> key(vec.key);
+    std::vector<uint8_t> iv(vec.iv);
+    std::vector<uint8_t> ciphertext(vec.ciphertext);
+    std::vector<uint8_t> msg(vec.msg);
+    std::vector<uint8_t> decrypted(ciphertext.size());
     unsigned int decrypted_len = 0;
 
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
@@ -600,9 +647,6 @@ class Pkcs11AesCbcWycheproofTest
   const CK_MECHANISM_TYPE kMech = CKM_AES_CBC_PAD;
 };
 
-TEST_P(Pkcs11AesCbcWycheproofTest, TestVectors) { RunTest(GetParam()); }
-
-INSTANTIATE_TEST_SUITE_P(WycheproofTestVector, Pkcs11AesCbcWycheproofTest,
-                         ::testing::ValuesIn(kCbcWycheproofVectors));
+TEST_F(Pkcs11AesCbcWycheproofTest, Vectors) { Run(); }
 
 }  // namespace nss_test

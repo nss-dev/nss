@@ -3,9 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* This file is generated from sources in nss/gtests/common/wycheproof
+/* This file is generated from sources in nss/gtests/common/nist
  * automatically and should not be touched manually.
- * Generation is trigged by calling python3 genTestVectors.py */
+ * Generation is triggered by calling python3 genNISTTestVector.py */
 
 #ifndef mlkem_keygen_vectors_h__
 #define mlkem_keygen_vectors_h__

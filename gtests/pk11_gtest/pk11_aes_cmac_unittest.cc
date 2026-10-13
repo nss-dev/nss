@@ -13,13 +13,13 @@
 #include "blapit.h"
 
 #include "gtest/gtest.h"
+#include "json_reader.h"
 #include "nss_scoped_ptrs.h"
-#include "testvectors/cmac-vectors.h"
-#include "util.h"
+#include "testvectors_base/test-structs.h"
 
 namespace nss_test {
 
-class Pkcs11AesCmacTest : public ::testing::TestWithParam<AesCmacTestVector> {
+class Pkcs11AesCmacTest : public ::testing::Test {
  protected:
   ScopedPK11SymKey ImportKey(CK_MECHANISM_TYPE mech, SECItem* key_item) {
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
@@ -56,12 +56,61 @@ class Pkcs11AesCmacTest : public ::testing::TestWithParam<AesCmacTestVector> {
     ASSERT_EQ(0, SECITEM_CompareItem(&output_item, &expected_item));
   }
 
-  void RunTestVector(const AesCmacTestVector vec) {
-    bool valid = !vec.invalid;
+  void RunWycheproof() {
+    WycheproofHeader("aes_cmac", "AES-CMAC", "mac_test_schema.json",
+                     [this](JsonReader& r) { RunWycheproofGroup(r); });
+  }
+
+ private:
+  void RunWycheproofGroup(JsonReader& r) {
+    std::vector<AesCmacTestVector> tests;
+    uint64_t key_size = 0;
+
+    while (r.NextItem()) {
+      std::string n = r.ReadLabel();
+      if (n == "") {
+        break;
+      }
+
+      if (n == "keySize") {
+        key_size = r.ReadInt();
+      } else if (n == "tagSize") {
+        ASSERT_EQ(AES_BLOCK_SIZE * 8U, r.ReadInt());
+      } else if (n == "type") {
+        ASSERT_EQ("MacTest", r.ReadString());
+      } else if (n == "tests") {
+        WycheproofReadTests(r, &tests, ReadWycheproofTestAttr);
+      } else {
+        FAIL() << "unknown label in group: " << n;
+      }
+    }
+
+    bool valid_key_size = key_size == 128 || key_size == 192 || key_size == 256;
+    for (auto& t : tests) {
+      std::cout << "Running test " << t.id << std::endl;
+      RunWycheproofTestVector(t, valid_key_size);
+    }
+  }
+
+  static void ReadWycheproofTestAttr(AesCmacTestVector& t, const std::string& n,
+                                     JsonReader& r) {
+    if (n == "key") {
+      t.key = r.ReadHex();
+    } else if (n == "msg") {
+      t.msg = r.ReadHex();
+    } else if (n == "tag") {
+      t.tag = r.ReadHex();
+    } else {
+      FAIL() << "unknown test key: " << n;
+    }
+  }
+
+  void RunWycheproofTestVector(const AesCmacTestVector& vec,
+                               bool valid_key_size) {
     std::string err = "Test #" + std::to_string(vec.id) + " failed";
-    std::vector<uint8_t> key = hex_string_to_bytes(vec.key);
-    std::vector<uint8_t> tag = hex_string_to_bytes(vec.tag);
-    std::vector<uint8_t> msg = hex_string_to_bytes(vec.msg);
+    std::vector<uint8_t> key(vec.key);
+    std::vector<uint8_t> tag(vec.tag);
+    std::vector<uint8_t> msg(vec.msg);
 
     std::vector<uint8_t> output(AES_BLOCK_SIZE);
     // Don't provide a null pointer, even if the input is empty.
@@ -76,7 +125,7 @@ class Pkcs11AesCmacTest : public ::testing::TestWithParam<AesCmacTestVector> {
                         static_cast<unsigned int>(output.size())};
 
     ScopedPK11SymKey p11_key = ImportKey(CKM_AES_CMAC_GENERAL, &key_item);
-    if (vec.comment == "invalid key size") {
+    if (!valid_key_size) {
       ASSERT_EQ(nullptr, p11_key.get()) << err;
       return;
     }
@@ -86,14 +135,11 @@ class Pkcs11AesCmacTest : public ::testing::TestWithParam<AesCmacTestVector> {
                                        &out_item, &msg_item);
 
     EXPECT_EQ(SECSuccess, rv) << err;
-    EXPECT_EQ(valid, 0 == SECITEM_CompareItem(&out_item, &tag_item)) << err;
+    EXPECT_EQ(vec.valid, 0 == SECITEM_CompareItem(&out_item, &tag_item)) << err;
   }
 };
 
-TEST_P(Pkcs11AesCmacTest, TestVectors) { RunTestVector(GetParam()); }
-
-INSTANTIATE_TEST_SUITE_P(WycheproofTestVector, Pkcs11AesCmacTest,
-                         ::testing::ValuesIn(kCmacWycheproofVectors));
+TEST_F(Pkcs11AesCmacTest, WycheproofVectors) { RunWycheproof(); }
 
 // Sanity check of the PKCS #11 API only. Extensive tests for correctness of
 // underling CMAC implementation conducted in the following file:

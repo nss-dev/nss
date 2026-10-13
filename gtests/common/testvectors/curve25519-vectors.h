@@ -3,10 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* This file is generated from sources in nss/gtests/common/wycheproof
- * automatically and should not be touched manually.
- * Generation is trigged by calling python3 genTestVectors.py */
-
 #ifndef curve25519_vectors_h__
 #define curve25519_vectors_h__
 

@@ -5,33 +5,71 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <memory>
-#include <tuple>
 
 #include "nss.h"
 #include "pk11pub.h"
 #include "secerr.h"
 #include "sechash.h"
 #include "gtest/gtest.h"
+#include "json_reader.h"
 #include "nss_scoped_ptrs.h"
-#include "testvectors/hmac-sha256-vectors.h"
-#include "testvectors/hmac-sha384-vectors.h"
-#include "testvectors/hmac-sha512-vectors.h"
-#include "testvectors/hmac-sha3-224-vectors.h"
-#include "testvectors/hmac-sha3-256-vectors.h"
-#include "testvectors/hmac-sha3-384-vectors.h"
-#include "testvectors/hmac-sha3-512-vectors.h"
-#include "util.h"
+#include "testvectors_base/test-structs.h"
 
 namespace nss_test {
 
-class Pkcs11HmacTest : public ::testing::TestWithParam<
-                           std::tuple<HmacTestVector, CK_MECHANISM_TYPE>> {
+class Pkcs11HmacTest : public ::testing::Test {
  protected:
+  void Run(const std::string& name, const std::string& algorithm,
+           CK_MECHANISM_TYPE mech) {
+    WycheproofHeader(name, algorithm, "mac_test_schema.json",
+                     [this, mech](JsonReader& r) { RunGroup(r, mech); });
+  }
+
+ private:
+  void RunGroup(JsonReader& r, CK_MECHANISM_TYPE mech) {
+    std::vector<HmacTestVector> tests;
+
+    while (r.NextItem()) {
+      std::string n = r.ReadLabel();
+      if (n == "") {
+        break;
+      }
+
+      if (n == "keySize" || n == "tagSize") {
+        r.SkipValue();
+      } else if (n == "type") {
+        ASSERT_EQ("MacTest", r.ReadString());
+      } else if (n == "tests") {
+        WycheproofReadTests(r, &tests, ReadTestAttr);
+      } else {
+        FAIL() << "unknown label in group: " << n;
+      }
+    }
+
+    for (auto& t : tests) {
+      std::cout << "Running test " << t.id << std::endl;
+      RunTestVector(t, mech);
+    }
+  }
+
+  static void ReadTestAttr(HmacTestVector& t, const std::string& n,
+                           JsonReader& r) {
+    if (n == "key") {
+      t.key = r.ReadHex();
+    } else if (n == "msg") {
+      t.msg = r.ReadHex();
+    } else if (n == "tag") {
+      t.tag = r.ReadHex();
+    } else {
+      FAIL() << "unknown test key: " << n;
+    }
+  }
+
   void RunTestVector(const HmacTestVector& vec, CK_MECHANISM_TYPE mech) {
     std::string err = "Test #" + std::to_string(vec.id) + " failed";
-    std::vector<uint8_t> vec_key = hex_string_to_bytes(vec.key);
-    std::vector<uint8_t> vec_mac = hex_string_to_bytes(vec.tag);
-    std::vector<uint8_t> vec_msg = hex_string_to_bytes(vec.msg);
+    std::vector<uint8_t> vec_key(vec.key);
+    std::vector<uint8_t> vec_mac(vec.tag);
+    std::vector<uint8_t> vec_msg(vec.msg);
     std::vector<uint8_t> output(vec_mac.size());
 
     // Don't provide a null pointer, even if the input is empty.
@@ -54,7 +92,7 @@ class Pkcs11HmacTest : public ::testing::TestWithParam<
 
     SECStatus rv = PK11_SignWithSymKey(p11_key.get(), mech, NULL, &out, &msg);
     EXPECT_EQ(SECSuccess, rv) << err;
-    EXPECT_EQ(!vec.invalid, 0 == SECITEM_CompareItem(&out, &mac)) << err;
+    EXPECT_EQ(vec.valid, 0 == SECITEM_CompareItem(&out, &mac)) << err;
 
     // Now verify the given mac using PK11_CreateContextBySymKey/PK11_Digest*
     ScopedPK11SymKey p11_verify_key(PK11_ImportSymKey(
@@ -75,40 +113,33 @@ class Pkcs11HmacTest : public ::testing::TestWithParam<
     unsigned int unusedOutLen = 0;
     rv = PK11_DigestFinal(verify_context.get(), mac.data, &unusedOutLen,
                           mac.len);
-    EXPECT_EQ(!vec.invalid, SECSuccess == rv) << err;
+    EXPECT_EQ(vec.valid, SECSuccess == rv) << err;
   }
 };
 
-TEST_P(Pkcs11HmacTest, WycheproofVectors) {
-  RunTestVector(std::get<0>(GetParam()), std::get<1>(GetParam()));
+TEST_F(Pkcs11HmacTest, Sha224) {
+  Run("hmac_sha224", "HMACSHA224", CKM_SHA224_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha256) {
+  Run("hmac_sha256", "HMACSHA256", CKM_SHA256_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha384) {
+  Run("hmac_sha384", "HMACSHA384", CKM_SHA384_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha512) {
+  Run("hmac_sha512", "HMACSHA512", CKM_SHA512_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha3224) {
+  Run("hmac_sha3_224", "HMACSHA3-224", CKM_SHA3_224_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha3256) {
+  Run("hmac_sha3_256", "HMACSHA3-256", CKM_SHA3_256_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha3384) {
+  Run("hmac_sha3_384", "HMACSHA3-384", CKM_SHA3_384_HMAC);
+}
+TEST_F(Pkcs11HmacTest, Sha3512) {
+  Run("hmac_sha3_512", "HMACSHA3-512", CKM_SHA3_512_HMAC);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha256, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha256WycheproofVectors),
-                       ::testing::Values(CKM_SHA256_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha384, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha384WycheproofVectors),
-                       ::testing::Values(CKM_SHA384_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha512, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha512WycheproofVectors),
-                       ::testing::Values(CKM_SHA512_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha3224, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha3224WycheproofVectors),
-                       ::testing::Values(CKM_SHA3_224_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha3256, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha3256WycheproofVectors),
-                       ::testing::Values(CKM_SHA3_256_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha3384, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha3384WycheproofVectors),
-                       ::testing::Values(CKM_SHA3_384_HMAC)));
-INSTANTIATE_TEST_SUITE_P(
-    HmacSha3512, Pkcs11HmacTest,
-    ::testing::Combine(::testing::ValuesIn(kHmacSha3512WycheproofVectors),
-                       ::testing::Values(CKM_SHA3_512_HMAC)));
 }  // namespace nss_test
