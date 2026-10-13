@@ -11,10 +11,13 @@ binary. Without `-s` these tests fail with "error opening vectors".
 
 ## Provenance
 
-Each file is byte-identical to the upstream file at the commit listed. Files
-from `testvectors/` use the original (v0) format. Upstream removed that
-directory in `156d287dd538` (2025-09-01), so those files are no longer
-published and are updated by moving to the `testvectors_v1/` equivalent.
+Each file is byte-identical to the upstream file at the commit listed.
+
+Two files still come from `testvectors/`, which holds the original (v0) format
+and was removed upstream in `156d287dd538` (2025-09-01). Nothing in
+`testvectors_v1/` replaces the 1024-bit SHA-1 groups of `dsa_test.json` or the
+extra keys in `rsa_signature_test.json`, so they are kept as they are, and
+their tests also accept the v0 field names.
 
 | Upstream path | Commit | Files | Read by |
 | --- | --- | --- | --- |
@@ -70,16 +73,8 @@ update the table above in the same change.
 3. Build and run the gtest that reads them. The readers check the `schema`
    name and fail on group or test fields they don't recognize, so a format
    change shows up as a test failure rather than being silently misread.
-   Moving a file from `testvectors/` to `testvectors_v1/` changes the schema
-   name (`mac_test_schema.json` becomes `mac_test_schema_v1.json`, and so on),
-   adds a `source` field to every test group, and for some families renames
-   key fields (ECDSA's `keyDer` becomes `publicKeyDer`; RSA-OAEP's `n`/`e`/`d`
-   become `privateKey`).
 
 4. Investigate any new test failures. Each is a bug in NSS, a case NSS
    deliberately handles differently (handle it via the case's `flags`, as the
-   DSA test does for `NoLeadingZero`), or an outdated assumption in the test.
-
-Some v0 files have no v1 file of the same name: `dsa_test.json` is split into
-`dsa_<p>_<q>_<hash>_test.json` files, `eddsa_test.json` became
-`ed25519_test.json`, and `rsa_signature_test.json` has no direct equivalent.
+   DSA and ECDSA tests do for `MissingZero`), or an outdated assumption in the
+   test.
