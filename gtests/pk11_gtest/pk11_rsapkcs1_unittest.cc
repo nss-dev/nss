@@ -57,9 +57,9 @@ class Pkcs11RsaBaseTest : public Pk11SignatureTest {
 
 class Pkcs11RsaPkcs1WycheproofTest : public ::testing::Test {
  protected:
-  void Run(const std::string& name) {
-    WycheproofHeader(name, "RSASSA-PKCS1-v1_5",
-                     "rsassa_pkcs1_verify_schema.json",
+  void Run(const std::string& name,
+           const std::string& schema = "rsassa_pkcs1_verify_schema_v1.json") {
+    WycheproofHeader(name, "RSASSA-PKCS1-v1_5", schema,
                      [this](JsonReader& r) { RunGroup(r); });
   }
 
@@ -84,12 +84,15 @@ class Pkcs11RsaPkcs1WycheproofTest : public ::testing::Test {
       if (n == "") {
         break;
       }
+      // rsa_signature_test.json has no successor in testvectors_v1/, so this
+      // reads both the original and the v1 field names.
       if (n == "e" || n == "keyAsn" || n == "keyJwk" || n == "keyPem" ||
-          n == "n") {
+          n == "n" || n == "publicKey" || n == "publicKeyAsn" ||
+          n == "publicKeyPem" || n == "source") {
         r.SkipValue();
-      } else if (n == "keyDer") {
+      } else if (n == "keyDer" || n == "publicKeyDer") {
         public_key = r.ReadHex();
-      } else if (n == "keysize") {
+      } else if (n == "keysize" || n == "keySize") {
         keysize = r.ReadInt();
       } else if (n == "type") {
         ASSERT_EQ("RsassaPkcs1Verify", r.ReadString());
@@ -344,7 +347,7 @@ TEST(RsaPkcs1Test, KeyGenPublicExponentTooLarge) {
 }
 
 TEST_F(Pkcs11RsaPkcs1WycheproofTest, Pkcs11RsaPkcs1WycheproofTest) {
-  Run("rsa_signature");
+  Run("rsa_signature", "rsassa_pkcs1_verify_schema.json");
 }
 TEST_F(Pkcs11RsaPkcs1WycheproofTest, Rsa2048Sha224) {
   Run("rsa_signature_2048_sha224");
