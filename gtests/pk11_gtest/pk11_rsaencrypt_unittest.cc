@@ -27,7 +27,7 @@ class RsaDecryptWycheproofTest : public ::testing::Test {
  protected:
   void Run(const std::string& name) {
     WycheproofHeader(name, "RSAES-PKCS1-v1_5",
-                     "rsaes_pkcs1_decrypt_schema.json",
+                     "rsaes_pkcs1_decrypt_schema_v1.json",
                      [this](JsonReader& r) { RunGroup(r); });
   }
 
@@ -77,8 +77,8 @@ class RsaDecryptWycheproofTest : public ::testing::Test {
         break;
       }
 
-      if (n == "d" || n == "e" || n == "keysize" || n == "n" ||
-          n == "privateKeyJwk" || n == "privateKeyPem") {
+      if (n == "keySize" || n == "privateKey" || n == "privateKeyJwk" ||
+          n == "privateKeyPem" || n == "source") {
         r.SkipValue();
       } else if (n == "privateKeyPkcs8") {
         private_key = r.ReadHex();

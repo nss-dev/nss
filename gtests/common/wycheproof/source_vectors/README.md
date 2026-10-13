@@ -24,7 +24,7 @@ published and are updated by moving to the `testvectors_v1/` equivalent.
 | `testvectors_v1/` | `12fd3aaf33eb` | `ecdh_secp{256,384,521}r1` | `pk11_gtest/pk11_ecdh_unittest.cc` |
 | `testvectors_v1/` | `12fd3aaf33eb` | `ecdsa_secp*_sha*` | `pk11_gtest/pk11_ecdsa_unittest.cc` |
 | `testvectors_v1/` | `12fd3aaf33eb` | `rsa_oaep_*` | `pk11_gtest/pk11_rsaoaep_unittest.cc` |
-| `testvectors/` | `4672ff74d687` | `rsa_pkcs1_{2048,3072,4096}` | `pk11_gtest/pk11_rsaencrypt_unittest.cc` |
+| `testvectors_v1/` | `12fd3aaf33eb` | `rsa_pkcs1_{2048,3072,4096}` | `pk11_gtest/pk11_rsaencrypt_unittest.cc` |
 | `testvectors/` | `4672ff74d687` | `rsa_pss_*` | `pk11_gtest/pk11_rsapss_unittest.cc` |
 | `testvectors/` | `4672ff74d687` | `rsa_signature`, `rsa_signature_<bits>_<hash>` | `pk11_gtest/pk11_rsapkcs1_unittest.cc` |
 | `testvectors_v1/` | `12fd3aaf33eb` | `x25519` | `pk11_gtest/pk11_curve25519_unittest.cc` |
