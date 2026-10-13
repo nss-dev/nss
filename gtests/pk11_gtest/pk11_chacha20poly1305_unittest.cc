@@ -406,7 +406,7 @@ class Pkcs11ChaCha20Poly1305Test
 
   void RunWycheproof() {
     WycheproofHeader("chacha20_poly1305", "CHACHA20-POLY1305",
-                     "aead_test_schema.json",
+                     "aead_test_schema_v1.json",
                      [this](JsonReader& r) { RunWycheproofGroup(r); });
   }
 
@@ -427,6 +427,8 @@ class Pkcs11ChaCha20Poly1305Test
         ASSERT_EQ(256U, r.ReadInt());
       } else if (n == "tagSize") {
         ASSERT_EQ(kTagLen * 8, r.ReadInt());
+      } else if (n == "source") {
+        r.SkipValue();
       } else if (n == "type") {
         ASSERT_EQ("AeadTest", r.ReadString());
       } else if (n == "tests") {
