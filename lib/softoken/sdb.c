@@ -2377,6 +2377,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
         unsigned int schemaAttrsCapacity = sftkdb_known_attributes_size;
         sdb_p->schemaAttrs = malloc(schemaAttrsCapacity * sizeof(CK_ATTRIBUTE_TYPE));
         if (!sdb_p->schemaAttrs) {
+            sqlite3_finalize(stmt);
             error = CKR_HOST_MEMORY;
             goto loser;
         }
@@ -2391,6 +2392,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
                     sdb_p->schemaAttrs = realloc(sdb_p->schemaAttrs,
                                                  schemaAttrsCapacity * sizeof(CK_ATTRIBUTE_TYPE));
                     if (!sdb_p->schemaAttrs) {
+                        sqlite3_finalize(stmt);
                         error = CKR_HOST_MEMORY;
                         goto loser;
                     }
@@ -2405,10 +2407,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
         } while (!sdb_done(sqlerr, &retry));
 
         if (sqlerr != SQLITE_DONE) {
-            goto loser;
-        }
-        sqlerr = sqlite3_reset(stmt);
-        if (sqlerr != SQLITE_OK) {
+            sqlite3_finalize(stmt);
             goto loser;
         }
         sqlerr = sqlite3_finalize(stmt);
