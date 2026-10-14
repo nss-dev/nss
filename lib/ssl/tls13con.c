@@ -3158,6 +3158,19 @@ ssl_ListCount(PRCList *list)
     return c;
 }
 
+/* Called on the client when the server rejects 0-RTT. The server discards all
+ * early data, so the application has to send its data again from the start.
+ * If an early data write was only partially sent, ssl3_SendApplicationData
+ * held back its last byte and expects the next write to begin with it. That
+ * no longer applies, so forget the held back byte. */
+static void
+tls13_ClientEarlyDataRejected(sslSocket *ss)
+{
+    ssl_GetXmitBufLock(ss);
+    ss->appDataBuffered = 0;
+    ssl_ReleaseXmitBufLock(ss);
+}
+
 /*
  * savedMsg contains the HelloRetryRequest message. When its extensions are parsed
  * in ssl3_HandleParsedExtensions, the handler for ECH HRR extensions (tls13_ClientHandleHrrEchXtn)
@@ -3191,6 +3204,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
 
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
         ss->ssl3.hs.zeroRttState = ssl_0rtt_ignored;
+        tls13_ClientEarlyDataRejected(ss);
         /* Restore the null cipher spec for writing. */
         ssl_GetSpecWriteLock(ss);
         ssl_CipherSpecRelease(ss->ssl3.cwSpec);
@@ -5342,6 +5356,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b, PRUint32 length)
          * state is unmodified; the server must have rejected 0-RTT. */
         ss->ssl3.hs.zeroRttState = ssl_0rtt_ignored;
         ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_trial;
+        tls13_ClientEarlyDataRejected(ss);
     } else {
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none ||
                     (ss->ssl3.hs.helloRetry &&

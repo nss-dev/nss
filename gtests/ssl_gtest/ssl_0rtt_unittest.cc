@@ -46,6 +46,63 @@ TEST_P(TlsConnectTls13, ZeroRttServerRejectByOption) {
   SendReceive();
 }
 
+// Makes an early data write that can't be sent, so that libssl holds back
+// the last byte and expects the next write to begin with it.
+static void ZeroRttWriteBlocked(const std::shared_ptr<TlsAgent>& client,
+                                const std::vector<uint8_t>& data) {
+  client->adapter()->SetWriteError(PR_WOULD_BLOCK_ERROR);
+  EXPECT_EQ(static_cast<PRInt32>(data.size() - 1),
+            PR_Write(client->ssl_fd(), data.data(), data.size()));
+  client->adapter()->SetWriteError(0);
+}
+
+// When the server rejects 0-RTT, the application sends its data again from
+// the start. That must not be checked against a byte held back from a blocked
+// early data write.
+TEST_F(TlsConnectStreamTls13, ZeroRttRejectAfterBlockedWrite) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+  client_->Handshake();  // Send ClientHello.
+  ZeroRttWriteBlocked(client_, {1, 2, 3});
+  Handshake();
+  ExpectEarlyDataAccepted(false);
+  CheckConnected();
+  SendReceive();
+}
+
+// As above, but the held back byte matches the first byte sent after the
+// handshake, so it must not be silently dropped.
+TEST_F(TlsConnectStreamTls13, ZeroRttRejectAfterBlockedWriteSameByte) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+  client_->Handshake();  // Send ClientHello.
+  // SendReceive() sends bytes counting up from 0.
+  ZeroRttWriteBlocked(client_, {1, 2, 0});
+  Handshake();
+  ExpectEarlyDataAccepted(false);
+  CheckConnected();
+  SendReceive();
+}
+
+// As above, but 0-RTT is rejected because of a HelloRetryRequest.
+TEST_F(TlsConnectStreamTls13, ZeroRttHrrAfterBlockedWrite) {
+  SetupForZeroRtt();
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1,
+                                                    ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups);
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+  client_->Handshake();  // Send ClientHello.
+  ZeroRttWriteBlocked(client_, {1, 2, 3});
+  Handshake();
+  ExpectEarlyDataAccepted(false);
+  CheckConnected();
+  SendReceive();
+}
+
 TEST_P(TlsConnectTls13, ZeroRttApplicationReject) {
   SetupForZeroRtt();
   client_->Set0RttEnabled(true);
