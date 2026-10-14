@@ -80,7 +80,7 @@ static const PKIX_UInt32 httpprotocolLen = 5; /* strlen(httpprotocol) */
  *      non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-static PKIX_Error *
+PKIX_Error *
 pkix_pl_HttpDefaultClient_HdrCheckComplete(
         PKIX_PL_HttpDefaultClient *client,
         PKIX_UInt32 bytesRead,
@@ -356,7 +356,7 @@ cleanup:
  *      a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-static PKIX_Error *
+PKIX_Error *
 pkix_pl_HttpDefaultClient_Create(
         const char *host,
         PRUint16 portnum,

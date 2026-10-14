@@ -15,6 +15,7 @@ CSRCS = test_colcertstore.c \
 	test_pk11certstore.c \
 	test_socket.c \
 	test_httpcertstore.c \
+	test_httpdefaultclient.c \
 	$(NULL)
 
 LIBRARY_NAME = pkixtoolmodule

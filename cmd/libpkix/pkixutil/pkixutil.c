@@ -56,6 +56,7 @@ extern int test_logger(int argc, char *argv[]);
 extern int test_colcertstore(int argc, char *argv[]);
 extern int test_ekuchecker(int argc, char *argv[]);
 extern int test_httpcertstore(int argc, char *argv[]);
+extern int test_httpdefaultclient(int argc, char *argv[]);
 extern int test_pk11certstore(int argc, char *argv[]);
 extern int test_socket(int argc, char *argv[]);
 extern int test_authorityinfoaccess(int argc, char *argv[]);
@@ -131,6 +132,7 @@ testFunctionRef testFnRefTable[] = {
     { "test_colcertstore", test_colcertstore },
     { "test_ekuchecker", test_ekuchecker },
     { "test_httpcertstore", test_httpcertstore },
+    { "test_httpdefaultclient", test_httpdefaultclient },
     { "test_pk11certstore", test_pk11certstore },
     { "test_socket", test_socket },
     { "test_authorityinfoaccess", test_authorityinfoaccess },

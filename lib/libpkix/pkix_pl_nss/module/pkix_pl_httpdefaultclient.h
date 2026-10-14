@@ -77,6 +77,20 @@ struct PKIX_PL_HttpDefaultClientStruct {
 
 PKIX_Error *pkix_pl_HttpDefaultClient_RegisterSelf(void *plContext);
 
+PKIX_Error *
+pkix_pl_HttpDefaultClient_Create(
+        const char *host,
+        PRUint16 portnum,
+        PKIX_PL_HttpDefaultClient **pClient,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_HttpDefaultClient_HdrCheckComplete(
+        PKIX_PL_HttpDefaultClient *client,
+        PKIX_UInt32 bytesRead,
+        PKIX_Boolean *pKeepGoing,
+        void *plContext);
+
 SECStatus
 pkix_pl_HttpDefaultClient_CreateSessionFcn(
         const char *host,
