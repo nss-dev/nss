@@ -28,8 +28,8 @@ Here is a description of the arguments :
 
 - *SECItem\* src*† is a structure containing a pointer to the binary data to be decoded, as
   well as its size.
-- *const SEC_ASN1Template\* templateEntry* is a pointer to one or more [decoder
-  templates](#templates). The number of required templates is determined by the type of the
+- *const SEC_ASN1Template\* templateEntry* is a pointer to one or more decoder
+  templates. The number of required templates is determined by the type of the
   first template.When multiple templates are required, the pointer must point to a
   NULL-terminated array of templates. The syntax of these templates is identical for both
   decoders, except where noted. A "NULL Template" is a template that is all zeros, having a zero
@@ -46,9 +46,9 @@ The SEC_ASN1Template structure tells the decoder what to do with the input data.
 contains four fields :
 
 - *kind* . This 32-bit field tells the decoder what to do with a particular component within the
-  input data. It is made of two parts : the lower byte, which can contain [ASN.1
-  tags](#asn.1_tags), and the upper 3 bytes, which can contain [decoder
-  modifiers](#decoder_modifiers). If only an ASN.1 tag is specified without a modifier, then
+  input data. It is made of two parts : the lower byte, which can contain ASN.1
+  tags, and the upper 3 bytes, which can contain decoder
+  modifiers. If only an ASN.1 tag is specified without a modifier, then
   the decoder will enforce the presence of a component of that type, and fail if it does not
   match. If kind is an ASN.1 SEQUENCE tag (SEC_ASN1_SEQUENCE), then you must specify additional
   templates in a NULL-terminated array to define the content of the of the ASN.1 SEQUENCE. If
