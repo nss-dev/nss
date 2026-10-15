@@ -502,7 +502,7 @@ smime_p7()
   ${PROFTOOL} ${BINDIR}/p7content -d ${P_R_ALICEDIR} -i alice_p7.env -o alice_p7.data -p nss
   html_msg $? 0 "Verifying file delivered to user Alice" "."
 
-  sed -e '3,3p' -n alice_p7.data > alice_p7.data.sed
+  head -n 3 alice_p7.data | tail -n 1 > alice_p7.data.sed
 
   echo "diff alice.txt alice_p7.data.sed"
   diff alice.txt alice_p7.data.sed

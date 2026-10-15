@@ -189,7 +189,7 @@ main(int argc, char **argv)
                 break;
 
             case 'c':
-                contentFile = fopen(optstate->value, "r");
+                contentFile = fopen(optstate->value, "rb");
                 if (!contentFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);

@@ -161,7 +161,7 @@ main(int argc, char **argv)
                 break;
 
             case 'i':
-                inFile = fopen(optstate->value, "r");
+                inFile = fopen(optstate->value, "rb");
                 if (!inFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
