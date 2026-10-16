@@ -1237,6 +1237,34 @@ PK11_ExportPrivKeyInfo(SECKEYPrivateKey *pk, void *wincx)
                 goto loser;
             }
         } break;
+        case kyberKey: {
+            SECOidTag paramSet = seckey_GetParameterSet(pk);
+            if (paramSet == SEC_OID_UNKNOWN) {
+                PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+                goto loser;
+            }
+
+            /* Prefer the seed CHOICE; fall back to expandedKey without one. */
+            if (ReadAttribute(pk, CKA_SEED, arena, &rawKey.u.mlkem.seed) &&
+                rawKey.u.mlkem.seed.len != 0) {
+                keyTemplate = SECKEY_PQPrivateKeySeedExportTemplate;
+            } else {
+                if (!ReadAttribute(pk, CKA_VALUE, arena,
+                                   &rawKey.u.mlkem.privateValue)) {
+                    goto loser;
+                }
+                if (rawKey.u.mlkem.privateValue.len == 0) {
+                    PORT_SetError(SEC_ERROR_BAD_KEY);
+                    goto loser;
+                }
+                keyTemplate = SECKEY_PQPrivateKeyKeyExportTemplate;
+            }
+
+            rv = SECOID_SetAlgorithmID(arena, &pki->algorithm, paramSet, NULL);
+            if (rv != SECSuccess) {
+                goto loser;
+            }
+        } break;
         default: {
             PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
             goto loser;

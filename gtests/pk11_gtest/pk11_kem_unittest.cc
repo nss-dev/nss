@@ -536,6 +536,45 @@ TEST_P(Pkcs11MlKemStorageTest, SeedOnlyAndExpandedOnlyPkcs8) {
   ExpectPairs(fromExpanded.get(), pub_.get());
 }
 
+// Export writes the seed CHOICE, unlike the wrap path, which writes both.
+TEST_P(Pkcs11MlKemStorageTest, ExportPkcs8WritesTheSeedChoice) {
+  ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
+  ASSERT_TRUE(seed);
+  ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
+                                              CKA_SEED, seed.get()))
+      << PORT_ErrorToString(PORT_GetError());
+  std::vector<uint8_t> seedBytes(seed->data, seed->data + seed->len);
+
+  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(priv_.get(), nullptr));
+  ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
+  std::vector<uint8_t> exported(der->data, der->data + der->len);
+  EXPECT_EQ(BuildPqPkcs8(OidTag(GetParam()), PqSeedChoice(seedBytes)),
+            exported);
+
+  ScopedSECKEYPrivateKey reimported(ImportPkcs8(exported));
+  ASSERT_TRUE(reimported) << PORT_ErrorToString(PORT_GetError());
+  ExpectPairs(reimported.get(), pub_.get());
+}
+
+TEST_P(Pkcs11MlKemStorageTest, ExportPkcs8FallsBackToTheExpandedKey) {
+  ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
+  ASSERT_TRUE(value);
+  ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
+                                              CKA_VALUE, value.get()))
+      << PORT_ErrorToString(PORT_GetError());
+  std::vector<uint8_t> keyBytes(value->data, value->data + value->len);
+  SECOidTag oid = OidTag(GetParam());
+
+  ScopedSECKEYPrivateKey seedless(
+      ImportPkcs8(BuildPqPkcs8(oid, PqExpandedKeyChoice(keyBytes))));
+  ASSERT_TRUE(seedless) << PORT_ErrorToString(PORT_GetError());
+
+  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(seedless.get(), nullptr));
+  ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
+  EXPECT_EQ(BuildPqPkcs8(oid, PqExpandedKeyChoice(keyBytes)),
+            std::vector<uint8_t>(der->data, der->data + der->len));
+}
+
 // An ML-KEM public key has no DER structure of its own, so importing one is
 // just a length-driven parameter set lookup, and the SubjectPublicKeyInfo
 // carries it as a bare BIT STRING.
