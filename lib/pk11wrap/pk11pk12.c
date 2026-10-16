@@ -1237,6 +1237,7 @@ PK11_ExportPrivKeyInfo(SECKEYPrivateKey *pk, void *wincx)
                 goto loser;
             }
         } break;
+        case mldsaKey:
         case kyberKey: {
             SECOidTag paramSet = seckey_GetParameterSet(pk);
             if (paramSet == SEC_OID_UNKNOWN) {
@@ -1245,15 +1246,15 @@ PK11_ExportPrivKeyInfo(SECKEYPrivateKey *pk, void *wincx)
             }
 
             /* Prefer the seed CHOICE; fall back to expandedKey without one. */
-            if (ReadAttribute(pk, CKA_SEED, arena, &rawKey.u.mlkem.seed) &&
-                rawKey.u.mlkem.seed.len != 0) {
+            if (ReadAttribute(pk, CKA_SEED, arena, &rawKey.u.pq.seed) &&
+                rawKey.u.pq.seed.len != 0) {
                 keyTemplate = SECKEY_PQPrivateKeySeedExportTemplate;
             } else {
                 if (!ReadAttribute(pk, CKA_VALUE, arena,
-                                   &rawKey.u.mlkem.privateValue)) {
+                                   &rawKey.u.pq.privateValue)) {
                     goto loser;
                 }
-                if (rawKey.u.mlkem.privateValue.len == 0) {
+                if (rawKey.u.pq.privateValue.len == 0) {
                     PORT_SetError(SEC_ERROR_BAD_KEY);
                     goto loser;
                 }
