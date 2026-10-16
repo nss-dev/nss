@@ -73,15 +73,16 @@ def add_variants(config, jobs):
             fips_build["attributes"]["certs"] = True
             yield fips_build
 
-        # clang-cl, which is what Firefox builds NSS with on Windows. Like the
-        # extra Linux compilers below, these are build-only.
+        # Windows gyp builds use clang-cl, as Firefox does (see
+        # uses_clang_cl). MSVC is kept as a build-only extra, like the extra
+        # Linux compilers below.
         if (attributes["build_platform"].startswith("win")
                 and not attributes.get("make") and not attributes.get("static")):
-            clang_cl_job = deepcopy(job)
-            clang_cl_job["name"] += "-clang-cl"
-            clang_cl_job["description"] += " w/ clang-cl"
-            clang_cl_job["attributes"]["cc"] = "clang-cl"
-            yield clang_cl_job
+            msvc_job = deepcopy(job)
+            msvc_job["name"] += "-msvc"
+            msvc_job["description"] += " w/ MSVC"
+            msvc_job["attributes"]["cc"] = "msvc"
+            yield msvc_job
 
         # The extra compilers, modular, and dbm variants are x86-Linux only.
         # aarch64 is a Linux platform too, so exclude it explicitly.
@@ -120,6 +121,14 @@ def add_variants(config, jobs):
                 tlsfuzz_job["name"] = job["name"].replace("-fuzz", "-tlsfuzz")
                 tlsfuzz_job["description"] = job["description"].replace("fuzz", "TLS fuzz")
                 yield tlsfuzz_job
+
+
+def uses_clang_cl(attributes):
+    """Windows gyp builds use clang-cl unless they are the MSVC variant. The
+    make builds go through coreconf, which only knows MSVC."""
+    return (attributes["build_platform"].startswith("win")
+            and not attributes.get("make")
+            and attributes.get("cc") != "msvc")
 
 
 @transforms.add
@@ -169,7 +178,7 @@ def set_gyp_command(config, jobs):
             # shlibsign runs what it signs, which the host can't do here. No
             # test on this platform reads the .chk files it would produce.
             command += " -t arm64 -Dsign_libs=0"
-        if attributes.get("cc") == "clang-cl":
+        if uses_clang_cl(attributes):
             command += " --clang-cl"
         if attributes["build_type"] in ("opt", "opt-static"):
             command += " --opt"
@@ -245,7 +254,7 @@ def add_gecko_toolchain_fetches(config, jobs):
 
     for job in jobs:
         platform = job["attributes"]["build_platform"]
-        clang_cl = job["attributes"].get("cc") == "clang-cl"
+        clang_cl = uses_clang_cl(job["attributes"])
         if not (platform.startswith("win") and ("aarch64" in platform or clang_cl)):
             yield job
             continue

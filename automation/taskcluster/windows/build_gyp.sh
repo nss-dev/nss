@@ -49,12 +49,13 @@ export -f make
 # Build sqlite3 CLI tool for use by dbtests.
 bash "$(dirname "$0")/build_sqlite3.sh" dist nss/lib/sqlite
 
-# A cross build's tests run on a different machine, which has no CRT for the
-# target (and in any case none as new as the toolchain's). Ship the VC runtime
+# Builds against gecko's Visual Studio (see setup.sh) need a CRT at least as new
+# as its toolset, which the machines running their certs and tests don't have
+# -- nor, for a cross build, any CRT for the target at all. Ship the VC runtime
 # next to the executables, since Windows looks in an executable's directory
 # first, including for the DLLs in dist/$(cat dist/latest)/lib. The UCRT is not
 # needed: it is part of Windows 10 and later, which ignore an app-local copy.
-if [ "$m" == "arm64" ]; then
+if [ "$m" == "arm64" ] || [ "$clang_cl" == 1 ]; then
     cp "${WIN32_REDIST_DIR}"/*.dll "dist/$(cat dist/latest)/bin/"
 fi
 
