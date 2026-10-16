@@ -464,6 +464,38 @@ TEST_P(Pkcs11MlDsaStorageTest, WrapAndUnwrap) {
   ExpectPairs(unwrapped.get(), pub_.get());
 }
 
+// C_WrapKey packages a key that has a seed as the seed CHOICE alone.
+TEST_P(Pkcs11MlDsaStorageTest, WrapWritesTheSeedChoice) {
+  ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
+  ASSERT_TRUE(seed);
+  ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
+                                              CKA_SEED, seed.get()))
+      << PORT_ErrorToString(PORT_GetError());
+  std::vector<uint8_t> seedBytes(seed->data, seed->data + seed->len);
+
+  ScopedPK11SymKey kek(
+      PK11_KeyGen(slot_.get(), CKM_AES_CBC, nullptr, 16, nullptr));
+  ASSERT_TRUE(kek);
+  ScopedSECItem wrapParam(PK11_ParamFromIV(CKM_NSS_AES_KEY_WRAP_PAD, nullptr));
+  ASSERT_TRUE(wrapParam);
+  ScopedSECItem wrapped(SECITEM_AllocItem(nullptr, nullptr, 8192));
+  ASSERT_TRUE(wrapped);
+  ASSERT_EQ(SECSuccess,
+            PK11_WrapPrivKey(slot_.get(), kek.get(), priv_.get(),
+                             CKM_NSS_AES_KEY_WRAP_PAD, wrapParam.get(),
+                             wrapped.get(), nullptr))
+      << PORT_ErrorToString(PORT_GetError());
+
+  std::vector<uint8_t> pkcs8(wrapped->len);
+  unsigned int pkcs8Len = 0;
+  ASSERT_EQ(SECSuccess, PK11_Decrypt(kek.get(), CKM_NSS_AES_KEY_WRAP_PAD,
+                                     wrapParam.get(), pkcs8.data(), &pkcs8Len,
+                                     pkcs8.size(), wrapped->data, wrapped->len))
+      << PORT_ErrorToString(PORT_GetError());
+  pkcs8.resize(pkcs8Len);
+  EXPECT_EQ(BuildPqPkcs8(OidTag(GetParam()), PqSeedChoice(seedBytes)), pkcs8);
+}
+
 // Importing as a permanent object also creates the matching public key object,
 // which is what makes the key findable later.
 TEST_P(Pkcs11MlDsaStorageTest, ExportEncryptedAndImportAsTokenKey) {
@@ -525,11 +557,12 @@ TEST_P(Pkcs11MlDsaStorageTest, TokenKeyCopiesToASessionKey) {
 }
 
 // RFC 9881 lets a PKCS#8 carry the seed and the expanded key together, which
-// is the form NSS itself writes. Nothing forces the two to agree, so softoken
-// re-derives the key from the seed and rejects the pair if they differ. If it
-// did not, a corrupted or hostile blob would be signed with under a seed that
-// does not produce it. The Wycheproof vectors cannot reach this: their PKCS#8
-// blobs are all seed-only, and the no-seed files carry no PKCS#8 at all.
+// is the form older NSS versions wrote. Nothing forces the two to agree, so
+// softoken re-derives the key from the seed and rejects the pair if they
+// differ. If it did not, a corrupted or hostile blob would be signed with
+// under a seed that does not produce it. The Wycheproof vectors cannot reach
+// this: their PKCS#8 blobs are all seed-only, and the no-seed files carry no
+// PKCS#8 at all.
 TEST_P(Pkcs11MlDsaStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
@@ -570,7 +603,7 @@ TEST_P(Pkcs11MlDsaStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
   EXPECT_FALSE(ImportPkcs8(BuildBothPkcs8(seedBytes, shortKey)));
 }
 
-// Export writes the seed CHOICE, unlike the wrap path, which writes both.
+// Export writes the seed CHOICE, like the wrap path.
 TEST_P(Pkcs11MlDsaStorageTest, ExportPkcs8WritesTheSeedChoice) {
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);

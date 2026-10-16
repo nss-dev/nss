@@ -7188,7 +7188,7 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
             lk->u.genpq.keyItem = rawKey;
             if (seed.len) {
                 dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
-                                           nsslowkey_PQBothSeedAndPrivateKeyTemplate);
+                                           nsslowkey_PQSeedTemplate);
             } else {
                 dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
                                            nsslowkey_PQPrivateKeyTemplate);
@@ -7246,7 +7246,7 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 
             if (seed.len) {
                 dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
-                                           nsslowkey_PQBothSeedAndPrivateKeyTemplate);
+                                           nsslowkey_PQSeedTemplate);
             } else {
                 dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
                                            nsslowkey_PQPrivateKeyTemplate);
