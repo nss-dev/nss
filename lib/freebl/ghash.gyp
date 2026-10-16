@@ -34,6 +34,13 @@
               '-mpclmul', '-maes'
             ],
           },
+        }],
+        [ 'OS=="win" and clang_cl==1', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [ '-mpclmul', '-maes' ],
+            },
+          },
         }]
       ]
     },
@@ -70,6 +77,16 @@
       ],
       'cflags_mozilla': [
         '-march=armv8-a+crypto'
+      ],
+      'conditions': [
+        # MSVC needs no flag for these intrinsics; clang-cl does.
+        [ 'OS=="win" and clang_cl==1', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [ '-march=armv8-a+crypto' ],
+            },
+          },
+        }],
       ]
     },
     {

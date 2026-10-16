@@ -2,12 +2,14 @@
 
 set -v -e -x
 
-# Parse for the -t option.
+# Parse for the -t and --clang-cl options.
 m=x64
+clang_cl=0
 for i in "$@"; do
     case "$i" in
         -t|--target) m= ;;
         --target=*) m="${i#*=}" ;;
+        --clang-cl) clang_cl=1 ;;
         *) [[ -z "$m" ]] && m="$i" ;;
     esac
 done

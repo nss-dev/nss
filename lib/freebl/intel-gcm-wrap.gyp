@@ -25,6 +25,14 @@
           'FREEBL_NO_DEPEND',
         ],
       }],
+      # MSVC needs no flag for these intrinsics; clang-cl does.
+      [ 'OS=="win" and clang_cl==1', {
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'AdditionalOptions': [ '-mssse3' ],
+          },
+        },
+      }],
       [ 'target_arch=="ia32" and OS=="win"', {
         'sources': [
             'intel-aes-x86-masm.asm',

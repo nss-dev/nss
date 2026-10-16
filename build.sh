@@ -81,6 +81,7 @@ fuzz_oss=0
 no_local_nspr=0
 sslkeylogfile=1
 static_libs=0
+clang_cl=0
 
 gyp_params=(--depth="$cwd" --generator-output=".")
 ninja_params=()
@@ -116,6 +117,7 @@ while [ $# -gt 0 ]; do
         --clang) export CC=clang; export CCC=clang++; export CXX=clang++; msvc=0 ;;
         --gcc) export CC=gcc; export CCC=g++; export CXX=g++; msvc=0 ;;
         --msvc) msvc=1 ;;
+        --clang-cl) msvc=1; clang_cl=1 ;;
         --scan-build) enable_scanbuild  ;;
         --scan-build=?*) enable_scanbuild "${1#*=}" ;;
         --disable-tests) gyp_params+=(-Ddisable_tests=1) ;;
@@ -208,6 +210,25 @@ fi
 
 if [ "$msvc" = 1 ]; then
     source "$cwd/coreconf/msvc.sh"
+fi
+
+# clang-cl compiles against the headers and libraries msvc.sh just set up.
+if [ "$clang_cl" = 1 ]; then
+    if ! clang_cl_path=$(command -v clang-cl); then
+        echo "Can't find clang-cl on the path, aborting" 1>&2
+        exit 1
+    fi
+    # ninja runs the tools natively and gyp would prefix a relative path, so
+    # gyp needs the directory as an absolute Windows path.
+    gyp_params+=(-Dclang_cl=1 -Dcc_is_clang=1)
+    gyp_params+=(-Dllvm_bindir="$(cygpath -m "$(dirname "$clang_cl_path")")")
+    # NSPR's configure takes the compiler from the environment.
+    case "$target_arch" in
+        ia32) CC="clang-cl -m32" ;;
+        arm64|aarch64) CC="clang-cl --target=aarch64-pc-windows-msvc" ;;
+        *) CC=clang-cl ;;
+    esac
+    export CC CCC="$CC" CXX="$CC"
 fi
 
 # -c = clean first

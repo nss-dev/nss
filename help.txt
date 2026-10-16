@@ -1,6 +1,7 @@
 Usage: build.sh [-h] [-c|-cc] [-v] [-j <n>] [--gyp|-g] [--opt|-o]
                 [-t <x64|ia32|...>|--target=<x64|ia32|...>]
-                [--clang|--gcc|--msvc] [--scan-build[=dir]] [--disable-tests]
+                [--clang|--gcc|--msvc|--clang-cl] [--scan-build[=dir]]
+                [--disable-tests]
                 [--pprof] [--asan] [--msan] [--ubsan[=bool,shift,...]
                 [--fuzz[=tls|oss]] [--sancov[=edge|bb|func|...]]
                 [--emit-llvm] [--no-zdefs] [--static] [--ct-verif]
@@ -25,6 +26,8 @@ NSS build tool options:
     --clang          build with clang and clang++
     --gcc            build with gcc and g++
     --msvc           build with MSVC
+    --clang-cl       build with clang-cl, lld-link and llvm-lib against the
+                     MSVC headers and libraries, as Firefox does (Windows)
     --scan-build     run the build with scan-build
                      --scan-build=<dir> sets the output path for scan-build
     --disable-tests  don't build tests and corresponding cmdline utils

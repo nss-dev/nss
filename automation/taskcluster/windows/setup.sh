@@ -95,12 +95,13 @@ setup_vs2017() {
 # VS 15.9 with SDK 10.0.16299 -- so those tasks build against the Visual Studio
 # layout gecko publishes: VS 2026 / MSVC 14.51 including the
 # HostX64 -> TargetARM64 cross compiler, the Win11 SDK, and the ARM64 CRT
-# redist.
+# redist. The clang-cl tasks use it too, as Firefox's clang-cl builds do.
 #
 # run-task's fetch-content has already downloaded it into MOZ_FETCHES_DIR by
-# the time we get here; nss_taskgraph.transforms.build:add_vs_toolchain_fetch
-# sets that up, and holds the index route and the
-# queue:get-artifact:project/gecko/vs/* scope the private artifact needs.
+# the time we get here;
+# nss_taskgraph.transforms.build:add_gecko_toolchain_fetches sets that up, and
+# holds the index route and the queue:get-artifact:project/gecko/vs/* scope the
+# private artifact needs.
 setup_vs_gecko() {
     # fetch-content hands us a Windows path. cygpath makes it usable from MSYS
     # and leaves an already-POSIX value alone.
@@ -108,9 +109,9 @@ setup_vs_gecko() {
     fetches=$(cygpath -u "${MOZ_FETCHES_DIR}")
     export VSPATH="${fetches}/vs"
     # The component versions are discovered, not pinned, so that moving the
-    # index route in add_vs_toolchain_fetch is the only change a Visual Studio
-    # update needs. Assign before exporting: `export x=$(...)` would swallow
-    # a failure.
+    # index route in add_gecko_toolchain_fetches is the only change a Visual
+    # Studio update needs. Assign before exporting: `export x=$(...)` would
+    # swallow a failure.
     local vc sdkdir sdk
     vc=$(latest_subdir "${VSPATH}/VC/Tools/MSVC")
     vc="${VSPATH}/VC/Tools/MSVC/${vc}"
@@ -160,13 +161,20 @@ setup_vs_gecko() {
 }
 
 # Only builds set $m; the certs and test tasks need no toolchain.
+# build_gyp.sh sets $clang_cl for --clang-cl.
 if [ -n "$m" ]; then
-    if [ "$m" == "arm64" ]; then
+    if [ "$m" == "arm64" ] || [ "$clang_cl" == 1 ]; then
         # The 300 MB Visual Studio package would go unused.
         tooltool_fetch ninja171.zip
         setup_vs_gecko
     else
         tooltool_fetch
         setup_vs2017
+    fi
+    # Firefox's clang-cl, which fetch-content unpacked next to the Visual
+    # Studio layout. It also carries lld-link and llvm-lib.
+    if [ "$clang_cl" == 1 ]; then
+        PATH="$(cygpath -u "${MOZ_FETCHES_DIR}")/clang/bin:${PATH}"
+        export PATH
     fi
 fi

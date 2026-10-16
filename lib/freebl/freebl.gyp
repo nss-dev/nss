@@ -56,6 +56,21 @@
             ],
           },
         }],
+        # MSVC needs no flags for these intrinsics; clang-cl does.
+        [ 'OS=="win" and clang_cl==1 and target_arch=="x64"', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '-mssse3',
+                '-msse4.1',
+                '-msse4.2',
+                '-mpclmul',
+                '-maes',
+                '-mavx',
+              ],
+            },
+          },
+        }],
         [ 'target_arch=="arm"', {
           # Gecko doesn't support non-NEON platform on Android, but tier-3
           # platform such as Linux/arm will need it
@@ -125,6 +140,21 @@
             ],
           },
         }],
+        [ 'OS=="win" and clang_cl==1 and target_arch=="x64"', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '-mssse3',
+                '-msse4.1',
+                '-msse4.2',
+                '-mpclmul',
+                '-maes',
+                '-mavx',
+                '-mavx2',
+              ],
+            },
+          },
+        }],
         [ 'target_arch=="arm"', {
           # Gecko doesn't support non-NEON platform on Android, but tier-3
           # platform such as Linux/arm will need it
@@ -169,6 +199,17 @@
               '-mssse3',
               '-msse4.1'
             ],
+          },
+        }],
+        [ 'OS=="win" and clang_cl==1', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '-msha',
+                '-mssse3',
+                '-msse4.1'
+              ],
+            },
           },
         }]
       ]
@@ -301,6 +342,15 @@
           ],
           'cflags_mozilla': [
             '-march=armv8-a+crypto'
+          ],
+          'conditions': [
+            [ 'OS=="win" and clang_cl==1', {
+              'msvs_settings': {
+                'VCCLCompilerTool': {
+                  'AdditionalOptions': [ '-march=armv8-a+crypto' ],
+                },
+              },
+            }],
           ],
         }]
       ]
