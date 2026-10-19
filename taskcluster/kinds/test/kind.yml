@@ -369,6 +369,23 @@ tasks:
                 TC_PARENT_TASK_ID: {task-reference: "<certs>"}
                 NSS_TESTS: tools
 
+    # all.sh only runs fips.sh on builds with neither NSS_FIPS_DISABLED nor
+    # NSS_NO_INIT_SUPPORT. Of the builds with certs, that's the gyp
+    # --enable-fips build.
+    fips:
+        description: FIPS tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                build_type: [opt-fips]
+                dbm: [false]
+        treeherder:
+            symbol: FIPS
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: fips
+
     # SSL tests, need certificates too.
     ssl-standard:
         description: SSL tests (standard)
