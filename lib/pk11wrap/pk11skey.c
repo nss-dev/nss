@@ -491,8 +491,10 @@ pk11_ImportSymKeyWithTempl(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     if (rv == SECSuccess) {
         return symKey;
     }
-    /* we failed to create the key, if force isn't set, we just fail now */
-    if (!force) {
+    /* we failed to create the key, if force isn't set, we just fail now.
+     * An empty key can't be forced either: CKA_VALUE_LEN 0 below would
+     * get the whole seed key rather than no key at all. */
+    if (!force || key->len == 0) {
         PK11_FreeSymKey(symKey);
         return NULL;
     }
