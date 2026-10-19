@@ -7829,12 +7829,10 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             ec_sign = CK_TRUE;
             /* if we weren't passed the CKA_NSS_DB, get it
              * from the public key. only do this for
-             * CKK_EC keys. */
-            if (!sftk_hasAttribute(key, CKA_NSS_DB)) {
-                if (lpk->u.ec.publicValue.len == 0) {
-                    crv = CKR_KEY_TYPE_INCONSISTENT;
-                    goto loser;
-                }
+             * CKK_EC keys. If that is absent too, sftk_mkPrivKey derives
+             * it, as it does for C_CreateObject. */
+            if (!sftk_hasAttribute(key, CKA_NSS_DB) &&
+                lpk->u.ec.publicValue.len != 0) {
                 crv = sftk_AddAttributeType(key, CKA_NSS_DB,
                                             sftk_item_expand(&lpk->u.ec.publicValue));
                 if (crv != CKR_OK) {
