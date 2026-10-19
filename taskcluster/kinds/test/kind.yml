@@ -421,6 +421,24 @@ tasks:
                 NSS_CYCLES: pkix
                 NSS_SSL_TESTS: crl iopr policy normal_normal
 
+    # The SSL tests with one side's token in FIPS mode. Other builds either
+    # define NSS_FIPS_DISABLED or have no certs.
+    ssl-fips:
+        description: SSL tests (FIPS)
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                build_type: [opt-fips]
+                dbm: [false]
+        treeherder:
+            symbol: SSL(fips)
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: ssl
+                NSS_CYCLES: standard
+                NSS_SSL_TESTS: fips_normal normal_fips
+
     ssl-stress:
         description: SSL tests (stress)
         from-deps:
