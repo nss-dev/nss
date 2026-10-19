@@ -11,6 +11,7 @@
 #include "testvectors/kw-vectors.h"
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -40,9 +41,9 @@ class Pkcs11AESKeyWrapTest : public ::testing::TestWithParam<keywrap_vector> {
 
     // Import encryption key.
     SECItem kek_item = {siBuffer, kek_data, kek_len};
-    ScopedPK11SymKey kek(PK11_ImportSymKey(slot.get(), CKM_NSS_AES_KEY_WRAP,
-                                           PK11_OriginUnwrap, CKA_ENCRYPT,
-                                           &kek_item, nullptr));
+    ScopedPK11SymKey kek(nss_test::ImportSymKey(
+        slot.get(), CKM_NSS_AES_KEY_WRAP, PK11_OriginUnwrap, CKA_ENCRYPT,
+        &kek_item, nullptr));
     EXPECT_TRUE(!!kek) << msg;
 
     // Wrap key

@@ -15,6 +15,7 @@
 #include "nss_scoped_ptrs.h"
 #include "gtest/gtest.h"
 #include "databuffer.h"
+#include "pk11_import.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -38,7 +39,7 @@ class Pkcs11ModuleTest : public ::testing::Test {
 
 #ifndef NSS_FIPS_DISABLED
     /* restore non-fips if we assert out of the FIPS test */
-    if (PK11_IsFIPS()) {
+    if (PK11_IsFIPS() && !SECMOD_GetSystemFIPSEnabled()) {
       char* internal_name =
           PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
       ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
@@ -46,7 +47,7 @@ class Pkcs11ModuleTest : public ::testing::Test {
       PR_smprintf_free(internal_name);
     }
 #endif
-    ASSERT_FALSE(PK11_IsFIPS());
+    ASSERT_EQ(!!SECMOD_GetSystemFIPSEnabled(), PK11_IsFIPS());
     ASSERT_EQ(SECSuccess, SECMOD_DeleteModule("Pkcs11ModuleTest", &type));
     ASSERT_EQ(SECMOD_EXTERNAL, type);
   }
@@ -65,11 +66,17 @@ TEST_F(Pkcs11ModuleTest, ListSlots) {
   PK11SlotListElement* element = PK11_GetFirstSafe(slots.get());
   ASSERT_NE(nullptr, element);
 
-  // These tokens are always present.
-  const std::vector<std::string> kSlotsWithToken = {
+  // These tokens are always present. In FIPS mode one internal slot does
+  // both jobs.
+  std::vector<std::string> kSlotsWithToken = {
       "NSS Internal Cryptographic Services",
       "NSS User Private Key and Certificate Services", "Test PKCS11 Auth Slot",
       "Test PKCS11 Public Certs Slot", "Test PKCS11 Slot 二"};
+  if (PK11_IsFIPS()) {
+    kSlotsWithToken = {"NSS FIPS 140-2 User Private Key Services",
+                       "Test PKCS11 Auth Slot", "Test PKCS11 Public Certs Slot",
+                       "Test PKCS11 Slot 二"};
+  }
   std::vector<std::string> foundSlots;
 
   do {
@@ -85,6 +92,9 @@ TEST_F(Pkcs11ModuleTest, ListSlots) {
 }
 
 TEST_F(Pkcs11ModuleTest, UnwrapPrivateKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens won't hand a private key to another token";
+  }
   // test unwrapping a priate key using
   // softoken to do the unwrap and then
   // importing it into a token. Test that
@@ -170,8 +180,8 @@ TEST_F(Pkcs11ModuleTest, UnwrapPrivateKey) {
   SECItem iv = {siBuffer, (unsigned char*)raw_iv, sizeof(raw_iv)};
 
   ScopedPK11SymKey wrappingKey(
-      PK11_ImportSymKey(sourceSlot.get(), CKM_AES_CBC_PAD, PK11_OriginUnwrap,
-                        CKA_UNWRAP, &aes_key, NULL));
+      nss_test::ImportSymKey(sourceSlot.get(), CKM_AES_CBC_PAD,
+                             PK11_OriginUnwrap, CKA_UNWRAP, &aes_key, NULL));
   ASSERT_NE(nullptr, wrappingKey);
 
   ScopedSECKEYPrivateKey privKey(PK11_UnwrapPrivKey(
@@ -230,14 +240,17 @@ TEST_F(Pkcs11ModuleTest, PublicCertificatesTokenLookupNoMatch) {
 
 TEST_F(Pkcs11ModuleTest, PK11_UnwrapTestFIPS) {
 #ifndef NSS_FIPS_DISABLED
-  // fips mode
+  // fips mode, unless the system already forces it
   char* internal_name;
-  ASSERT_FALSE(PK11_IsFIPS());
-  internal_name = PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
-  ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
-      << PORT_ErrorToName(PORT_GetError());
-  PR_smprintf_free(internal_name);
-  internal_name = NULL;
+  bool toggleFips = !SECMOD_GetSystemFIPSEnabled();
+  if (toggleFips) {
+    ASSERT_FALSE(PK11_IsFIPS());
+    internal_name = PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
+    ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
+        << PORT_ErrorToName(PORT_GetError());
+    PR_smprintf_free(internal_name);
+    internal_name = NULL;
+  }
   ASSERT_TRUE(PK11_IsFIPS());
 #endif
 
@@ -302,12 +315,14 @@ TEST_F(Pkcs11ModuleTest, PK11_UnwrapTestFIPS) {
 
 #ifndef NSS_FIPS_DISABLED
   ASSERT_TRUE(PK11_IsFIPS());
-  internal_name = PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
-  ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
-      << PORT_ErrorToName(PORT_GetError());
-  PR_smprintf_free(internal_name);
-  internal_name = NULL;
-  ASSERT_FALSE(PK11_IsFIPS());
+  if (toggleFips) {
+    internal_name = PR_smprintf("%s", SECMOD_GetInternalModule()->commonName);
+    ASSERT_EQ(SECSuccess, SECMOD_DeleteInternalModule(internal_name))
+        << PORT_ErrorToName(PORT_GetError());
+    PR_smprintf_free(internal_name);
+    internal_name = NULL;
+    ASSERT_FALSE(PK11_IsFIPS());
+  }
 #endif
 }
 

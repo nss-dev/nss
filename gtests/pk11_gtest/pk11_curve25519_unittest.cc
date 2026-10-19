@@ -13,6 +13,7 @@
 
 #include "testvectors/curve25519-vectors.h"
 #include "gtest/gtest.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -28,7 +29,7 @@ class Pkcs11Curve25519TestBase {
                           static_cast<unsigned int>(pkcs8_len)};
 
     SECKEYPrivateKey* key = nullptr;
-    SECStatus rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    SECStatus rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
         slot.get(), &pkcs8_item, nullptr, nullptr, false, false, KU_ALL, &key,
         nullptr);
     EXPECT_EQ(SECSuccess, rv);
@@ -58,10 +59,10 @@ class Pkcs11Curve25519TestBase {
     ASSERT_EQ(expect_success, !!sym_key_sess);
 
     if (expect_success) {
-      rv = PK11_ExtractKeyValue(sym_key_sess.get());
+      rv = nss_test::ExtractKeyValue(sym_key_sess.get());
       EXPECT_EQ(SECSuccess, rv);
 
-      SECItem* key_data = PK11_GetKeyData(sym_key_sess.get());
+      SECItem* key_data = nss_test::GetKeyData(sym_key_sess.get());
       EXPECT_EQ(secret_len, key_data->len);
       EXPECT_EQ(memcmp(key_data->data, secret, secret_len), 0);
 
@@ -96,10 +97,10 @@ class Pkcs11Curve25519TestBase {
       EXPECT_TRUE(sym_key_tok);
 
       if (sym_key_tok) {
-        rv = PK11_ExtractKeyValue(sym_key_tok.get());
+        rv = nss_test::ExtractKeyValue(sym_key_tok.get());
         EXPECT_EQ(SECSuccess, rv);
 
-        key_data = PK11_GetKeyData(sym_key_tok.get());
+        key_data = nss_test::GetKeyData(sym_key_tok.get());
         EXPECT_EQ(secret_len, key_data->len);
         EXPECT_EQ(memcmp(key_data->data, secret, secret_len), 0);
       }
@@ -180,20 +181,11 @@ class Pkcs11Curve25519Wycheproof : public Pkcs11Curve25519TestBase,
   static void ReadTestAttr(EcdhTestVector& t, const std::string& n,
                            JsonReader& r) {
     // Static PKCS#8 and SPKI wrappers for the raw keys from Wycheproof.
+    // The ECPrivateKey has no public key; the token derives it.
     static const std::vector<uint8_t> kPrivatePrefix = {
-        0x30, 0x67, 0x02, 0x01, 0x00, 0x30, 0x14, 0x06, 0x07, 0x2a, 0x86, 0x48,
+        0x30, 0x42, 0x02, 0x01, 0x00, 0x30, 0x14, 0x06, 0x07, 0x2a, 0x86, 0x48,
         0xce, 0x3d, 0x02, 0x01, 0x06, 0x09, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xda,
-        0x47, 0x0f, 0x01, 0x04, 0x4c, 0x30, 0x4a, 0x02, 0x01, 0x01, 0x04, 0x20};
-    // The public key section of the PKCS#8 wrapper is filled up with 0's, which
-    // is not correct, but acceptable for the tests at this moment because
-    // validity of the public key is not checked.
-    // It's still necessary because of
-    // https://searchfox.org/nss/rev/7bc70a3317b800aac07bad83e74b6c79a9ec5bff/lib/pk11wrap/pk11pk12.c#171
-    static const std::vector<uint8_t> kPrivateSuffix = {
-        0xa1, 0x23, 0x03, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        0x47, 0x0f, 0x01, 0x04, 0x27, 0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20};
     static const std::vector<uint8_t> kPublicPrefix = {
         0x30, 0x39, 0x30, 0x14, 0x06, 0x07, 0x2a, 0x86, 0x48,
         0xce, 0x3d, 0x02, 0x01, 0x06, 0x09, 0x2b, 0x06, 0x01,
@@ -207,8 +199,6 @@ class Pkcs11Curve25519Wycheproof : public Pkcs11Curve25519TestBase,
       t.private_key = kPrivatePrefix;
       std::vector<uint8_t> priv = r.ReadHex();
       t.private_key.insert(t.private_key.end(), priv.begin(), priv.end());
-      t.private_key.insert(t.private_key.end(), kPrivateSuffix.begin(),
-                           kPrivateSuffix.end());
     } else if (n == "shared") {
       t.secret = r.ReadHex();
     } else {

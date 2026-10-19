@@ -10,6 +10,7 @@
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -48,10 +49,10 @@ class Pkcs11PbeTest : public ::testing::Test {
     ScopedPK11SymKey sym_key(
         PK11_PBEKeyGen(slot.get(), alg_id.get(), &pass_item, false, nullptr));
 
-    SECStatus rv = PK11_ExtractKeyValue(sym_key.get());
+    SECStatus rv = nss_test::ExtractKeyValue(sym_key.get());
     EXPECT_EQ(rv, SECSuccess);
 
-    SECItem* key_data = PK11_GetKeyData(sym_key.get());
+    SECItem* key_data = nss_test::GetKeyData(sym_key.get());
 
     return key_data->len == derived.size() &&
            !memcmp(&derived[0], key_data->data, key_data->len);

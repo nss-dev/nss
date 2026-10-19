@@ -20,6 +20,7 @@ extern "C" {
 #include "databuffer.h"
 #include "gtest_utils.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -56,8 +57,8 @@ static void ImportKey(const DataBuffer& key, PK11SlotInfo* slot,
   SECItem key_item = {siBuffer, const_cast<uint8_t*>(key.data()),
                       static_cast<unsigned int>(key.len())};
 
-  PK11SymKey* inner =
-      PK11_ImportSymKey(slot, mech, PK11_OriginUnwrap, cka, &key_item, nullptr);
+  PK11SymKey* inner = nss_test::ImportSymKey(slot, mech, PK11_OriginUnwrap, cka,
+                                             &key_item, nullptr);
   ASSERT_NE(nullptr, inner);
   to->reset(inner);
 }

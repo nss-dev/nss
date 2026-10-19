@@ -14,6 +14,7 @@
 #include "sechash.h"
 
 #include "testvectors_base/test-structs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -105,6 +106,12 @@ class Pkcs11HkdfTest : public ::testing::TestWithParam<HkdfTestType> {
     }
   }
 
+  static size_t HashLength(CK_MECHANISM_TYPE hash_mech) {
+    size_t len = HASH_ResultLenByOidTag(PK11_MechanismToAlgtag(hash_mech));
+    EXPECT_NE(0U, len) << "Unknown hash mech";
+    return len;
+  }
+
   ScopedPK11SymKey ImportKey(SECItem& ikm_item, bool import_as_data) {
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
     if (!slot) {
@@ -118,9 +125,9 @@ class Pkcs11HkdfTest : public ::testing::TestWithParam<HkdfTestType> {
                                    PK11_OriginUnwrap, CKA_SIGN, &ikm_item,
                                    nullptr));
     } else {
-      ikm.reset(PK11_ImportSymKey(slot.get(), CKM_GENERIC_SECRET_KEY_GEN,
-                                  PK11_OriginUnwrap, CKA_SIGN, &ikm_item,
-                                  nullptr));
+      ikm.reset(nss_test::ImportSymKey(slot.get(), CKM_GENERIC_SECRET_KEY_GEN,
+                                       PK11_OriginUnwrap, CKA_SIGN, &ikm_item,
+                                       nullptr));
     }
     return ikm;
   }
@@ -204,10 +211,18 @@ class Pkcs11HkdfTest : public ::testing::TestWithParam<HkdfTestType> {
     ScopedPK11SymKey okm = ScopedPK11SymKey(
         PK11_Derive(ikm.get(), derive_mech, &params_item,
                     CKM_GENERIC_SECRET_KEY_GEN, CKA_DERIVE, vec.size));
-    if (vec.valid) {
+    // In FIPS mode HMAC keys, here the salt, must be at least half the hash
+    // length. An empty salt is only replaced when it isn't passed as a key.
+    bool saltIsKey = test_type == HkdfTestType::saltDerive ||
+                     test_type == HkdfTestType::saltDeriveDataKey;
+    bool shortSalt = PK11_IsFIPS() &&
+                     vec_salt.size() < HashLength(hash_mech) / 2 &&
+                     (saltIsKey || !vec_salt.empty());
+    if (vec.valid && !shortSalt) {
       ASSERT_NE(nullptr, okm.get()) << msg;
-      ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(okm.get())) << msg;
-      ASSERT_EQ(0, SECITEM_CompareItem(&okm_item, PK11_GetKeyData(okm.get())))
+      ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(okm.get())) << msg;
+      ASSERT_EQ(0,
+                SECITEM_CompareItem(&okm_item, nss_test::GetKeyData(okm.get())))
           << msg;
     } else {
       ASSERT_EQ(nullptr, okm.get()) << msg;

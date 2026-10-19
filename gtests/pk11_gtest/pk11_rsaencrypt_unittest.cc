@@ -20,6 +20,7 @@
 #include "testvectors/rsa_signature-vectors.h"
 #include "testvectors/rsaencrypt_bb2048-vectors.h"
 #include "testvectors/rsaencrypt_bb3072-vectors.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -39,7 +40,7 @@ class RsaDecryptWycheproofTest : public ::testing::Test {
     EXPECT_NE(nullptr, slot);
 
     SECKEYPrivateKey* key = nullptr;
-    SECStatus rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    SECStatus rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
         slot.get(), &pkcs8_item, nullptr, nullptr, false, false, KU_ALL, &key,
         nullptr);
     ASSERT_EQ(SECSuccess, rv);

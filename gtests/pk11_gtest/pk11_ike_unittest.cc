@@ -19,6 +19,7 @@
 #include "testvectors/ike-sha384-vectors.h"
 #include "testvectors/ike-sha512-vectors.h"
 #include "testvectors/ike-aesxcbc-vectors.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -31,9 +32,9 @@ class Pkcs11IkeTest : public ::testing::TestWithParam<
       ADD_FAILURE() << "Can't get slot";
       return nullptr;
     }
-    ScopedPK11SymKey ikm(
-        PK11_ImportSymKey(slot.get(), CKM_GENERIC_SECRET_KEY_GEN,
-                          PK11_OriginUnwrap, CKA_DERIVE, &ikm_item, nullptr));
+    ScopedPK11SymKey ikm(nss_test::ImportSymKey(
+        slot.get(), CKM_GENERIC_SECRET_KEY_GEN, PK11_OriginUnwrap, CKA_DERIVE,
+        &ikm_item, nullptr));
     return ikm;
   }
 
@@ -149,13 +150,14 @@ class Pkcs11IkeTest : public ::testing::TestWithParam<
                     CKM_GENERIC_SECRET_KEY_GEN, CKA_DERIVE, vec.size));
     if (vec.valid) {
       ASSERT_NE(nullptr, okm.get()) << msg;
-      ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(okm.get())) << msg;
-      SECItem* outItem = PK11_GetKeyData(okm.get());
+      ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(okm.get())) << msg;
+      SECItem* outItem = nss_test::GetKeyData(okm.get());
       SECItem nullItem = {siBuffer, NULL, 0};
       if (outItem == NULL) {
         outItem = &nullItem;
       }
-      ASSERT_EQ(0, SECITEM_CompareItem(&okm_item, PK11_GetKeyData(okm.get())))
+      ASSERT_EQ(0,
+                SECITEM_CompareItem(&okm_item, nss_test::GetKeyData(okm.get())))
           << msg << std::endl
           << " expect:" << DataBuffer(okm_item.data, okm_item.len) << std::endl
           << " calc'd:" << DataBuffer(outItem->data, outItem->len) << std::endl;

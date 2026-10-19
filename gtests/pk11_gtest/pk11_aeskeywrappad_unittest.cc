@@ -9,6 +9,7 @@
 #include "nss.h"
 #include "nss_scoped_ptrs.h"
 #include "pk11pub.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -92,7 +93,7 @@ TEST_F(Pkcs11AESKeyWrapPadTest, WrapUnwrapRsaKey) {
   ScopedSECKEYPublicKey pub_key;
   ScopedSECKEYPrivateKey priv_key(
       PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN, &rsa_param,
-                           &pub_tmp, PR_FALSE, PR_FALSE, nullptr));
+                           &pub_tmp, PR_FALSE, PK11_IsFIPS(), nullptr));
   ASSERT_NE(nullptr, priv_key);
   ASSERT_NE(nullptr, pub_tmp);
   pub_key.reset(pub_tmp);
@@ -118,14 +119,14 @@ TEST_F(Pkcs11AESKeyWrapPadTest, WrapUnwrapRsaKey) {
   ScopedSECKEYPrivateKey unwrapped(
       PK11_UnwrapPrivKey(slot.get(), kek.get(), CKM_NSS_AES_KEY_WRAP_PAD,
                          param.get(), wrapped.get(), nullptr, &pubKey, false,
-                         false, CKK_EC, usages, usageCount, nullptr));
+                         PK11_IsFIPS(), CKK_EC, usages, usageCount, nullptr));
   ASSERT_EQ(0, PORT_GetError());
   ASSERT_TRUE(!!unwrapped);
 
   ScopedSECItem priv_key_data(
-      PK11_ExportDERPrivateKeyInfo(priv_key.get(), nullptr));
+      nss_test::ExportDERPrivateKeyInfo(priv_key.get(), nullptr));
   ScopedSECItem unwrapped_data(
-      PK11_ExportDERPrivateKeyInfo(unwrapped.get(), nullptr));
+      nss_test::ExportDERPrivateKeyInfo(unwrapped.get(), nullptr));
   EXPECT_TRUE(!!priv_key_data);
   EXPECT_TRUE(!!unwrapped_data);
   ASSERT_EQ(priv_key_data->len, unwrapped_data->len);

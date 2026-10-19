@@ -13,6 +13,7 @@
 
 #include "gtest_utils.h"
 #include "tls_connect.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -45,8 +46,8 @@ class Tls13PskTest : public TlsConnectTestBase,
     psk_item.data = const_cast<uint8_t*>(kPskDummyVal_);
 
     PK11SymKey* key =
-        PK11_ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
-                          CKA_DERIVE, &psk_item, NULL);
+        nss_test::ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
+                               CKA_DERIVE, &psk_item, NULL);
     if (!key) {
       ADD_FAILURE();
     }

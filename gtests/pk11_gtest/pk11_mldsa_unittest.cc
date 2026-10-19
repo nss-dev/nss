@@ -20,6 +20,7 @@
 #include "secerr.h"
 #include "secitem.h"
 #include "secoid.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -159,10 +160,15 @@ class Pkcs11MlDsaWycheproofTest : public ::testing::Test {
     }
 
     SECItem item = as_item(pkcs8);
+    // Without the seed, a sensitive key can't regenerate its public key, so
+    // in FIPS mode hand that over.
+    SECItem pub = as_item(publicKey_);
+    const SECItem* pubValue =
+        (PK11_IsFIPS() && !publicKey_.empty()) ? &pub : nullptr;
     SECKEYPrivateKey* key = nullptr;
-    if (PK11_ImportDERPrivateKeyInfoAndReturnKey(slot.get(), &item, nullptr,
-                                                 nullptr, false, false, KU_ALL,
-                                                 &key, nullptr) != SECSuccess) {
+    if (nss_test::ImportDERPrivateKeyInfoAndReturnKey(
+            slot.get(), &item, nullptr, pubValue, false, false, KU_ALL, &key,
+            nullptr) != SECSuccess) {
       return nullptr;
     }
     return ScopedSECKEYPrivateKey(key);
@@ -193,6 +199,7 @@ class Pkcs11MlDsaWycheproofTest : public ::testing::Test {
     privateKeyPkcs8_.clear();
     privateKey_.clear();
     privateSeed_.clear();
+    publicKey_.clear();
 
     while (r.NextItem()) {
       std::string n = r.ReadLabel();
@@ -208,8 +215,9 @@ class Pkcs11MlDsaWycheproofTest : public ::testing::Test {
         privateKey_ = r.ReadHex();
       } else if (n == "privateSeed") {
         privateSeed_ = r.ReadHex();
-      } else if (n == "type" || n == "source" || n == "publicKey") {
-        // publicKey is the raw form of the key taken here as publicKeyDer.
+      } else if (n == "publicKey") {
+        publicKey_ = ReadOptionalHex(r);
+      } else if (n == "type" || n == "source") {
         r.SkipValue();
       } else if (n == "tests") {
         WycheproofReadTests(r, &tests, ReadTestAttr, false);
@@ -239,6 +247,7 @@ class Pkcs11MlDsaWycheproofTest : public ::testing::Test {
   std::vector<uint8_t> privateKeyPkcs8_;
   std::vector<uint8_t> privateKey_;
   std::vector<uint8_t> privateSeed_;
+  std::vector<uint8_t> publicKey_;
 };
 
 #define ML_DSA_WYCHEPROOF_TESTS(name, bits, oid)                             \
@@ -270,7 +279,7 @@ class Pkcs11MlDsaLifetimeTest : public ::testing::Test {
     CK_ML_DSA_PARAMETER_SET_TYPE paramSet = CKP_ML_DSA_44;
     SECKEYPublicKey* pub = nullptr;
     priv_.reset(PK11_GenerateKeyPair(slot_.get(), CKM_ML_DSA_KEY_PAIR_GEN,
-                                     &paramSet, &pub, PR_FALSE, PR_FALSE,
+                                     &paramSet, &pub, PR_FALSE, PK11_IsFIPS(),
                                      nullptr));
     pub_.reset(pub);
     ASSERT_TRUE(priv_);
@@ -360,7 +369,7 @@ class Pkcs11MlDsaStorageTest
     CK_ML_DSA_PARAMETER_SET_TYPE paramSet = GetParam();
     SECKEYPublicKey* pub = nullptr;
     priv_.reset(PK11_GenerateKeyPair(slot_.get(), CKM_ML_DSA_KEY_PAIR_GEN,
-                                     &paramSet, &pub, PR_FALSE, PR_FALSE,
+                                     &paramSet, &pub, PR_FALSE, PK11_IsFIPS(),
                                      nullptr));
     pub_.reset(pub);
     ASSERT_TRUE(priv_);
@@ -417,7 +426,7 @@ class Pkcs11MlDsaStorageTest
     SECItem item = {siBuffer, const_cast<uint8_t*>(pkcs8.data()),
                     static_cast<unsigned int>(pkcs8.size())};
     SECKEYPrivateKey* key = nullptr;
-    if (PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    if (nss_test::ImportDERPrivateKeyInfoAndReturnKey(
             slot_.get(), &item, nullptr, nullptr, PR_FALSE, PR_FALSE, KU_ALL,
             &key, nullptr) != SECSuccess) {
       return nullptr;
@@ -457,8 +466,8 @@ TEST_P(Pkcs11MlDsaStorageTest, WrapAndUnwrap) {
 
   ScopedSECKEYPrivateKey unwrapped(PK11_UnwrapPrivKeyByKeyType(
       slot_.get(), kek.get(), CKM_NSS_AES_KEY_WRAP_PAD, wrapParam.get(),
-      wrapped.get(), nullptr, &pub_->u.mldsa.publicValue, PR_FALSE, PR_FALSE,
-      mldsaKey, KU_ALL, nullptr));
+      wrapped.get(), nullptr, &pub_->u.mldsa.publicValue, PR_FALSE,
+      PK11_IsFIPS(), mldsaKey, KU_ALL, nullptr));
   ASSERT_TRUE(unwrapped) << PORT_ErrorToString(PORT_GetError());
   EXPECT_EQ(mldsaKey, unwrapped->keyType);
   ExpectPairs(unwrapped.get(), pub_.get());
@@ -466,6 +475,9 @@ TEST_P(Pkcs11MlDsaStorageTest, WrapAndUnwrap) {
 
 // C_WrapKey packages a key that has a seed as the seed CHOICE alone.
 TEST_P(Pkcs11MlDsaStorageTest, WrapWritesTheSeedChoice) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
@@ -525,6 +537,9 @@ TEST_P(Pkcs11MlDsaStorageTest, ExportEncryptedAndImportAsTokenKey) {
 // Moving a key onto a slot reads it back out attribute by attribute, so the
 // attribute list for an ML-DSA private key has to be right.
 TEST_P(Pkcs11MlDsaStorageTest, LoadPrivKeyOntoASlot) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal private key attributes";
+  }
   ScopedSECKEYPrivateKey loaded(PK11_LoadPrivKey(
       slot_.get(), priv_.get(), pub_.get(), PR_FALSE, PR_FALSE));
   ASSERT_TRUE(loaded) << PORT_ErrorToString(PORT_GetError());
@@ -540,7 +555,7 @@ TEST_P(Pkcs11MlDsaStorageTest, TokenKeyCopiesToASessionKey) {
   SECKEYPublicKey* pub = nullptr;
   ScopedSECKEYPrivateKey tokenPriv(
       PK11_GenerateKeyPair(slot_.get(), CKM_ML_DSA_KEY_PAIR_GEN, &paramSet,
-                           &pub, PR_TRUE /* token */, PR_FALSE, nullptr));
+                           &pub, PR_TRUE /* token */, PK11_IsFIPS(), nullptr));
   ScopedSECKEYPublicKey tokenPub(pub);
   ASSERT_TRUE(tokenPriv) << PORT_ErrorToString(PORT_GetError());
   ASSERT_TRUE(tokenPub);
@@ -564,6 +579,9 @@ TEST_P(Pkcs11MlDsaStorageTest, TokenKeyCopiesToASessionKey) {
 // this: their PKCS#8 blobs are all seed-only, and the no-seed files carry no
 // PKCS#8 at all.
 TEST_P(Pkcs11MlDsaStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED or CKA_VALUE";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
@@ -605,6 +623,9 @@ TEST_P(Pkcs11MlDsaStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
 
 // Export writes the seed CHOICE, like the wrap path.
 TEST_P(Pkcs11MlDsaStorageTest, ExportPkcs8WritesTheSeedChoice) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
@@ -625,6 +646,9 @@ TEST_P(Pkcs11MlDsaStorageTest, ExportPkcs8WritesTheSeedChoice) {
 }
 
 TEST_P(Pkcs11MlDsaStorageTest, ExportPkcs8FallsBackToTheExpandedKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_VALUE";
+  }
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(value);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),

@@ -457,14 +457,15 @@ static void GenerateWeakRsaKey(ScopedSECKEYPrivateKey& priv,
 
   SECKEYPublicKey* p_pub = nullptr;
   priv.reset(PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN,
-                                  &rsaparams, &p_pub, false, false, nullptr));
+                                  &rsaparams, &p_pub, false, true, nullptr));
   pub.reset(p_pub);
-  PR_ASSERT(priv);
-  return;
 }
 
 // Fail to connect with a weak RSA key.
 TEST_P(TlsConnectTls13, DCWeakKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't generate weak RSA keys";
+  }
   Reset(kPssDelegatorId);
   EnsureTlsSetup();
   static const SSLSignatureScheme kSchemes[] = {ssl_sig_rsa_pss_rsae_sha256,

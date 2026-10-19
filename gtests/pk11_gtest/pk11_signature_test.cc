@@ -14,6 +14,7 @@
 
 #include "gtest/gtest.h"
 #include "pk11_signature_test.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -29,7 +30,7 @@ ScopedSECKEYPrivateKey Pk11SignatureTest::ImportPrivateKey(
                        static_cast<unsigned int>(pkcs8.len())};
 
   SECKEYPrivateKey* key = nullptr;
-  SECStatus rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
+  SECStatus rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
       slot.get(), &pkcs8Item, nullptr, nullptr, false, false, KU_ALL, &key,
       nullptr);
 

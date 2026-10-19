@@ -14,6 +14,7 @@
 #include "tls_connect.h"
 #include "tls_filter.h"
 #include "tls_parser.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -962,8 +963,8 @@ TEST_P(TlsConnectTls13, RetryStatelessBadCookie) {
                       sizeof(bad_hmac_key)};
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   PK11SymKey* hmac_key =
-      PK11_ImportSymKey(slot.get(), CKM_SHA256_HMAC, PK11_OriginUnwrap,
-                        CKA_SIGN, &key_item, nullptr);
+      nss_test::ImportSymKey(slot.get(), CKM_SHA256_HMAC, PK11_OriginUnwrap,
+                             CKA_SIGN, &key_item, nullptr);
   ASSERT_NE(nullptr, hmac_key);
   SSLInt_SetSelfEncryptMacKey(hmac_key);  // Passes ownership.
 

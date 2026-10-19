@@ -11,6 +11,7 @@
 #include "cpputil.h"
 
 #include "gtest/gtest.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -136,8 +137,8 @@ class TlsPrfTest : public ::testing::Test {
 
     // Import the PMS
     pms_item_.len = pms_len;
-    pms_ = PK11_ImportSymKey(slot_, derive_mech, PK11_OriginUnwrap, CKA_DERIVE,
-                             &pms_item_, NULL);
+    pms_ = nss_test::ImportSymKey(slot_, derive_mech, PK11_OriginUnwrap,
+                                  CKA_DERIVE, &pms_item_, NULL);
     ASSERT_NE(nullptr, pms_);
 
     // Compute the EMS
@@ -150,10 +151,10 @@ class TlsPrfTest : public ::testing::Test {
     } else {
       ASSERT_NE(nullptr, ms_);
 
-      SECStatus rv = PK11_ExtractKeyValue(ms_);
+      SECStatus rv = nss_test::ExtractKeyValue(ms_);
       ASSERT_EQ(SECSuccess, rv);
 
-      SECItem* msData = PK11_GetKeyData(ms_);
+      SECItem* msData = nss_test::GetKeyData(ms_);
       ASSERT_NE(nullptr, msData);
 
       ASSERT_EQ(kMasterSecretSize, msData->len);

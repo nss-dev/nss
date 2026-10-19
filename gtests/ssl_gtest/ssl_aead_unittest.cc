@@ -18,6 +18,7 @@
 #include "nss_scoped_ptrs.h"
 #include "scoped_ptrs_ssl.h"
 #include "tls_connect.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -33,8 +34,8 @@ class AeadTest : public ::testing::Test {
     SECItem key_item = {siBuffer, const_cast<uint8_t*>(kData),
                         static_cast<unsigned int>(GetHashLength(hash_type))};
     PK11SymKey* s =
-        PK11_ImportSymKey(slot_.get(), CKM_SSL3_MASTER_KEY_DERIVE,
-                          PK11_OriginUnwrap, CKA_DERIVE, &key_item, NULL);
+        nss_test::ImportSymKey(slot_.get(), CKM_SSL3_MASTER_KEY_DERIVE,
+                               PK11_OriginUnwrap, CKA_DERIVE, &key_item, NULL);
     ASSERT_NE(nullptr, s);
     secret_.reset(s);
   }

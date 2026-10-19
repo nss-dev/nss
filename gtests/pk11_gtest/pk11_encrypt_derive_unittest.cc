@@ -12,6 +12,7 @@
 #include "cpputil.h"
 #include "databuffer.h"
 #include "util.h"
+#include "pk11_import.h"
 
 #define MAX_KEY_SIZE 24
 
@@ -172,8 +173,8 @@ class EncryptDeriveTest
   }
 
   void GetKeyData(ScopedPK11SymKey& key, uint8_t* buf, size_t max_len) const {
-    ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(key.get()));
-    SECItem* data = PK11_GetKeyData(key.get());
+    ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(key.get()));
+    SECItem* data = nss_test::GetKeyData(key.get());
     ASSERT_TRUE(data);
     ASSERT_EQ(max_len, static_cast<size_t>(data->len));
     PORT_Memcpy(buf, data->data, data->len);

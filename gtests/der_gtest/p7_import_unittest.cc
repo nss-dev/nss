@@ -13,6 +13,7 @@
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -457,9 +458,9 @@ class P7EnvelopedDataTest : public ::testing::Test {
 
     SECItem key_item = {siBuffer, const_cast<uint8_t*>(kTestRsaKey),
                         sizeof(kTestRsaKey)};
-    ASSERT_EQ(SECSuccess, PK11_ImportDERPrivateKeyInfo(
+    ASSERT_EQ(SECSuccess, nss_test::ImportDERPrivateKeyInfoAndReturnKey(
                               slot.get(), &key_item, nullptr, nullptr, PR_TRUE,
-                              PR_FALSE, KU_ALL, nullptr));
+                              PR_FALSE, KU_ALL, nullptr, nullptr));
 
     // Decode the certificate DER into a CERTCertificate, then import it
     // permanently into the slot so the PKCS7 decoder can find the key.

@@ -13,6 +13,7 @@
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
 #include "json_reader.h"
+#include "pk11_import.h"
 
 extern std::string g_source_dir;
 
@@ -44,7 +45,7 @@ class Pkcs11AESKeyWrapKwpTest
 
     // Import encryption key.
     SECItem kek_item = {siBuffer, kek_data, kek_len};
-    ScopedPK11SymKey kek(PK11_ImportSymKeyWithFlags(
+    ScopedPK11SymKey kek(nss_test::ImportSymKeyWithFlags(
         slot.get(), mechanism, PK11_OriginUnwrap, CKA_ENCRYPT, &kek_item,
         CKF_DECRYPT, PR_FALSE, nullptr));
     EXPECT_TRUE(!!kek) << msg;
@@ -199,9 +200,9 @@ TEST_F(Pkcs11AESKeyWrapKwpTest, WrapUnwrapUnalignedKeyLength) {
   std::vector<unsigned char> kek_data(16, 0x5a);
   SECItem kek_item = {siBuffer, kek_data.data(),
                       static_cast<unsigned int>(kek_data.size())};
-  ScopedPK11SymKey kek(PK11_ImportSymKey(slot.get(), CKM_AES_KEY_WRAP_KWP,
-                                         PK11_OriginUnwrap, CKA_WRAP, &kek_item,
-                                         nullptr));
+  ScopedPK11SymKey kek(nss_test::ImportSymKey(slot.get(), CKM_AES_KEY_WRAP_KWP,
+                                              PK11_OriginUnwrap, CKA_WRAP,
+                                              &kek_item, nullptr));
   ASSERT_NE(nullptr, kek);
 
   std::vector<unsigned char> key_data(20);
@@ -210,9 +211,9 @@ TEST_F(Pkcs11AESKeyWrapKwpTest, WrapUnwrapUnalignedKeyLength) {
   }
   SECItem key_item = {siBuffer, key_data.data(),
                       static_cast<unsigned int>(key_data.size())};
-  ScopedPK11SymKey key(PK11_ImportSymKey(slot.get(), CKM_SHA_1_HMAC,
-                                         PK11_OriginUnwrap, CKA_SIGN, &key_item,
-                                         nullptr));
+  ScopedPK11SymKey key(nss_test::ImportSymKey(slot.get(), CKM_SHA_1_HMAC,
+                                              PK11_OriginUnwrap, CKA_SIGN,
+                                              &key_item, nullptr));
   ASSERT_NE(nullptr, key);
 
   std::vector<unsigned char> wrapped(64, 0);
@@ -226,8 +227,8 @@ TEST_F(Pkcs11AESKeyWrapKwpTest, WrapUnwrapUnalignedKeyLength) {
                                                nullptr, &wrapped_item,
                                                CKM_SHA_1_HMAC, CKA_SIGN, 0));
   ASSERT_NE(nullptr, unwrapped);
-  ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(unwrapped.get()));
-  SECItem* value = PK11_GetKeyData(unwrapped.get());
+  ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(unwrapped.get()));
+  SECItem* value = nss_test::GetKeyData(unwrapped.get());
   ASSERT_NE(nullptr, value);
 
   EXPECT_EQ(key_data,

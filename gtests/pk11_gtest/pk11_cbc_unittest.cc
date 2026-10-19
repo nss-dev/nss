@@ -13,6 +13,7 @@
 #include "json_reader.h"
 #include "nss_scoped_ptrs.h"
 #include "testvectors_base/test-structs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -97,8 +98,8 @@ class Pkcs11CbcPadTest : public ::testing::TestWithParam<CK_MECHANISM_TYPE> {
     }
 
     SECItem key_item = {siBuffer, const_cast<uint8_t*>(kKeyData), key_len};
-    PK11SymKey* p = PK11_ImportSymKey(slot.get(), GetParam(), PK11_OriginUnwrap,
-                                      op, &key_item, nullptr);
+    PK11SymKey* p = nss_test::ImportSymKey(
+        slot.get(), GetParam(), PK11_OriginUnwrap, op, &key_item, nullptr);
     EXPECT_NE(nullptr, p);
     return ScopedPK11SymKey(p);
   }
@@ -264,9 +265,9 @@ TEST_F(Pkcs11CbcPadTest, FailEncryptShortParam) {
   // Setup (we use the ECB key for other modes)
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   ASSERT_NE(nullptr, slot);
-  ScopedPK11SymKey key(PK11_ImportSymKey(slot.get(), CKM_AES_ECB,
-                                         PK11_OriginUnwrap, CKA_ENCRYPT,
-                                         &key_item, nullptr));
+  ScopedPK11SymKey key(nss_test::ImportSymKey(slot.get(), CKM_AES_ECB,
+                                              PK11_OriginUnwrap, CKA_ENCRYPT,
+                                              &key_item, nullptr));
   ASSERT_TRUE(key.get());
 
   // CTR should have a CK_AES_CTR_PARAMS
@@ -628,8 +629,8 @@ class Pkcs11AesCbcWycheproofTest : public ::testing::Test {
     SECItem key_item = {siBuffer, key.data() ? key.data() : &tmp,
                         static_cast<unsigned int>(key.size())};
 
-    PK11SymKey* pKey = PK11_ImportSymKey(slot.get(), kMech, PK11_OriginUnwrap,
-                                         CKA_ENCRYPT, &key_item, nullptr);
+    PK11SymKey* pKey = nss_test::ImportSymKey(
+        slot.get(), kMech, PK11_OriginUnwrap, CKA_ENCRYPT, &key_item, nullptr);
     ASSERT_NE(nullptr, pKey);
     ScopedPK11SymKey spKey = ScopedPK11SymKey(pKey);
 

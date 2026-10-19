@@ -210,7 +210,7 @@ TEST_F(Pkcs11RsaPssTest, GenerateAndSignAndVerify) {
   SECKEYPublicKey* pub_keyRaw = nullptr;
   ScopedSECKEYPrivateKey privKey(
       PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN, &rsaGenParams,
-                           &pub_keyRaw, false, false, nullptr));
+                           &pub_keyRaw, false, PK11_IsFIPS(), nullptr));
   ASSERT_TRUE(!!privKey && pub_keyRaw);
   ScopedSECKEYPublicKey pub_key(pub_keyRaw);
 
@@ -264,7 +264,7 @@ TEST_F(Pkcs11RsaPssTest, NoLeakWithInvalidExponent) {
   SECKEYPublicKey* pub_key = nullptr;
   SECKEYPrivateKey* privKey =
       PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN, &rsaGenParams,
-                           &pub_key, false, false, nullptr);
+                           &pub_key, false, PK11_IsFIPS(), nullptr);
   EXPECT_FALSE(privKey);
   EXPECT_FALSE(pub_key);
 }

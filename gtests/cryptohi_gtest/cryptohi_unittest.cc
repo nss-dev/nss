@@ -670,7 +670,7 @@ class Rfc8410SpkiTest : public ::testing::Test {
     ASSERT_NO_FATAL_FAILURE(MakeEcParams(oid, params));
     SECKEYPublicKey* pubTmp = nullptr;
     priv.reset(PK11_GenerateKeyPair(slot.get(), mech, params.get(), &pubTmp,
-                                    PR_FALSE, PR_FALSE, nullptr));
+                                    PR_FALSE, PR_TRUE, nullptr));
     ASSERT_NE(nullptr, priv.get());
     ASSERT_NE(nullptr, pubTmp);
     pub.reset(pubTmp);

@@ -207,14 +207,14 @@ TEST(RsaPkcs1Test, Pkcs1MinimumPadding) {
   ASSERT_TRUE(slot);
   SECKEYPublicKey* p_pub_tmp = nullptr;
   short_priv.reset(PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN,
-                                        &rsa_params, &p_pub_tmp, false, false,
-                                        nullptr));
+                                        &rsa_params, &p_pub_tmp, false,
+                                        PK11_IsFIPS(), nullptr));
   short_pub.reset(p_pub_tmp);
 
   rsa_params.keySizeInBits = kRsaKeyBits;
   good_priv.reset(PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN,
-                                       &rsa_params, &p_pub_tmp, false, false,
-                                       nullptr));
+                                       &rsa_params, &p_pub_tmp, false,
+                                       PK11_IsFIPS(), nullptr));
   good_pub.reset(p_pub_tmp);
 
   size_t em_len = kRsaShortKeyBits / 8;
@@ -339,7 +339,7 @@ TEST(RsaPkcs1Test, KeyGenPublicExponentTooLarge) {
   SECKEYPublicKey* pub = nullptr;
   ScopedSECKEYPrivateKey priv(
       PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN, &rsa_params,
-                           &pub, false, false, nullptr));
+                           &pub, false, PK11_IsFIPS(), nullptr));
   EXPECT_FALSE(priv);
   EXPECT_FALSE(pub);
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());

@@ -15,6 +15,7 @@
 #include "nss_scoped_ptrs.h"
 #include "pk11_keygen.h"
 #include "testvectors_base/test-structs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -55,13 +56,13 @@ class Pkcs11EcdhTest : public ::testing::Test {
     if (vec.valid) {
       ASSERT_TRUE(!!sym_key);
 
-      SECStatus rv = PK11_ExtractKeyValue(sym_key.get());
+      SECStatus rv = nss_test::ExtractKeyValue(sym_key.get());
       EXPECT_EQ(SECSuccess, rv);
 
       SECItem expect_item = {siBuffer, toUcharPtr(vec.secret.data()),
                              static_cast<unsigned int>(vec.secret.size())};
 
-      SECItem* derived_key = PK11_GetKeyData(sym_key.get());
+      SECItem* derived_key = nss_test::GetKeyData(sym_key.get());
       EXPECT_EQ(0, SECITEM_CompareItem(derived_key, &expect_item));
     } else if (!vec.invalid_asn) {
       // Invalid encodings could produce an output if we get here, so only
@@ -142,25 +143,6 @@ class Pkcs11EcdhTest : public ::testing::Test {
                 oid_data->oid.data + oid_data->oid.len);
   }
 
-  // Construct a garbage public value for the given curve.
-  // NSS needs a value for this, but it doesn't care what it is.
-  void PublicValue(const std::string& curve, std::vector<uint8_t>* der) {
-    size_t len;
-    if (curve == "secp256r1") {
-      len = 32;
-    } else if (curve == "secp384r1") {
-      len = 48;
-    } else if (curve == "secp521r1") {
-      len = 64;
-    } else {
-      FAIL() << "unknown curve: " << curve;
-    }
-    der->push_back(0x04);
-    for (size_t i = 0; i < len * 2; ++i) {
-      der->push_back(0x00);
-    }
-  }
-
   void InsertLength(std::vector<uint8_t>* der, size_t offset) {
     size_t len = der->size() - offset;
     ASSERT_GT(256u, len) << "unsupported length for DER";
@@ -192,16 +174,19 @@ class Pkcs11EcdhTest : public ::testing::Test {
     der.push_back(0x30);
     length_inserts.push_back(der.size());
 
+    // RFC 5915 wants the scalar at the full length of the order, without
+    // the sign byte the vectors carry. The token derives the public key.
+    size_t len = (curve == "secp521r1") ? 66 : (curve == "secp384r1") ? 48 : 32;
+    std::vector<uint8_t> scalar(vec.private_key);
+    while (scalar.size() > len && scalar[0] == 0) {
+      scalar.erase(scalar.begin());
+    }
+    if (scalar.size() < len) {
+      scalar.insert(scalar.begin(), len - scalar.size(), 0);
+    }
     der.insert(der.end(), {0x02, 0x01, 0x01, 0x04});
-    der.push_back(vec.private_key.size());
-    der.insert(der.end(), vec.private_key.begin(), vec.private_key.end());
-
-    der.push_back(0xa1);
-    length_inserts.push_back(der.size());
-    der.push_back(0x03);
-    length_inserts.push_back(der.size());
-    der.push_back(0x00);
-    PublicValue(curve, &der);
+    der.push_back(scalar.size());
+    der.insert(der.end(), scalar.begin(), scalar.end());
 
     for (auto i = length_inserts.rbegin(); i != length_inserts.rend(); ++i) {
       InsertLength(&der, *i);
@@ -221,7 +206,7 @@ class Pkcs11EcdhTest : public ::testing::Test {
     SECItem der_item = {siBuffer, const_cast<uint8_t*>(der.data()),
                         static_cast<unsigned int>(der.size())};
     SECKEYPrivateKey* key = nullptr;
-    SECStatus rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    SECStatus rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
         slot.get(), &der_item, nullptr, nullptr, false, true, KU_KEY_AGREEMENT,
         &key, nullptr);
     if (vec.valid) {

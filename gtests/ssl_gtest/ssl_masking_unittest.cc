@@ -32,8 +32,10 @@ class MaskingTest : public ::testing::Test {
 
   void InitSecret(SSLHashType hash_type) {
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
-    PK11SymKey* s = PK11_KeyGen(slot_.get(), CKM_GENERIC_SECRET_KEY_GEN,
-                                nullptr, AES_128_KEY_LENGTH, nullptr);
+    // FIPS HMAC needs a key of at least half the hash length.
+    PK11SymKey* s =
+        PK11_KeyGen(slot_.get(), CKM_GENERIC_SECRET_KEY_GEN, nullptr,
+                    static_cast<int>(GetHashLength(hash_type)), nullptr);
     ASSERT_NE(nullptr, s);
     secret_.reset(s);
   }

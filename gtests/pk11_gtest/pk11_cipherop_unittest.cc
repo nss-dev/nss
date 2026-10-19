@@ -4,6 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -61,8 +62,8 @@ TEST(Pkcs11CipherOp, SingleCtxMultipleUnalignedCipherOps) {
   SECItem paramItem = {siBuffer, reinterpret_cast<unsigned char*>(&param),
                        sizeof(CK_AES_CTR_PARAMS)};
 
-  ScopedPK11SymKey key(PK11_ImportSymKey(slot.get(), cipher, PK11_OriginUnwrap,
-                                         CKA_ENCRYPT, &keyItem, NULL));
+  ScopedPK11SymKey key(nss_test::ImportSymKey(
+      slot.get(), cipher, PK11_OriginUnwrap, CKA_ENCRYPT, &keyItem, NULL));
   ASSERT_TRUE(key);
   ScopedPK11Context ctx(
       PK11_CreateContextBySymKey(cipher, CKA_ENCRYPT, key.get(), &paramItem));
@@ -92,8 +93,8 @@ void ChachaMulti(CK_MECHANISM_TYPE cipher, SECItem* param) {
   }
   SECItem keyItem = {siBuffer, key_bytes, sizeof(key_bytes)};
 
-  ScopedPK11SymKey key(PK11_ImportSymKey(slot.get(), cipher, PK11_OriginUnwrap,
-                                         CKA_ENCRYPT, &keyItem, NULL));
+  ScopedPK11SymKey key(nss_test::ImportSymKey(
+      slot.get(), cipher, PK11_OriginUnwrap, CKA_ENCRYPT, &keyItem, NULL));
   ASSERT_TRUE(key);
   ScopedSECItem param_item(PK11_ParamFromIV(cipher, param));
   ASSERT_TRUE(param_item);

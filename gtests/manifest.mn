@@ -47,7 +47,7 @@ freebl_gtest: common
 pk11_gtest: common pkcs11testmodule
 smime_gtest: common
 softoken_gtest: common
-ssl_gtest: google_test
+ssl_gtest: common
 sysinit_gtest: google_test
 util_gtest: common
 endif

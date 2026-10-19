@@ -15,6 +15,7 @@
 #include "nss_scoped_ptrs.h"
 #include "pk11_keygen.h"
 #include "pq_pkcs8.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -257,8 +258,17 @@ class DERPrivateKeyImportTest : public ::testing::Test {
     /* SEC_ASN1DecoderFinish() (lib/util/secasn1d.c:3001) only reports
      * SEC_ERROR_BAD_DER when no error is already pending. */
     PORT_SetError(0);
-    rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
-        slot.get(), &item, &nick, nullptr, true, false, KU_ALL, &key, nullptr);
+    // pk11wrap rejects bad input before it reaches the token, so failures can
+    // be tested against the real thing in FIPS mode too.
+    if (expect_success) {
+      rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
+          slot.get(), &item, &nick, nullptr, true, false, KU_ALL, &key,
+          nullptr);
+    } else {
+      rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(slot.get(), &item, &nick,
+                                                    nullptr, true, false,
+                                                    KU_ALL, &key, nullptr);
+    }
     EXPECT_EQ(rv == SECSuccess, key != nullptr);
 
     if (expect_success) {
@@ -369,7 +379,7 @@ TEST_F(DERPrivateKeyImportTest, ImportEcdsaKeyWithoutPublicKey) {
                   static_cast<unsigned int>(kValidP256KeyNoPublicKey.size())};
   SECKEYPrivateKey* privk = nullptr;
   PORT_SetError(0);
-  ASSERT_EQ(SECSuccess, PK11_ImportDERPrivateKeyInfoAndReturnKey(
+  ASSERT_EQ(SECSuccess, nss_test::ImportDERPrivateKeyInfoAndReturnKey(
                             slot.get(), &item, nullptr, nullptr, PR_FALSE,
                             PR_FALSE, KU_ALL, &privk, nullptr));
   ScopedSECKEYPrivateKey key(privk);
@@ -394,7 +404,7 @@ TEST_F(DERPrivateKeyImportTest, DeriveFailsOnShortScalar) {
       static_cast<unsigned int>(kP256ShortScalarNoPublicKey.size())};
   SECKEYPrivateKey* privk = nullptr;
   PORT_SetError(0);
-  EXPECT_EQ(SECFailure, PK11_ImportDERPrivateKeyInfoAndReturnKey(
+  EXPECT_EQ(SECFailure, nss_test::ImportDERPrivateKeyInfoAndReturnKey(
                             slot.get(), &item, nullptr, nullptr, PR_FALSE,
                             PR_FALSE, KU_ALL, &privk, nullptr));
   EXPECT_EQ(nullptr, privk);
@@ -445,7 +455,7 @@ class PrivateKeyImportCkaIdTest : public ::testing::Test {
                    static_cast<unsigned int>(pkcs8.size())};
     SECKEYPrivateKey* privk = nullptr;
     PORT_SetError(0);
-    SECStatus rv = PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    SECStatus rv = nss_test::ImportDERPrivateKeyInfoAndReturnKey(
         slot_.get(), &der, nullptr, nullptr, isPerm, PR_FALSE, KU_ALL, &privk,
         nullptr);
     EXPECT_EQ(rv == SECSuccess, privk != nullptr);
@@ -570,7 +580,7 @@ TEST_P(PrivateKeyImportCkaIdRoundTripTest, SessionKeyGetsCkaId) {
   SECItem expectedPub = {siBuffer, pubBytes.data(),
                          static_cast<unsigned int>(pubBytes.size())};
 
-  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(priv.get(), nullptr));
+  ScopedSECItem der(nss_test::ExportDERPrivateKeyInfo(priv.get(), nullptr));
   ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
   std::vector<uint8_t> pkcs8(der->data, der->data + der->len);
 
@@ -600,7 +610,7 @@ TEST_P(PrivateKeyImportCkaIdRoundTripTest, TokenKeyGetsCkaIdAndPublicKey) {
   SECItem expectedPub = {siBuffer, pubBytes.data(),
                          static_cast<unsigned int>(pubBytes.size())};
 
-  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(priv.get(), nullptr));
+  ScopedSECItem der(nss_test::ExportDERPrivateKeyInfo(priv.get(), nullptr));
   ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
   std::vector<uint8_t> pkcs8(der->data, der->data + der->len);
 
@@ -644,6 +654,9 @@ TEST_F(PrivateKeyImportCkaIdTest, EcdsaWithoutPublicKey) {
 // A DSAPrivateKey is only the private scalar, so this always goes through the
 // regenerate path. This used to be rejected outright.
 TEST_F(PrivateKeyImportCkaIdTest, DsaWithoutPublicKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "softoken can't unwrap a DSA key without its public value";
+  }
   ScopedSECKEYPrivateKey imported(Import(kDsa1024KeyNoPublicKey, PR_FALSE));
   ASSERT_TRUE(imported) << PORT_ErrorToString(PORT_GetError());
 
@@ -654,6 +667,9 @@ TEST_F(PrivateKeyImportCkaIdTest, DsaWithoutPublicKey) {
 }
 
 TEST_F(PrivateKeyImportCkaIdTest, DsaTokenKeyWithoutPublicKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "softoken can't unwrap a DSA key without its public value";
+  }
   ScopedSECKEYPrivateKey imported(Import(kDsa1024KeyNoPublicKey, PR_TRUE));
   ASSERT_TRUE(imported) << PORT_ErrorToString(PORT_GetError());
 
@@ -684,6 +700,13 @@ class PrivateKeyImportPqCkaIdTest
     : public PrivateKeyImportCkaIdTest,
       public ::testing::WithParamInterface<PqCkaIdKeyType> {
  protected:
+  void SetUp() override {
+    if (PK11_IsFIPS()) {
+      GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED or CKA_VALUE";
+    }
+    PrivateKeyImportCkaIdTest::SetUp();
+  }
+
   // Generate a key pair and pull out the pieces a PrivateKeyInfo can carry,
   // along with the public value the imported key has to hash to.
   void GenerateAndExtract() {
@@ -832,7 +855,7 @@ TEST_P(EcPublicValueTest, ExportedPkcs8CarriesWholePoint) {
   ASSERT_NO_FATAL_FAILURE(GenerateKey(&priv, &pub));
   ASSERT_TRUE(priv);
 
-  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(priv.get(), nullptr));
+  ScopedSECItem der(nss_test::ExportDERPrivateKeyInfo(priv.get(), nullptr));
   ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
 
   // the point is the tail of the encoding, so just look for it there
@@ -873,7 +896,7 @@ TEST_F(PrivateKeyImportCkaIdTest, EcdsaAmbiguousPointIsNotUnwrapped) {
   EXPECT_EQ(0, SECITEM_CompareItem(&expected, &converted->u.ec.publicValue));
 
   // and exporting it again has to write the whole point back out
-  ScopedSECItem der(PK11_ExportDERPrivateKeyInfo(imported.get(), nullptr));
+  ScopedSECItem der(nss_test::ExportDERPrivateKeyInfo(imported.get(), nullptr));
   ASSERT_TRUE(der) << PORT_ErrorToString(PORT_GetError());
   const std::vector<uint8_t> encoded(der->data, der->data + der->len);
   EXPECT_NE(encoded.end(),

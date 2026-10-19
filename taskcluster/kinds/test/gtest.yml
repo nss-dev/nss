@@ -59,8 +59,8 @@ gtests-swcrypto:
             NSS_DISABLE_ALTIVEC: "1"
             NSS_DISABLE_CRYPTO_VSX: "1"
 
-# Gtests on the FIPS build. The symbol is intentionally flat: the FIPS build's
-# treeherder group wraps it into FIPS(Gtest) on the opt-fips platform row, and
+# Gtests on the make FIPS builds. The symbol is intentionally flat: the build's
+# FIPS treeherder group wraps it into FIPS(Gtest) on the make platform rows, and
 # the preserved inner "Gtest" symbol keeps it selectable via `-u gtest`.
 gtests-fips:
     description: Gtests (FIPS)
@@ -69,3 +69,21 @@ gtests-fips:
     from-deps:
         with-attributes:
             make-fips: [true]
+    worker:
+        env:
+            # A FIPS build alone doesn't put the internal token in FIPS mode.
+            NSS_FIPS: "1"
+
+# Gtests in FIPS mode on the gyp --enable-fips build. Other gyp builds define
+# NSS_FIPS_DISABLED, which makes NSS_FIPS a no-op. This build has no treeherder
+# group, so the symbol can be grouped.
+gtests-fips-gyp:
+    description: Gtests (FIPS)
+    treeherder:
+        symbol: Gtest(FIPS)
+    from-deps:
+        with-attributes:
+            build_type: [opt-fips]
+    worker:
+        env:
+            NSS_FIPS: "1"

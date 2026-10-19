@@ -14,6 +14,7 @@
 #include "tls_connect.h"
 #include "tls_filter.h"
 #include "tls_parser.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -1362,8 +1363,8 @@ TEST_F(TlsConnectStreamTls13, ClientHelloExtensionPermutationWithPSK) {
   psk_item.len = sizeof(kPskDummyVal_);
   psk_item.data = const_cast<uint8_t*>(kPskDummyVal_);
   PK11SymKey* key =
-      PK11_ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
-                        CKA_DERIVE, &psk_item, NULL);
+      nss_test::ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
+                             CKA_DERIVE, &psk_item, NULL);
 
   ScopedPK11SymKey scoped_psk_(key);
   const std::string kPskDummyLabel_ = "NSS PSK GTEST label";

@@ -13,6 +13,7 @@
 #include "databuffer.h"
 
 #include "gtest/gtest.h"
+#include "pk11_import.h"
 namespace nss_test {
 
 // For test vectors.
@@ -41,7 +42,7 @@ class Pk11SignatureTest : public ::testing::Test {
   void setSkipRaw(bool skip_raw) { skip_raw_ = true; }
 
   bool ExportPrivateKey(ScopedSECKEYPrivateKey* key, DataBuffer& pkcs8) {
-    SECItem* pkcs8Item = PK11_ExportDERPrivateKeyInfo(key->get(), nullptr);
+    SECItem* pkcs8Item = nss_test::ExportDERPrivateKeyInfo(key->get(), nullptr);
     if (!pkcs8Item) {
       return false;
     }

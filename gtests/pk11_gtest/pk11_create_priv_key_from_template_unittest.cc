@@ -24,6 +24,12 @@ namespace nss_test {
 
 class CreatePrivKeyFromTemplateTest : public ::testing::Test {
  protected:
+  void SetUp() override {
+    if (PK11_IsFIPS()) {
+      GTEST_SKIP() << "FIPS tokens take no raw private key templates";
+    }
+  }
+
   // Read a raw PKCS #11 attribute off a private key. The key must be
   // non-sensitive for secret attributes (e.g. CKA_VALUE) to be readable.
   std::vector<uint8_t> ReadAttr(SECKEYPrivateKey* key, CK_ATTRIBUTE_TYPE type) {

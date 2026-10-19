@@ -21,6 +21,7 @@ extern "C" {
 #include "tls_connect.h"
 #include "tls_filter.h"
 #include "tls_parser.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -229,8 +230,8 @@ class TlsZeroRttReplayTest : public TlsConnectTls13 {
     SECItem psk_item = {siBuffer, toUcharPtr(kPskDummyVal.data()),
                         static_cast<unsigned int>(kPskDummyVal.size())};
     PK11SymKey* key =
-        PK11_ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
-                          CKA_DERIVE, &psk_item, NULL);
+        nss_test::ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
+                               CKA_DERIVE, &psk_item, NULL);
     ASSERT_NE(nullptr, key);
     ScopedPK11SymKey scoped_psk(key);
     RolloverAntiReplay();

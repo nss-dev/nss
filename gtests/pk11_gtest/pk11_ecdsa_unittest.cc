@@ -191,6 +191,12 @@ TEST_F(Pkcs11EcdsaSha256Test, ImportPointNotOnCurve) {
   ASSERT_TRUE(privKey);
 
   ScopedSECKEYPublicKey pubKey(SECKEY_ConvertToPublicKey(privKey.get()));
+  // A FIPS token gets the key unwrapped, without a CKA_EC_POINT, and rejects
+  // the point as soon as it has to produce the public key.
+  if (PK11_IsFIPS()) {
+    EXPECT_FALSE(pubKey);
+    return;
+  }
   ASSERT_TRUE(pubKey);
 
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());

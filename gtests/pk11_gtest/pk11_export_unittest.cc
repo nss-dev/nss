@@ -10,6 +10,7 @@
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -23,7 +24,7 @@ class Pkcs11ExportTest : public ::testing::Test {
     SECItem keyItem = {siBuffer, (unsigned char*)keyData, sizeof(keyData)};
 
     CK_MECHANISM_TYPE mechanism = CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256;
-    ScopedPK11SymKey baseKey(PK11_ImportSymKey(
+    ScopedPK11SymKey baseKey(nss_test::ImportSymKey(
         slot.get(), mechanism, PK11_OriginUnwrap, CKA_WRAP, &keyItem, nullptr));
     EXPECT_TRUE(baseKey.get());
 

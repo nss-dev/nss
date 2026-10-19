@@ -20,6 +20,7 @@
 #include "secerr.h"
 #include "secitem.h"
 #include "secoid.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -161,9 +162,9 @@ class CryptohiMlDsaWycheproofTest : public ::testing::Test {
 
     SECItem item = as_item(privateKeyPkcs8_);
     SECKEYPrivateKey* key = nullptr;
-    if (PK11_ImportDERPrivateKeyInfoAndReturnKey(slot.get(), &item, nullptr,
-                                                 nullptr, false, false, KU_ALL,
-                                                 &key, nullptr) != SECSuccess) {
+    if (nss_test::ImportDERPrivateKeyInfoAndReturnKey(
+            slot.get(), &item, nullptr, nullptr, false, false, KU_ALL, &key,
+            nullptr) != SECSuccess) {
       return nullptr;
     }
     return ScopedSECKEYPrivateKey(key);
@@ -260,7 +261,7 @@ class CryptohiMlDsaParamsTest : public ::testing::Test {
     CK_ML_DSA_PARAMETER_SET_TYPE paramSet = CKP_ML_DSA_44;
     SECKEYPublicKey* pub = nullptr;
     priv_.reset(PK11_GenerateKeyPair(slot.get(), CKM_ML_DSA_KEY_PAIR_GEN,
-                                     &paramSet, &pub, PR_FALSE, PR_FALSE,
+                                     &paramSet, &pub, PR_FALSE, PR_TRUE,
                                      nullptr));
     pub_.reset(pub);
     ASSERT_TRUE(priv_);
@@ -360,7 +361,7 @@ class CryptohiMlDsaKeyTest : public ::testing::TestWithParam<SECOidTag> {
     CK_ML_DSA_PARAMETER_SET_TYPE paramSet = Pkcs11ParamSet(oid_);
     SECKEYPublicKey* pub = nullptr;
     priv_.reset(PK11_GenerateKeyPair(slot.get(), CKM_ML_DSA_KEY_PAIR_GEN,
-                                     &paramSet, &pub, PR_FALSE, PR_FALSE,
+                                     &paramSet, &pub, PR_FALSE, PR_TRUE,
                                      nullptr));
     pub_.reset(pub);
     ASSERT_TRUE(priv_);

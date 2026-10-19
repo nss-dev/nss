@@ -16,7 +16,8 @@
         'p12_import_unittest.cc',
         'p7_import_unittest.cc',
         'secasn1decode_unittest.cc',
-        '<(DEPTH)/gtests/common/gtests.cc'
+        '<(DEPTH)/gtests/common/gtests.cc',
+        '<(DEPTH)/gtests/common/pk11_import.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',

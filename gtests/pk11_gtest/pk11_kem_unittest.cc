@@ -18,6 +18,7 @@
 #include "secmodti.h"
 
 #include "secport.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -83,10 +84,10 @@ class Pkcs11KEMTest : public ::testing::Test,
   }
 
   SECItem* getRawKeyData(const ScopedPK11SymKey& key) {
-    SECStatus rv = PK11_ExtractKeyValue(key.get());
+    SECStatus rv = nss_test::ExtractKeyValue(key.get());
     EXPECT_EQ(SECSuccess, rv);
 
-    SECItem* keyData = PK11_GetKeyData(key.get());
+    SECItem* keyData = nss_test::GetKeyData(key.get());
     EXPECT_NE(nullptr, keyData);
     EXPECT_NE(nullptr, keyData->data);
 
@@ -274,7 +275,7 @@ class Pkcs11MlKemStorageTest
     CK_ML_KEM_PARAMETER_SET_TYPE paramSet = GetParam();
     SECKEYPublicKey* pub = nullptr;
     priv_.reset(PK11_GenerateKeyPair(slot_.get(), CKM_ML_KEM_KEY_PAIR_GEN,
-                                     &paramSet, &pub, PR_FALSE, PR_FALSE,
+                                     &paramSet, &pub, PR_FALSE, PK11_IsFIPS(),
                                      nullptr));
     pub_.reset(pub);
     ASSERT_TRUE(priv_) << PORT_ErrorToString(PORT_GetError());
@@ -323,13 +324,14 @@ class Pkcs11MlKemStorageTest
   // encapsulate to the public half of the pair it came from and check that it
   // decapsulates to the same shared secret.
   void ExpectPairs(SECKEYPrivateKey* priv, SECKEYPublicKey* pub) {
+    // A FIPS token only makes sensitive secrets.
+    PK11AttrFlags attrs =
+        PK11_ATTR_SESSION | PK11_ATTR_PUBLIC | PK11_ATTR_EXTRACTABLE |
+        (PK11_IsFIPS() ? PK11_ATTR_SENSITIVE : PK11_ATTR_INSENSITIVE);
     PK11SymKey* encRaw = nullptr;
     SECItem* ctRaw = nullptr;
-    ASSERT_EQ(SECSuccess, PK11_Encapsulate(
-                              pub, CKM_HKDF_DERIVE,
-                              PK11_ATTR_SESSION | PK11_ATTR_PUBLIC |
-                                  PK11_ATTR_INSENSITIVE | PK11_ATTR_EXTRACTABLE,
-                              CKF_DERIVE, &encRaw, &ctRaw))
+    ASSERT_EQ(SECSuccess, PK11_Encapsulate(pub, CKM_HKDF_DERIVE, attrs,
+                                           CKF_DERIVE, &encRaw, &ctRaw))
         << PORT_ErrorToString(PORT_GetError());
     ScopedPK11SymKey encSecret(encRaw);
     ScopedSECItem ciphertext(ctRaw);
@@ -337,19 +339,17 @@ class Pkcs11MlKemStorageTest
     ASSERT_TRUE(ciphertext);
 
     PK11SymKey* decRaw = nullptr;
-    ASSERT_EQ(SECSuccess, PK11_Decapsulate(
-                              priv, ciphertext.get(), CKM_HKDF_DERIVE,
-                              PK11_ATTR_SESSION | PK11_ATTR_PUBLIC |
-                                  PK11_ATTR_INSENSITIVE | PK11_ATTR_EXTRACTABLE,
-                              CKF_DERIVE, &decRaw))
+    ASSERT_EQ(SECSuccess,
+              PK11_Decapsulate(priv, ciphertext.get(), CKM_HKDF_DERIVE, attrs,
+                               CKF_DERIVE, &decRaw))
         << PORT_ErrorToString(PORT_GetError());
     ScopedPK11SymKey decSecret(decRaw);
     ASSERT_TRUE(decSecret);
 
-    ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(encSecret.get()));
-    ASSERT_EQ(SECSuccess, PK11_ExtractKeyValue(decSecret.get()));
-    SECItem* a = PK11_GetKeyData(encSecret.get());
-    SECItem* b = PK11_GetKeyData(decSecret.get());
+    ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(encSecret.get()));
+    ASSERT_EQ(SECSuccess, nss_test::ExtractKeyValue(decSecret.get()));
+    SECItem* a = nss_test::GetKeyData(encSecret.get());
+    SECItem* b = nss_test::GetKeyData(decSecret.get());
     ASSERT_TRUE(a);
     ASSERT_TRUE(b);
     NSS_DECLASSIFY(a->data, a->len);
@@ -361,7 +361,7 @@ class Pkcs11MlKemStorageTest
     SECItem item = {siBuffer, const_cast<uint8_t*>(pkcs8.data()),
                     static_cast<unsigned int>(pkcs8.size())};
     SECKEYPrivateKey* key = nullptr;
-    if (PK11_ImportDERPrivateKeyInfoAndReturnKey(
+    if (nss_test::ImportDERPrivateKeyInfoAndReturnKey(
             slot_.get(), &item, nullptr, nullptr, PR_FALSE, PR_FALSE, KU_ALL,
             &key, nullptr) != SECSuccess) {
       return nullptr;
@@ -395,8 +395,8 @@ TEST_P(Pkcs11MlKemStorageTest, WrapAndUnwrap) {
 
   ScopedSECKEYPrivateKey unwrapped(PK11_UnwrapPrivKeyByKeyType(
       slot_.get(), kek.get(), CKM_NSS_AES_KEY_WRAP_PAD, wrapParam.get(),
-      wrapped.get(), nullptr, &pub_->u.kyber.publicValue, PR_FALSE, PR_FALSE,
-      kyberKey, KU_ALL, nullptr));
+      wrapped.get(), nullptr, &pub_->u.kyber.publicValue, PR_FALSE,
+      PK11_IsFIPS(), kyberKey, KU_ALL, nullptr));
   ASSERT_TRUE(unwrapped) << PORT_ErrorToString(PORT_GetError());
   EXPECT_EQ(kyberKey, unwrapped->keyType);
   ExpectPairs(unwrapped.get(), pub_.get());
@@ -404,6 +404,9 @@ TEST_P(Pkcs11MlKemStorageTest, WrapAndUnwrap) {
 
 // C_WrapKey packages a key that has a seed as the seed CHOICE alone.
 TEST_P(Pkcs11MlKemStorageTest, WrapWritesTheSeedChoice) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
@@ -463,6 +466,9 @@ TEST_P(Pkcs11MlKemStorageTest, ExportEncryptedAndImportAsTokenKey) {
 // Loading a key onto a slot reads its attributes back out and creates a fresh
 // object from them, which is the kyberKey branch of pk11_loadPrivKeyWithFlags.
 TEST_P(Pkcs11MlKemStorageTest, LoadPrivKeyOntoASlot) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal private key attributes";
+  }
   ScopedSECKEYPrivateKey loaded(PK11_LoadPrivKey(
       slot_.get(), priv_.get(), pub_.get(), PR_FALSE, PR_FALSE));
   ASSERT_TRUE(loaded) << PORT_ErrorToString(PORT_GetError());
@@ -478,7 +484,7 @@ TEST_P(Pkcs11MlKemStorageTest, TokenKeyCopiesToASessionKey) {
   SECKEYPublicKey* pub = nullptr;
   ScopedSECKEYPrivateKey tokenPriv(
       PK11_GenerateKeyPair(slot_.get(), CKM_ML_KEM_KEY_PAIR_GEN, &paramSet,
-                           &pub, PR_TRUE /* token */, PR_FALSE, nullptr));
+                           &pub, PR_TRUE /* token */, PK11_IsFIPS(), nullptr));
   ScopedSECKEYPublicKey tokenPub(pub);
   ASSERT_TRUE(tokenPriv) << PORT_ErrorToString(PORT_GetError());
   ASSERT_TRUE(tokenPub);
@@ -499,6 +505,9 @@ TEST_P(Pkcs11MlKemStorageTest, TokenKeyCopiesToASessionKey) {
 // to agree, so softoken re-derives the key from the seed and rejects the pair
 // if they differ. This is the ML-KEM half of the same check tested for ML-DSA.
 TEST_P(Pkcs11MlKemStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED or CKA_VALUE";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
@@ -544,6 +553,9 @@ TEST_P(Pkcs11MlKemStorageTest, BothEncodedKeyChecksSeedAgainstExpandedKey) {
 // A seed-only PKCS#8 has to expand back to the same key, and an expanded-key
 // PKCS#8 has to import without a seed to derive from.
 TEST_P(Pkcs11MlKemStorageTest, SeedOnlyAndExpandedOnlyPkcs8) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED or CKA_VALUE";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
@@ -570,6 +582,9 @@ TEST_P(Pkcs11MlKemStorageTest, SeedOnlyAndExpandedOnlyPkcs8) {
 
 // Export writes the seed CHOICE, like the wrap path.
 TEST_P(Pkcs11MlKemStorageTest, ExportPkcs8WritesTheSeedChoice) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_SEED";
+  }
   ScopedSECItem seed(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(seed);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),
@@ -589,6 +604,9 @@ TEST_P(Pkcs11MlKemStorageTest, ExportPkcs8WritesTheSeedChoice) {
 }
 
 TEST_P(Pkcs11MlKemStorageTest, ExportPkcs8FallsBackToTheExpandedKey) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS tokens don't reveal CKA_VALUE";
+  }
   ScopedSECItem value(SECITEM_AllocItem(nullptr, nullptr, 0));
   ASSERT_TRUE(value);
   ASSERT_EQ(SECSuccess, PK11_ReadRawAttribute(PK11_TypePrivKey, priv_.get(),

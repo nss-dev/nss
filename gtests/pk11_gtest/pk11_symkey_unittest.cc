@@ -4,6 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -21,8 +22,8 @@ SECItem kRightHalf = {siBuffer, (unsigned char*)kKeyData + 8, 8};
 class Pkcs11SymKeyTest : public ::testing::Test {
  protected:
   PK11SymKey* ImportSymKey(PK11SlotInfo* slot, SECItem* key_data) {
-    PK11SymKey* out = PK11_ImportSymKey(slot, CKM_NULL, PK11_OriginUnwrap,
-                                        CKA_DERIVE, key_data, nullptr);
+    PK11SymKey* out = nss_test::ImportSymKey(slot, CKM_NULL, PK11_OriginUnwrap,
+                                             CKA_DERIVE, key_data, nullptr);
     EXPECT_NE(nullptr, out);
     return out;
   }
@@ -30,10 +31,10 @@ class Pkcs11SymKeyTest : public ::testing::Test {
   void CheckKeyData(SECItem& expected, PK11SymKey* actual) {
     ASSERT_NE(nullptr, actual);
 
-    SECStatus rv = PK11_ExtractKeyValue(actual);
+    SECStatus rv = nss_test::ExtractKeyValue(actual);
     ASSERT_EQ(SECSuccess, rv);
 
-    SECItem* keyData = PK11_GetKeyData(actual);
+    SECItem* keyData = nss_test::GetKeyData(actual);
     ASSERT_NE(nullptr, keyData);
     ASSERT_NE(nullptr, keyData->data);
     ASSERT_EQ(expected.len, keyData->len);
@@ -149,6 +150,9 @@ TEST_F(Pkcs11SymKeyTest, KeySlotConcatSymKeyTest) {
 // The PK11SymKey.data fields are set in PK11_ImportSymKey, so this just
 // re-imports the key data.
 TEST_F(Pkcs11SymKeyTest, CrossSlotConcatSymKeyTest) {
+  if (PK11_IsFIPS()) {
+    GTEST_SKIP() << "FIPS mode has a single internal slot";
+  }
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   ASSERT_NE(nullptr, slot);
 

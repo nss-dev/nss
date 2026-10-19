@@ -14,6 +14,7 @@
 #include "json_reader.h"
 #include "nss_scoped_ptrs.h"
 #include "testvectors_base/test-structs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -86,7 +87,7 @@ class Pkcs11HmacTest : public ::testing::Test {
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
     ASSERT_NE(nullptr, slot) << err;
 
-    ScopedPK11SymKey p11_key(PK11_ImportSymKey(
+    ScopedPK11SymKey p11_key(nss_test::ImportSymKey(
         slot.get(), mech, PK11_OriginUnwrap, CKA_SIGN, &key, nullptr));
     ASSERT_NE(nullptr, p11_key.get()) << err;
 
@@ -95,7 +96,7 @@ class Pkcs11HmacTest : public ::testing::Test {
     EXPECT_EQ(vec.valid, 0 == SECITEM_CompareItem(&out, &mac)) << err;
 
     // Now verify the given mac using PK11_CreateContextBySymKey/PK11_Digest*
-    ScopedPK11SymKey p11_verify_key(PK11_ImportSymKey(
+    ScopedPK11SymKey p11_verify_key(nss_test::ImportSymKey(
         slot.get(), mech, PK11_OriginUnwrap, CKA_VERIFY, &key, nullptr));
     ASSERT_NE(nullptr, p11_verify_key.get()) << err;
 

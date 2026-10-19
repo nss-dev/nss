@@ -14,7 +14,8 @@
         'cryptohi_mldsa_unittest.cc',
         'cryptohi_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc',
-        '<(DEPTH)/gtests/common/json_reader.cc'
+        '<(DEPTH)/gtests/common/json_reader.cc',
+        '<(DEPTH)/gtests/common/pk11_import.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',

@@ -15,6 +15,7 @@
 #include "databuffer.h"
 #include "gtest_utils.h"
 #include "nss_scoped_ptrs.h"
+#include "pk11_import.h"
 
 namespace nss_test {
 
@@ -91,8 +92,8 @@ static void ImportKey(ScopedPK11SymKey* to, const DataBuffer& key,
                       static_cast<unsigned int>(GetHashLength(hash_type))};
 
   PK11SymKey* inner =
-      PK11_ImportSymKey(slot, CKM_SSL3_MASTER_KEY_DERIVE, PK11_OriginUnwrap,
-                        CKA_DERIVE, &key_item, NULL);
+      nss_test::ImportSymKey(slot, CKM_SSL3_MASTER_KEY_DERIVE,
+                             PK11_OriginUnwrap, CKA_DERIVE, &key_item, NULL);
   ASSERT_NE(nullptr, inner);
   to->reset(inner);
 }
@@ -117,6 +118,9 @@ static void DumpData(const std::string& label, const uint8_t* buf, size_t len) {
 }
 
 void DumpKey(const std::string& label, ScopedPK11SymKey& key) {
+  if (PK11_IsFIPS()) {
+    return;  // Key bytes can't be extracted.
+  }
   SECStatus rv = PK11_ExtractKeyValue(key.get());
   ASSERT_EQ(SECSuccess, rv);
 
@@ -149,9 +153,47 @@ class TlsHkdfTest : public ::testing::Test,
     ImportKey(&k2_, kKey2, hash_type_, slot_.get());
   }
 
+  // Derives an AES key from |key| and encrypts a block with it.
+  static void Fingerprint(PK11SymKey* key, DataBuffer* out) {
+    static const uint8_t kInfo[] = {'f', 'p'};
+    CK_HKDF_PARAMS params = {};
+    params.bExpand = CK_TRUE;
+    params.prfHashMechanism = CKM_SHA256;
+    params.ulSaltType = CKF_HKDF_SALT_NULL;
+    params.pInfo = const_cast<uint8_t*>(kInfo);
+    params.ulInfoLen = sizeof(kInfo);
+    SECItem param = {siBuffer, reinterpret_cast<uint8_t*>(&params),
+                     sizeof(params)};
+    ScopedPK11SymKey aes(PK11_Derive(key, CKM_HKDF_DERIVE, &param, CKM_AES_ECB,
+                                     CKA_ENCRYPT, 16));
+    ASSERT_NE(nullptr, aes);
+    uint8_t block[16] = {0};
+    uint8_t ct[16];
+    unsigned int ct_len = 0;
+    ASSERT_EQ(SECSuccess,
+              PK11_Encrypt(aes.get(), CKM_AES_ECB, nullptr, ct, &ct_len,
+                           sizeof(ct), block, sizeof(block)));
+    out->Assign(ct, ct_len);
+  }
+
   void VerifyKey(const ScopedPK11SymKey& key, CK_MECHANISM_TYPE expected_mech,
                  const DataBuffer& expected_value) {
     EXPECT_EQ(expected_mech, PK11_GetMechanism(key.get()));
+
+    if (PK11_IsFIPS()) {
+      // Key bytes can't be extracted; compare against an imported copy.
+      SECItem item = {siBuffer, const_cast<uint8_t*>(expected_value.data()),
+                      static_cast<unsigned int>(expected_value.len())};
+      ScopedPK11SymKey expected(nss_test::ImportSymKey(
+          slot_.get(), CKM_HKDF_DERIVE, PK11_OriginUnwrap, CKA_DERIVE, &item,
+          nullptr));
+      ASSERT_NE(nullptr, expected);
+      DataBuffer want, got;
+      ASSERT_NO_FATAL_FAILURE(Fingerprint(expected.get(), &want));
+      ASSERT_NO_FATAL_FAILURE(Fingerprint(key.get(), &got));
+      EXPECT_EQ(want, got);
+      return;
+    }
 
     SECStatus rv = PK11_ExtractKeyValue(key.get());
     ASSERT_EQ(SECSuccess, rv);
@@ -221,11 +263,7 @@ class TlsHkdfTest : public ::testing::Test,
     EXPECT_EQ(static_cast<CK_MECHANISM_TYPE>(CKM_DES3_CBC_PAD),
               PK11_GetMechanism(with_mech.get()));
     // Just verify that the key is the right size.
-    rv = PK11_ExtractKeyValue(with_mech.get());
-    ASSERT_EQ(SECSuccess, rv);
-    SECItem* key_data = PK11_GetKeyData(with_mech.get());
-    ASSERT_NE(nullptr, key_data);
-    EXPECT_EQ(24U, key_data->len);
+    EXPECT_EQ(24U, PK11_GetKeyLength(with_mech.get()));
   }
 
  protected:

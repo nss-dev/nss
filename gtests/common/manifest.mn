@@ -12,7 +12,7 @@ SHARED_LIBRARY = $(NULL)
 ifeq ($(NSS_BUILD_UTIL_ONLY),1)
 CPPSRCS = gtests-util.cc
 else
-CPPSRCS = gtests.cc json_reader.cc
+CPPSRCS = gtests.cc json_reader.cc pk11_import.cc
 endif
 
 INCLUDES += -I$(CORE_DEPTH)/gtests/google_test/gtest/include \
