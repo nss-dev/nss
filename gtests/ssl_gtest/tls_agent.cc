@@ -1032,14 +1032,14 @@ void TlsAgent::ValidateCipherSpecs() {
   // We use one ciphersuite in each direction.
   PRInt32 expected = 2;
   if (variant_ == ssl_variant_datagram) {
-    // For DTLS 1.3, the client retains the cipher spec for early data and the
-    // handshake so that it can retransmit EndOfEarlyData and its final flight.
-    // It also retains the handshake read cipher spec so that it can read ACKs
-    // from the server. The server retains the handshake read cipher spec so it
-    // can read the client's retransmitted Finished.
+    // For DTLS 1.3, the client retains the cipher spec for the handshake so
+    // that it can retransmit its final flight. It also retains the handshake
+    // read cipher spec so that it can read ACKs from the server. The server
+    // retains the handshake read cipher spec so it can read the client's
+    // retransmitted Finished.
     if (expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
       if (role_ == CLIENT) {
-        expected = info_.earlyDataAccepted ? 5 : 4;
+        expected = 4;
       } else {
         expected = 3;
       }

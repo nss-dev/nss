@@ -238,8 +238,10 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * the rest of the TLS data. See [draft-ietf-tls-tls13; Section 8]
  * for more details.
  *
- * Note: when DTLS 1.3 is in use, any 0-RTT data received after EndOfEarlyData
- * (e.g., because of reordering) is discarded.
+ * Note: DTLS 1.3 does not use EndOfEarlyData.  A server instead stops
+ * accepting 0-RTT data once it receives a record from the handshake epoch, so
+ * any 0-RTT data that arrives after that (e.g., because of reordering) is
+ * discarded.
  */
 #define SSL_ENABLE_0RTT_DATA 33
 

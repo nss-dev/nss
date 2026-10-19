@@ -3618,9 +3618,15 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             return SECFailure;
         }
         TLS13_SET_HS_STATE(ss, wait_end_of_early_data);
-    } else {
+        if (IS_DTLS_13_OR_ABOVE(ss)) {
+            ss->ssl3.hs.allowPreviousEpoch = PR_TRUE;
+        }
+    }
+    if (ss->ssl3.hs.zeroRttState != ssl_0rtt_accepted ||
+        IS_DTLS_13_OR_ABOVE(ss)) {
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none ||
-                    ss->ssl3.hs.zeroRttState == ssl_0rtt_ignored);
+                    ss->ssl3.hs.zeroRttState == ssl_0rtt_ignored ||
+                    ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
 
         rv = tls13_SetCipherSpec(ss,
                                  TrafficKeyHandshake,
@@ -6045,6 +6051,11 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     if (IS_DTLS(ss)) {
         ssl_CipherSpecReleaseByEpoch(ss, ssl_secret_read, TrafficKeyClearText);
+        if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
+            ssl_CipherSpecReleaseByEpoch(ss, ssl_secret_read,
+                                         TrafficKeyEarlyApplicationData);
+            ss->ssl3.hs.zeroRttState = ssl_0rtt_done;
+        }
         /* We need to keep the handshake cipher spec so we can
          * read re-transmitted client Finished. */
         rv = dtls_StartTimer(ss, ss->ssl3.hs.hdTimer,
@@ -7246,7 +7257,9 @@ tls13_SendEndOfEarlyData(sslSocket *ss)
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    if (!ss->opt.suppressEndOfEarlyData) {
+    /* RFC 9147, Section 5.6: DTLS omits EndOfEarlyData from both the wire and
+     * the handshake transcript. */
+    if (!IS_DTLS_13_OR_ABOVE(ss) && !ss->opt.suppressEndOfEarlyData) {
         SSL_TRC(3, ("%d: TLS13[%d]: send EndOfEarlyData", SSL_GETPID(), ss->fd));
         rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_end_of_early_data, 0);
         if (rv != SECSuccess) {
@@ -7265,8 +7278,10 @@ tls13_HandleEndOfEarlyData(sslSocket *ss, const PRUint8 *b, PRUint32 length)
 
     PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
 
-    /* EndOfEarlyData is sent by clients; a client must never receive one. */
-    if (!ss->sec.isServer) {
+    /* EndOfEarlyData is sent by clients; a client must never receive one.
+     * DTLS never sends it, so a DTLS peer must never receive one either
+     * (RFC 9147, Section 5.6). */
+    if (!ss->sec.isServer || IS_DTLS(ss)) {
         FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_END_OF_EARLY_DATA,
                     unexpected_message);
         return SECFailure;
@@ -7276,14 +7291,6 @@ tls13_HandleEndOfEarlyData(sslSocket *ss, const PRUint8 *b, PRUint32 length)
                               wait_end_of_early_data);
     if (rv != SECSuccess) {
         return SECFailure;
-    }
-
-    /* We shouldn't be getting any more early data, and if we do,
-     * it is because of reordering and we drop it. */
-    if (IS_DTLS(ss)) {
-        ssl_CipherSpecReleaseByEpoch(ss, ssl_secret_read,
-                                     TrafficKeyEarlyApplicationData);
-        dtls_ReceivedFirstMessageInFlight(ss);
     }
 
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
@@ -7318,6 +7325,7 @@ tls13_MaybeHandleSuppressedEndOfEarlyData(sslSocket *ss)
         return SECSuccess;
     }
 
+    /* This is rejected for DTLS, which has no EndOfEarlyData to suppress. */
     return tls13_HandleEndOfEarlyData(ss, NULL, 0);
 }
 

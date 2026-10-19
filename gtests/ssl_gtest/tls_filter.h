@@ -605,7 +605,7 @@ class TlsEncryptedHandshakeMessageReplacer : public TlsRecordFilter {
   PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
                                     const DataBuffer& record, size_t* offset,
                                     DataBuffer* output) override {
-    if (header.content_type() != ssl_ct_application_data) {
+    if (!header.is_protected()) {
       return KEEP;
     }
 
@@ -623,6 +623,8 @@ class TlsEncryptedHandshakeMessageReplacer : public TlsRecordFilter {
       return KEEP;
     }
 
+    // A DTLS handshake header is 12 bytes, a TLS one 4.
+    const size_t hdr_len = header.is_dtls() ? 12 : 4;
     size_t off = 0;
     uint32_t msg_len = 0;
     uint32_t msg_type = 255;  // Not a real message
@@ -632,10 +634,10 @@ class TlsEncryptedHandshakeMessageReplacer : public TlsRecordFilter {
       }
 
       // Increment and check next messages
-      if (!plaintext.Read(++off, 3, &msg_len)) {
+      if (!plaintext.Read(off + 1, 3, &msg_len)) {
         break;
       }
-      off += 3 + msg_len;
+      off += hdr_len + msg_len;
     } while (msg_type != old_ct_);
 
     if (msg_type == old_ct_) {

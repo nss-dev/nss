@@ -573,9 +573,7 @@ TEST_P(TlsDropDatagram13, NoDropsDuringZeroRtt) {
   CheckConnected();
   SendReceive();
   EXPECT_EQ(0U, client_filters_.ack_->count());
-  CheckAcks(server_filters_.ack_, 0,
-            {0x0001000000000001ULL,    // EOED
-             0x0002000000000000ULL});  // Finished
+  CheckAcks(server_filters_.ack_, 0, {0x0002000000000000ULL});  // Finished
 }
 
 TEST_P(TlsDropDatagram13, DropEEDuringZeroRtt) {
@@ -596,9 +594,7 @@ TEST_P(TlsDropDatagram13, DropEEDuringZeroRtt) {
   CheckConnected();
   SendReceive();
   CheckAcks(client_filters_.ack_, 0, {0});
-  CheckAcks(server_filters_.ack_, 0,
-            {0x0001000000000002ULL,    // EOED
-             0x0002000000000000ULL});  // Finished
+  CheckAcks(server_filters_.ack_, 0, {0x0002000000000000ULL});  // Finished
 }
 
 class TlsReorderDatagram13 : public TlsDropDatagram13 {
@@ -733,46 +729,6 @@ TEST_P(TlsReorderDatagram13, ReorderServerCertificate) {
   CheckAcks(server_filters_.ack_, 0, {0x0002000000000000ULL});
 }
 
-TEST_P(TlsReorderDatagram13, DataAfterEOEDDuringZeroRtt) {
-  SetupForZeroRtt();
-  SetFilters();
-  std::cerr << "Starting second handshake" << std::endl;
-  client_->Set0RttEnabled(true);
-  server_->Set0RttEnabled(true);
-  ExpectResumption(RESUME_TICKET);
-  // Send the client's first flight of zero RTT data.
-  ZeroRttSendReceive(true, true);
-  // Now send another client application data record but
-  // capture it.
-  client_filters_.records_->Clear();
-  client_filters_.drop_->Reset(0xff);
-  const char* k0RttData = "123456";
-  const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
-  PRInt32 rv =
-      PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
-  EXPECT_EQ(k0RttDataLen, rv);
-  EXPECT_EQ(1UL, client_filters_.records_->count());  // data
-  server_->Handshake();
-  client_->Handshake();
-  ExpectEarlyDataAccepted(true);
-  // The server still hasn't received anything at this point.
-  EXPECT_EQ(3UL, client_filters_.records_->count());  // data, EOED, FIN
-  EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
-  EXPECT_EQ(TlsAgent::STATE_CONNECTING, server_->state());
-  // Now re-send the client's messages: EOED, data, FIN
-  ReSend(TlsAgent::CLIENT, std::vector<size_t>({1, 0, 2}));
-  server_->Handshake();
-  CheckConnected();
-  EXPECT_EQ(0U, client_filters_.ack_->count());
-  // Acknowledgements for EOED and Finished.
-  CheckAcks(server_filters_.ack_, 0,
-            {0x0001000000000002ULL, 0x0002000000000000ULL});
-  uint8_t buf[8];
-  rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
-  EXPECT_EQ(-1, rv);
-  EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
-}
-
 TEST_P(TlsReorderDatagram13, DataAfterFinDuringZeroRtt) {
   SetupForZeroRtt();
   SetFilters();
@@ -796,17 +752,16 @@ TEST_P(TlsReorderDatagram13, DataAfterFinDuringZeroRtt) {
   client_->Handshake();
   ExpectEarlyDataAccepted(true);
   // The server still hasn't received anything at this point.
-  EXPECT_EQ(3UL, client_filters_.records_->count());  // EOED, FIN, Data
+  EXPECT_EQ(2UL, client_filters_.records_->count());  // Data, FIN
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
   EXPECT_EQ(TlsAgent::STATE_CONNECTING, server_->state());
-  // Now re-send the client's messages: EOED, FIN, Data
-  ReSend(TlsAgent::CLIENT, std::vector<size_t>({1, 2, 0}));
+  // Now re-send the client's messages: FIN, Data
+  ReSend(TlsAgent::CLIENT, std::vector<size_t>({1, 0}));
   server_->Handshake();
   CheckConnected();
   EXPECT_EQ(0U, client_filters_.ack_->count());
-  // Acknowledgements for EOED and Finished.
-  CheckAcks(server_filters_.ack_, 0,
-            {0x0001000000000002ULL, 0x0002000000000000ULL});
+  // Acknowledgement for Finished.
+  CheckAcks(server_filters_.ack_, 0, {0x0002000000000000ULL});
   uint8_t buf[8];
   rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(-1, rv);

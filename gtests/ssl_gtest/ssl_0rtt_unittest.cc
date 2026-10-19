@@ -800,7 +800,7 @@ class PacketCoalesceFilter : public PacketFilter {
   DataBuffer packet_data_;
 };
 
-TEST_P(TlsConnectTls13, ZeroRttOrdering) {
+TEST_F(TlsConnectStreamTls13, ZeroRttOrdering) {
   SetupForZeroRtt();
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);
@@ -856,6 +856,63 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   buf.resize(read);
   EXPECT_EQ(late_data, buf);
   EXPECT_EQ(2U, step);
+}
+
+// As ZeroRttOrdering, but for DTLS, which doesn't provide order protection.
+// Both records have to be delivered; the order they arrive in is not fixed.
+TEST_F(TlsConnectDatagram13, ZeroRttDeliveryDtls) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+
+  // Send out the ClientHello.
+  client_->Handshake();
+
+  // Now, coalesce the next three things from the client: early data, second
+  // flight and 1-RTT data.
+  auto coalesce = std::make_shared<PacketCoalesceFilter>();
+  client_->SetFilter(coalesce);
+
+  // Send (and hold) early data.
+  static const std::vector<uint8_t> early_data = {3, 2, 1};
+  const PRInt32 early_len = static_cast<PRInt32>(early_data.size());
+  EXPECT_EQ(early_len,
+            PR_Write(client_->ssl_fd(), early_data.data(), early_len));
+
+  // Send (and hold) the second client handshake flight.
+  server_->Handshake();
+  client_->Handshake();
+
+  // Send (and hold) 1-RTT data.
+  static const std::vector<uint8_t> late_data = {7, 8, 9, 10};
+  const PRInt32 late_len = static_cast<PRInt32>(late_data.size());
+  EXPECT_EQ(late_len, PR_Write(client_->ssl_fd(), late_data.data(), late_len));
+
+  // Now release them all at once.
+  coalesce->SendCoalesced(client_);
+
+  bool got_early = false;
+  bool got_late = false;
+  for (size_t i = 0; i < 2; ++i) {
+    std::vector<uint8_t> buf(10);
+    PRInt32 read = PR_Read(server_->ssl_fd(), buf.data(),
+                           static_cast<PRInt32>(buf.size()));
+    ASSERT_LT(0, read) << "read " << i << " returned no data";
+    buf.resize(static_cast<size_t>(read));
+    if (buf == early_data) {
+      EXPECT_FALSE(got_early) << "0-RTT data delivered twice";
+      got_early = true;
+    } else if (buf == late_data) {
+      EXPECT_FALSE(got_late) << "1-RTT data delivered twice";
+      got_late = true;
+    } else {
+      ADD_FAILURE() << "unexpected record of " << read << " bytes";
+    }
+  }
+  EXPECT_TRUE(got_early) << "0-RTT data was not delivered";
+  EXPECT_TRUE(got_late) << "1-RTT data was not delivered";
+  EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
 }
 
 // Early data remains available after the handshake completes for TLS.
@@ -1224,7 +1281,96 @@ TEST_F(TlsConnectStreamTls13, SuppressEndOfEarlyDataClientOnly) {
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_ALERT);
 }
 
-TEST_P(TlsConnectGeneric, SuppressEndOfEarlyDataNoZeroRtt) {
+class EndOfEarlyDataCounter : public TlsHandshakeFilter {
+ public:
+  EndOfEarlyDataCounter(const std::shared_ptr<TlsAgent>& a)
+      : TlsHandshakeFilter(a, {kTlsHandshakeEndOfEarlyData}) {}
+
+  size_t count() const { return count_; }
+
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override {
+    ++count_;
+    return KEEP;
+  }
+
+ private:
+  size_t count_ = 0;
+};
+
+// TLS sends exactly one EndOfEarlyData; DTLS omits it from the wire
+// (RFC 9147, Section 5.6).
+TEST_P(TlsConnectTls13, ZeroRttEndOfEarlyData) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  auto eoed = MakeTlsFilter<EndOfEarlyDataCounter>(client_);
+  eoed->EnableDecryption();
+  ExpectResumption(RESUME_TICKET);
+  ZeroRttSendReceive(true, true);
+  Handshake();
+  ExpectEarlyDataAccepted(true);
+  CheckConnected();
+  SendReceive();
+  size_t expected = (variant_ == ssl_variant_datagram) ? 0U : 1U;
+  EXPECT_EQ(expected, eoed->count());
+}
+
+// A DTLS server must reject EndOfEarlyData.
+TEST_F(TlsConnectDatagram13, ZeroRttReceiveEndOfEarlyDataDtls) {
+  StartConnect();
+  auto rewrite = MakeTlsFilter<TlsEncryptedHandshakeMessageReplacer>(
+      client_, kTlsHandshakeFinished, kTlsHandshakeEndOfEarlyData);
+  rewrite->EnableDecryption();
+  client_->Handshake();
+  server_->Handshake();
+  client_->Handshake();
+  server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
+  server_->Handshake();
+  EXPECT_EQ(TlsAgent::STATE_ERROR, server_->state());
+  server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_END_OF_EARLY_DATA);
+}
+
+// SSL_SUPPRESS_END_OF_EARLY_DATA has no meaning in DTLS, which has no
+// EndOfEarlyData to suppress, so it cannot be enabled.
+TEST_F(TlsConnectDatagram13, SuppressEndOfEarlyDataDtls) {
+  EnsureTlsSetup();
+  for (auto& agent : {client_, server_}) {
+    EXPECT_EQ(SECFailure, SSL_OptionSet(agent->ssl_fd(),
+                                        SSL_SUPPRESS_END_OF_EARLY_DATA, true));
+    EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+  }
+}
+
+// DTLS sockets don't inherit a SSL_SUPPRESS_END_OF_EARLY_DATA default,
+// so it doesn't break DTLS 0-RTT.
+TEST_F(TlsConnectDatagram13, SuppressEndOfEarlyDataDefaultDtls) {
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSetDefault(SSL_SUPPRESS_END_OF_EARLY_DATA, PR_TRUE));
+  SetupForZeroRtt();
+  for (auto& agent : {client_, server_}) {
+    PRIntn val;
+    EXPECT_EQ(SECSuccess, SSL_OptionGet(agent->ssl_fd(),
+                                        SSL_SUPPRESS_END_OF_EARLY_DATA, &val));
+    EXPECT_FALSE(val);
+  }
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+  ZeroRttSendReceive(true, true);
+  Handshake();
+  ExpectEarlyDataAccepted(true);
+  CheckConnected();
+  SendReceive();
+  // The default is process-wide; restore it for the remaining tests.
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSetDefault(SSL_SUPPRESS_END_OF_EARLY_DATA, PR_FALSE));
+}
+
+// Stream only: the option can't be enabled for DTLS.
+TEST_P(TlsConnectStream, SuppressEndOfEarlyDataNoZeroRtt) {
   EnsureTlsSetup();
   client_->SetOption(SSL_SUPPRESS_END_OF_EARLY_DATA, true);
   server_->SetOption(SSL_SUPPRESS_END_OF_EARLY_DATA, true);

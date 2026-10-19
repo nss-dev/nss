@@ -14093,9 +14093,11 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
     if (rType == ssl_ct_application_data) {
         if (ss->firstHsDone)
             return SECSuccess;
+        /* Only epoch 1 carries early data. */
         if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 &&
             ss->sec.isServer &&
-            ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
+            ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted &&
+            epoch == TrafficKeyEarlyApplicationData) {
             return tls13_HandleEarlyApplicationData(ss, plaintext);
         }
         plaintext->len = 0;

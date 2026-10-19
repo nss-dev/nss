@@ -1024,6 +1024,12 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             break;
 
         case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            /* DTLS has no EndOfEarlyData to suppress (RFC 9147, Section 5.6). */
+            if (IS_DTLS(ss) && val) {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                rv = SECFailure;
+                break;
+            }
             ss->opt.suppressEndOfEarlyData = val;
             break;
 
@@ -4287,6 +4293,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->opt = ssl_defaults;
     if (protocolVariant == ssl_variant_datagram) {
         ss->opt.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+        ss->opt.suppressEndOfEarlyData = PR_FALSE;
     }
     ss->opt.useSocks = PR_FALSE;
     ss->opt.noLocks = !makeLocks;

@@ -23,6 +23,7 @@ namespace nss_test {
 const uint8_t kTlsHandshakeClientHello = 1;
 const uint8_t kTlsHandshakeServerHello = 2;
 const uint8_t kTlsHandshakeNewSessionTicket = 4;
+const uint8_t kTlsHandshakeEndOfEarlyData = 5;
 const uint8_t kTlsHandshakeHelloRetryRequest = 6;
 const uint8_t kTlsHandshakeEncryptedExtensions = 8;
 const uint8_t kTlsHandshakeCertificate = 11;
