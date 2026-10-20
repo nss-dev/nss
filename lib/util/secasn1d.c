@@ -1993,40 +1993,12 @@ sec_asn1d_next_in_group(sec_asn1d_state *state)
     state->consumed += child_consumed;
 
     /*
-     * If our child was just our end-of-contents octets, we are done.
+     * If our child was just our end-of-contents octets, we are done. The child
+     * parsed the group's terminating end-of-contents octets, so it is not a
+     * real member; discard it rather than adding child->dest to the group.
      */
     if (child->endofcontents) {
-        /* XXX I removed the PORT_Assert (child->dest == NULL) because there
-         * was a bug in that a template that was a sequence of which also had
-         * a child of a sequence of, in an indefinite group was not working
-         * properly.  This fix seems to work, (added the if statement below),
-         * and nothing appears broken, but I am putting this note here just
-         * in case. */
-        /*
-         * XXX No matter how many times I read that comment,
-         * I cannot figure out what case he was fixing.  I believe what he
-         * did was deliberate, so I am loathe to touch it.  I need to
-         * understand how it could ever be that child->dest != NULL but
-         * child->endofcontents is true, and why it is important to check
-         * that state->subitems_head is NULL.  This really needs to be
-         * figured out, as I am not sure if the following code should be
-         * compensating for "offset", as is done a little farther below
-         * in the more normal case.
-         */
-        /*
-         * XXX We used to assert our overall state was that we were decoding
-         * an indefinite-length object here (state->indefinite == TRUE and no
-         * pending bytes in the decoder), but those assertions aren't correct
-         * as it's legitimate to wrap indefinite sequences inside definite ones
-         * and this code handles that case. Additionally, when compiled in
-         * release mode these assertions aren't checked anyway, yet function
-         * safely.
-         */
-        if (child->dest && !state->subitems_head) {
-            sec_asn1d_add_to_subitems(state, child->dest, 0, PR_FALSE);
-            child->dest = NULL;
-        }
-
+        child->dest = NULL;
         child->place = notInUse;
         state->place = afterGroup;
         return;
@@ -2460,6 +2432,21 @@ sec_asn1d_absorb_child(sec_asn1d_state *state)
     state->child->consumed = 0;
 
     /*
+     * If we are indefinite-length and our child ran into end-of-contents
+     * octets while looking for absent optional content, then it consumed our
+     * own terminator, not our parent's, and we are complete. For example,
+     * "a0 80 00 00" ([0] indefinite {}) against a template of
+     * EXPLICIT [0] { ANY OPTIONAL }: the ANY child eats the 00 00.
+     */
+    if (state->indefinite && state->endofcontents) {
+        PORT_Assert(state->place == afterExplicit);
+        state->missing = PR_FALSE;
+        state->endofcontents = PR_FALSE;
+        state->place = afterEndOfContents;
+        return;
+    }
+
+    /*
      * And move on to final state.
      * (Technically everybody could move to afterEndOfContents except
      * for an indefinite-length EXPLICIT; for simplicity though we assert
@@ -2514,14 +2501,26 @@ sec_asn1d_parse_end_of_contents(sec_asn1d_state *state,
 
     if (state->pending == 0) {
         state->place = afterEndOfContents;
-        /* These end-of-contents octets either terminate a SEQUENCE, a GROUP,
-         * or a constructed string. The SEQUENCE case is unique in that the
-         * state parses its own end-of-contents octets and therefore should not
-         * have its `endofcontents` flag set. We identify the SEQUENCE case by
-         * checking whether the child state's template is pointing at a
-         * template terminator (see `sec_asn1d_next_in_sequence`).
+        /* Decide whose end-of-contents (00 00) octets we just consumed. When
+         * set, the `endofcontents` flag tells our parent "the octets I ate
+         * were *your* terminator, so your content has ended", so we must set
+         * it only when the 00 00 really belonged to the parent.
+         *
+         * Two situations reach this point:
+         *   1. We are an indefinite-length construct (SEQUENCE, EXPLICIT,
+         *      GROUP, or constructed string) that finished its content and is
+         *      now eating its *own* trailing 00 00. These octets are ours, not
+         *      the parent's, so the flag must stay false. Such a state parsed
+         *      a 0x80 length in its own header, i.e. state->indefinite is true.
+         *   2. We are a fresh child that went looking for the next element and
+         *      instead ran straight into the parent's 00 00 (see
+         *      sec_asn1d_parse_identifier). We never parsed a length, so
+         *      state->indefinite is false, and the flag must be set.
+         *
+         * Case 1 is exactly state->indefinite being true, and case 2 exactly
+         * state->indefinite being false.
          */
-        if (state->child && state->child->theTemplate->kind == 0) {
+        if (state->indefinite) {
             state->endofcontents = PR_FALSE;
         } else {
             state->endofcontents = PR_TRUE;
