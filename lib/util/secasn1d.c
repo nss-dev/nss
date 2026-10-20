@@ -2127,6 +2127,40 @@ sec_asn1d_next_in_sequence(sec_asn1d_state *state)
     }
 
     /*
+     * If our child ran into our end-of-contents octets while looking for an
+     * absent optional field, then our content is over -- those octets were
+     * ours. Every field we have not looked at yet must be optional, and then
+     * we are done.
+     *
+     * This has to be handled before we move forward, because moving the child
+     * onto the next field re-initializes it and clears its `endofcontents`
+     * flag, which is the only record we have that the 00 00 it consumed was
+     * ours.
+     */
+    if (child_missing && child->endofcontents) {
+        PORT_Assert(state->indefinite);
+        PORT_Assert(child_consumed == 2);
+        if (!state->indefinite || child_consumed != 2) {
+            PORT_SetError(SEC_ERROR_BAD_DER);
+            state->top->status = decodeError;
+            return;
+        }
+        child->theTemplate++;
+        while (child->theTemplate->kind != 0) {
+            if ((child->theTemplate->kind & SEC_ASN1_OPTIONAL) == 0) {
+                PORT_SetError(SEC_ERROR_BAD_DER);
+                state->top->status = decodeError;
+                return;
+            }
+            child->theTemplate++;
+        }
+        state->consumed += child_consumed;
+        child->place = notInUse;
+        state->place = afterEndOfContents;
+        return;
+    }
+
+    /*
      * Move forward.
      */
     child->theTemplate++;
@@ -2145,24 +2179,11 @@ sec_asn1d_next_in_sequence(sec_asn1d_state *state)
              * this is that we had one or more optional fields at the
              * end of our sequence, and we were encoded indefinite-length,
              * so when we went looking for those optional fields we
-             * found our end-of-contents octets instead.
-             * (Yes, this is ugly; dunno a better way to handle it.)
-             * So, first confirm the situation, and then mark that we
-             * are done.
+             * found our end-of-contents octets instead -- and that case
+             * returned above.  So this encoding is bad.
              */
-            if (state->indefinite && child->endofcontents) {
-                PORT_Assert(child_consumed == 2);
-                if (child_consumed != 2) {
-                    PORT_SetError(SEC_ERROR_BAD_DER);
-                    state->top->status = decodeError;
-                } else {
-                    state->consumed += child_consumed;
-                    state->place = afterEndOfContents;
-                }
-            } else {
-                PORT_SetError(SEC_ERROR_BAD_DER);
-                state->top->status = decodeError;
-            }
+            PORT_SetError(SEC_ERROR_BAD_DER);
+            state->top->status = decodeError;
         } else {
             /*
              * We have to finish out, maybe reading end-of-contents octets;
@@ -2391,12 +2412,22 @@ sec_asn1d_absorb_child(sec_asn1d_state *state)
     /*
      * Inherit the missing status of our child, and do the ugly
      * backing-up if necessary.
+     *
+     * A POINTER, INLINE, or implicitly-tagged state is transparent: it has no
+     * header of its own, and `sec_asn1d_get_enclosing_construct` looks through
+     * it. So if our child consumed end-of-contents octets that were not its
+     * own, they are not ours either, and the flag has to reach the enclosing
+     * construct. Note that this is not the same condition as `missing`:
+     * `sec_asn1d_parse_identifier` marks a state missing only when it is
+     * optional, while `sec_asn1d_parent_allows_EOC` also lets a non-optional
+     * member of an indefinite-length GROUP or constructed string run into its
+     * parent's terminator.
      */
     state->missing = state->child->missing;
+    state->endofcontents = state->child->endofcontents;
     if (state->missing) {
         state->found_tag_number = state->child->found_tag_number;
         state->found_tag_modifiers = state->child->found_tag_modifiers;
-        state->endofcontents = state->child->endofcontents;
     }
 
     /*
