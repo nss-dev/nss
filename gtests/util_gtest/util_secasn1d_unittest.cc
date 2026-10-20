@@ -15,11 +15,13 @@ class SECASN1DTest : public ::testing::Test {
   void SetUp() override { arena_ = PORT_NewArena(4096); }
   void TearDown() override { PORT_FreeArena(arena_, PR_FALSE); }
 
-  SECStatus Decode(const SEC_ASN1Template* tmpl, void* dest,
+  template <typename T>
+  SECStatus Decode(const SEC_ASN1Template* tmpl, T* dest,
                    const unsigned char* ber, size_t len) {
     SECItem item = {siBuffer, const_cast<unsigned char*>(ber),
                     static_cast<unsigned int>(len)};
-    return SEC_ASN1DecodeItem(arena_, dest, tmpl, &item);
+    return SEC_ASN1DecodeItem(arena_, reinterpret_cast<void*>(dest), tmpl,
+                              &item);
   }
 
   PLArenaPool* arena_;
@@ -114,6 +116,8 @@ struct TrailingOptionals {
   SECItem second;
   SECItem third;
 };
+
+SEC_ASN1_MKSUB(SEC_AnyTemplate)
 
 #define EXPLICIT_OPTIONAL(n, field)                                       \
   {SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | \
