@@ -10,14 +10,27 @@
 
 namespace nss_test {
 
-class SECASN1DTest : public ::testing::Test {};
+class SECASN1DTest : public ::testing::Test {
+ protected:
+  void SetUp() override { arena_ = PORT_NewArena(4096); }
+  void TearDown() override { PORT_FreeArena(arena_, PR_FALSE); }
+
+  SECStatus Decode(const SEC_ASN1Template *tmpl, void *dest,
+                   const unsigned char *ber, size_t len) {
+    SECItem item = {siBuffer, const_cast<unsigned char *>(ber),
+                    static_cast<unsigned int>(len)};
+    return SEC_ASN1DecodeItem(arena_, dest, tmpl, &item);
+  }
+
+  PLArenaPool *arena_;
+};
 
 struct InnerSequenceItem {
   SECItem value;
 };
 
 struct OuterSequence {
-  InnerSequenceItem* item;
+  InnerSequenceItem *item;
 };
 
 static const SEC_ASN1Template InnerSequenceTemplate[] = {
@@ -29,10 +42,68 @@ static const SEC_ASN1Template OuterSequenceTemplate[] = {
     {SEC_ASN1_SEQUENCE_OF, offsetof(OuterSequence, item), InnerSequenceTemplate,
      sizeof(OuterSequence)}};
 
+/* SEQUENCE OF [0] EXPLICIT SEQUENCE { ANY } -- a group whose members are
+ * explicitly tagged, so each member parses its own end-of-contents octets. */
+static const SEC_ASN1Template ExplicitInnerSequenceTemplate[] = {
+    {SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+     0, InnerSequenceTemplate, sizeof(InnerSequenceItem)}};
+
+static const SEC_ASN1Template GroupOfExplicitTemplate[] = {
+    {SEC_ASN1_SEQUENCE_OF, 0, ExplicitInnerSequenceTemplate}};
+
+/* [0] EXPLICIT { ANY OPTIONAL } -- an explicitly tagged wrapper whose content
+ * may be absent, so "[0] indefinite {}" is a legal encoding. Decoding one of
+ * these consumes the wrapper's end-of-contents octets while looking for the
+ * absent content. */
+struct OptionalContent {
+  SECItem content;
+};
+
+static const SEC_ASN1Template OptionalAnyTemplate[] = {
+    {SEC_ASN1_ANY | SEC_ASN1_OPTIONAL, offsetof(OptionalContent, content), NULL,
+     sizeof(OptionalContent)}};
+
+static const SEC_ASN1Template ExplicitOptionalTemplate[] = {
+    {SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+     0, OptionalAnyTemplate, sizeof(OptionalContent)}};
+
+static const SEC_ASN1Template GroupOfExplicitOptionalTemplate[] = {
+    {SEC_ASN1_SEQUENCE_OF, 0, ExplicitOptionalTemplate}};
+
+/* SEQUENCE { [0] EXPLICIT { ANY OPTIONAL }, ANY OPTIONAL } */
+struct WrappedThenAny {
+  SECItem wrapped;
+  SECItem rest;
+};
+
+static const SEC_ASN1Template SequenceWithExplicitOptionalTemplate[] = {
+    {SEC_ASN1_SEQUENCE, 0, NULL, sizeof(WrappedThenAny)},
+    {SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+     offsetof(WrappedThenAny, wrapped), OptionalAnyTemplate},
+    {SEC_ASN1_ANY | SEC_ASN1_OPTIONAL, offsetof(WrappedThenAny, rest)},
+    {0}};
+
+/* SET OF CHOICE { UTCTime | GeneralizedTime }. NSS decodes this shape whenever
+ * a dynamic attribute-value chooser returns a CHOICE template, e.g. a CMS
+ * signing-time attribute (SET OF CERT_TimeChoiceTemplate). A CHOICE member
+ * allocates its destination before it discovers whether there is a member
+ * there at all, which is what makes an empty SET interesting. */
+struct TimeChoice {
+  int kind;
+  SECItem value;
+};
+
+static const SEC_ASN1Template TimeChoiceTemplate[] = {
+    {SEC_ASN1_CHOICE, offsetof(TimeChoice, kind), NULL, sizeof(TimeChoice)},
+    {SEC_ASN1_UTC_TIME, offsetof(TimeChoice, value), NULL, 1},
+    {SEC_ASN1_GENERALIZED_TIME, offsetof(TimeChoice, value), NULL, 2},
+    {0}};
+
+static const SEC_ASN1Template SetOfTimeChoiceTemplate[] = {
+    {SEC_ASN1_SET_OF, 0, TimeChoiceTemplate}};
+
 TEST_F(SECASN1DTest, IndefiniteSequenceInIndefiniteGroup) {
-  PLArenaPool* arena = PORT_NewArena(4096);
-  OuterSequence* outer = nullptr;
-  SECStatus rv;
+  OuterSequence *outer = nullptr;
 
   // echo "SEQUENCE indefinite {
   //         SEQUENCE indefinite {
@@ -45,14 +116,12 @@ TEST_F(SECASN1DTest, IndefiniteSequenceInIndefiniteGroup) {
                          0x31, 0x39, 0x00, 0x00, 0x00, 0x00};
 
   // Decoding should fail if the trailing EOC is omitted (Bug 1387919)
-  SECItem missingEOC = {siBuffer, ber, sizeof(ber) - 2};
-  rv = SEC_ASN1DecodeItem(arena, &outer, OuterSequenceTemplate, &missingEOC);
-  EXPECT_EQ(SECFailure, rv);
+  EXPECT_EQ(SECFailure,
+            Decode(OuterSequenceTemplate, &outer, ber, sizeof(ber) - 2));
 
   // With the trailing EOC, this is well-formed BER.
-  SECItem goodEncoding = {siBuffer, ber, sizeof(ber)};
-  rv = SEC_ASN1DecodeItem(arena, &outer, OuterSequenceTemplate, &goodEncoding);
-  EXPECT_EQ(SECSuccess, rv);
+  EXPECT_EQ(SECSuccess,
+            Decode(OuterSequenceTemplate, &outer, ber, sizeof(ber)));
 
   // |outer| should now be a null terminated array of InnerSequenceItems
 
@@ -62,8 +131,204 @@ TEST_F(SECASN1DTest, IndefiniteSequenceInIndefiniteGroup) {
 
   // The second item is the null terminator
   EXPECT_EQ(outer[1].item, nullptr);
+}
 
-  PORT_FreeArena(arena, PR_FALSE);
+// An indefinite-length EXPLICIT member of an indefinite-length group parses its
+// own end-of-contents octets. Those octets must not be mistaken for the
+// group's terminator: the group ends only at its own end-of-contents octets.
+TEST_F(SECASN1DTest, IndefiniteExplicitInIndefiniteGroup) {
+  InnerSequenceItem **items = nullptr;
+
+  // SEQUENCE indefinite {
+  //   [0] indefinite { SEQUENCE indefinite { PrintableString { "AB" } } }
+  // }
+  unsigned char ber[] = {0x30, 0x80,            //
+                         0xa0, 0x80,            //
+                         0x30, 0x80,            //
+                         0x13, 0x02, 'A', 'B',  //
+                         0x00, 0x00,            // end SEQUENCE
+                         0x00, 0x00,            // end [0]
+                         0x00, 0x00};           // end group
+
+  // The [0] wrapper's end-of-contents octets do not end the group, so an
+  // encoding that stops there is truncated.
+  EXPECT_EQ(SECFailure,
+            Decode(GroupOfExplicitTemplate, &items, ber, sizeof(ber) - 2));
+
+  EXPECT_EQ(SECSuccess,
+            Decode(GroupOfExplicitTemplate, &items, ber, sizeof(ber)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  EXPECT_EQ(4U, items[0]->value.len);
+  EXPECT_EQ(0, memcmp(items[0]->value.data, ber + 6, 4));
+  EXPECT_EQ(nullptr, items[1]);
+}
+
+// Every member of the group must be parsed, not just the first one.
+TEST_F(SECASN1DTest, TwoIndefiniteExplicitsInIndefiniteGroup) {
+  InnerSequenceItem **items = nullptr;
+
+  unsigned char ber[] = {0x30, 0x80,              //
+                         0xa0, 0x80, 0x30, 0x80,  //
+                         0x13, 0x01, 'A',         //
+                         0x00, 0x00, 0x00, 0x00,  // end SEQ, [0]
+                         0xa0, 0x80, 0x30, 0x80,  //
+                         0x13, 0x01, 'B',         //
+                         0x00, 0x00, 0x00, 0x00,  // end SEQ, [0]
+                         0x00, 0x00};             // end group
+
+  EXPECT_EQ(SECSuccess,
+            Decode(GroupOfExplicitTemplate, &items, ber, sizeof(ber)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  ASSERT_NE(nullptr, items[1]);
+  EXPECT_EQ(3U, items[0]->value.len);
+  EXPECT_EQ(0, memcmp(items[0]->value.data, ber + 6, 3));
+  EXPECT_EQ(3U, items[1]->value.len);
+  EXPECT_EQ(0, memcmp(items[1]->value.data, ber + 17, 3));
+  EXPECT_EQ(nullptr, items[2]);
+}
+
+// A group must not stop early and silently ignore the rest of its content:
+// here the second member does not match the template and must be rejected.
+TEST_F(SECASN1DTest, GroupWithMistaggedMemberAfterIndefiniteExplicit) {
+  InnerSequenceItem **items = nullptr;
+
+  unsigned char ber[] = {0x30, 0x80,              //
+                         0xa0, 0x80, 0x30, 0x80,  //
+                         0x13, 0x01, 'A',         //
+                         0x00, 0x00, 0x00, 0x00,  // end SEQ, [0]
+                         0x30, 0x00,              // not [0]
+                         0x00, 0x00};             // end group
+
+  EXPECT_EQ(SECFailure,
+            Decode(GroupOfExplicitTemplate, &items, ber, sizeof(ber)));
+}
+
+// An indefinite-length EXPLICIT whose content is optional and absent has its
+// end-of-contents octets consumed by the child that went looking for that
+// content. The wrapper is then complete: it must not read a second set of
+// end-of-contents octets, which would be its parent's.
+TEST_F(SECASN1DTest, EmptyIndefiniteExplicit) {
+  OptionalContent *content = nullptr;
+
+  unsigned char truncated[] = {0xa0, 0x80};
+  EXPECT_EQ(SECFailure, Decode(ExplicitOptionalTemplate, &content, truncated,
+                               sizeof(truncated)));
+
+  // [0] indefinite {}
+  unsigned char ber[] = {0xa0, 0x80, 0x00, 0x00};
+  content = static_cast<OptionalContent *>(
+      PORT_ArenaZAlloc(arena_, sizeof(OptionalContent)));
+  EXPECT_EQ(SECSuccess,
+            Decode(ExplicitOptionalTemplate, content, ber, sizeof(ber)));
+  EXPECT_EQ(nullptr, content->content.data);
+  EXPECT_EQ(0U, content->content.len);
+}
+
+TEST_F(SECASN1DTest, EmptyIndefiniteExplicitInIndefiniteGroup) {
+  OptionalContent **items = nullptr;
+
+  // SEQUENCE indefinite { [0] indefinite {} }
+  unsigned char one[] = {0x30, 0x80, 0xa0, 0x80, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(SECFailure, Decode(GroupOfExplicitOptionalTemplate, &items, one,
+                               sizeof(one) - 2));
+  EXPECT_EQ(SECSuccess,
+            Decode(GroupOfExplicitOptionalTemplate, &items, one, sizeof(one)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  EXPECT_EQ(nullptr, items[0]->content.data);
+  EXPECT_EQ(nullptr, items[1]);
+
+  // SEQUENCE indefinite { [0] indefinite {}, [0] indefinite {} }
+  unsigned char two[] = {0x30, 0x80, 0xa0, 0x80, 0x00, 0x00,
+                         0xa0, 0x80, 0x00, 0x00, 0x00, 0x00};
+  items = nullptr;
+  EXPECT_EQ(SECSuccess,
+            Decode(GroupOfExplicitOptionalTemplate, &items, two, sizeof(two)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  ASSERT_NE(nullptr, items[1]);
+  EXPECT_EQ(nullptr, items[0]->content.data);
+  EXPECT_EQ(nullptr, items[1]->content.data);
+  EXPECT_EQ(nullptr, items[2]);
+
+  // SEQUENCE indefinite { [0] indefinite { PrintableString { "A" } },
+  //                       [0] indefinite {} }
+  unsigned char mixed[] = {0x30, 0x80,                   //
+                           0xa0, 0x80, 0x13, 0x01, 'A',  //
+                           0x00, 0x00,                   // end [0]
+                           0xa0, 0x80, 0x00, 0x00,       // empty [0]
+                           0x00, 0x00};                  // end group
+  items = nullptr;
+  EXPECT_EQ(SECSuccess, Decode(GroupOfExplicitOptionalTemplate, &items, mixed,
+                               sizeof(mixed)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  ASSERT_NE(nullptr, items[1]);
+  EXPECT_EQ(3U, items[0]->content.len);
+  EXPECT_EQ(0, memcmp(items[0]->content.data, mixed + 4, 3));
+  EXPECT_EQ(nullptr, items[1]->content.data);
+  EXPECT_EQ(nullptr, items[2]);
+
+  // The same member inside a definite-length group.
+  unsigned char definite[] = {0x30, 0x04, 0xa0, 0x80, 0x00, 0x00};
+  items = nullptr;
+  EXPECT_EQ(SECSuccess, Decode(GroupOfExplicitOptionalTemplate, &items,
+                               definite, sizeof(definite)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  EXPECT_EQ(nullptr, items[0]->content.data);
+  EXPECT_EQ(nullptr, items[1]);
+}
+
+TEST_F(SECASN1DTest, EmptyIndefiniteExplicitInSequence) {
+  WrappedThenAny *seq = static_cast<WrappedThenAny *>(
+      PORT_ArenaZAlloc(arena_, sizeof(WrappedThenAny)));
+
+  // SEQUENCE indefinite { [0] indefinite {} }
+  unsigned char indefinite[] = {0x30, 0x80, 0xa0, 0x80, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(SECSuccess, Decode(SequenceWithExplicitOptionalTemplate, seq,
+                               indefinite, sizeof(indefinite)));
+  EXPECT_EQ(nullptr, seq->wrapped.data);
+  EXPECT_EQ(nullptr, seq->rest.data);
+
+  // SEQUENCE { [0] indefinite {}, SEQUENCE {} }
+  unsigned char withRest[] = {0x30, 0x06, 0xa0, 0x80, 0x00, 0x00, 0x30, 0x00};
+  seq = static_cast<WrappedThenAny *>(
+      PORT_ArenaZAlloc(arena_, sizeof(WrappedThenAny)));
+  EXPECT_EQ(SECSuccess, Decode(SequenceWithExplicitOptionalTemplate, seq,
+                               withRest, sizeof(withRest)));
+  EXPECT_EQ(nullptr, seq->wrapped.data);
+  ASSERT_NE(nullptr, seq->rest.data);
+  EXPECT_EQ(2U, seq->rest.len);
+  EXPECT_EQ(0, memcmp(seq->rest.data, withRest + 6, 2));
+}
+
+// An empty indefinite-length group must not produce a member. A CHOICE member
+// has its destination allocated before the end-of-contents octets are seen, and
+// that zero-filled destination used to be handed back as a phantom member.
+TEST_F(SECASN1DTest, EmptyIndefiniteSetOfChoice) {
+  TimeChoice **items = nullptr;
+
+  unsigned char empty[] = {0x31, 0x80, 0x00, 0x00};
+  EXPECT_EQ(SECSuccess,
+            Decode(SetOfTimeChoiceTemplate, &items, empty, sizeof(empty)));
+  ASSERT_NE(nullptr, items);
+  EXPECT_EQ(nullptr, items[0]);
+
+  // A non-empty SET still decodes.
+  unsigned char utc[] = {0x31, 0x80, 0x17, 0x0d, '9', '9', '0', '1',  '0', '1',
+                         '0',  '0',  '0',  '0',  '0', '0', 'Z', 0x00, 0x00};
+  items = nullptr;
+  EXPECT_EQ(SECSuccess,
+            Decode(SetOfTimeChoiceTemplate, &items, utc, sizeof(utc)));
+  ASSERT_NE(nullptr, items);
+  ASSERT_NE(nullptr, items[0]);
+  EXPECT_EQ(1, items[0]->kind);
+  EXPECT_EQ(13U, items[0]->value.len);
+  EXPECT_EQ(0, memcmp(items[0]->value.data, utc + 4, 13));
+  EXPECT_EQ(nullptr, items[1]);
 }
 
 }  // namespace nss_test
